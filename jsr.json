@@ -1,0 +1,10 @@
+{
+    "name": "@make/forman-schema",
+    "version": "0.0.0",
+    "exports": "./src/index.ts",
+    "license": "MIT",
+    "publish": {
+        "include": ["LICENSE", "README.md", "src/**/*.ts"],
+        "exclude": ["test/*", "scripts/*"]
+    }
+}
