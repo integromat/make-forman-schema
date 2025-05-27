@@ -8,6 +8,7 @@ import type { FormanSchemaField, FormanSchemaFieldType, FormanSchemaValue } from
 const JSON_PRIMITIVE_TYPE_MAP: Readonly<Record<string, FormanSchemaFieldType>> = {
     string: 'text',
     number: 'number',
+    integer: 'number',
     boolean: 'boolean',
 } as const;
 
@@ -108,8 +109,9 @@ export function toFormanSchema(field: JSONSchema7): FormanSchemaField {
             // For primitive types, use the type mapping
             const primitiveField: FormanSchemaField = {
                 type: (JSON_PRIMITIVE_TYPE_MAP[field.type as keyof typeof JSON_PRIMITIVE_TYPE_MAP] ||
-                    'text') as FormanSchemaFieldType,
-                help: field.description,
+                    'any') as FormanSchemaFieldType,
+                label: noEmpty(field.title),
+                help: noEmpty(field.description),
                 default: field.default as FormanSchemaValue,
             };
 

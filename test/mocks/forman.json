@@ -113,5 +113,12 @@
         "label": "",
         "default": "",
         "required": false
+    },
+    {
+        "help": "description",
+        "name": "any",
+        "type": "any",
+        "label": "Any",
+        "required": false
     }
 ]
