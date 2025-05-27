@@ -8,10 +8,6 @@ import type {
 } from './types';
 import { noEmpty, isObject } from './utils';
 
-declare module 'json-schema' {
-    interface JSONSchema7 extends Record<`x-${string}`, unknown> {}
-}
-
 /**
  * Context for schema conversion operations
  */
@@ -341,7 +337,12 @@ function handleSelectType(field: FormanSchemaField, result: JSONSchema7, context
         : undefined;
 
     if (typeof options === 'string') {
-        result['x-fetch'] = appendQueryString(options, context.domain, context.tail);
+        Object.defineProperty(result, 'x-fetch', {
+            configurable: true,
+            enumerable: true,
+            writable: true,
+            value: appendQueryString(options, context.domain, context.tail),
+        });
     } else if (options?.some(option => option.label || option.nested)) {
         result.oneOf = (options || []).map(option => {
             const localNested =
@@ -396,17 +397,22 @@ function handleSelectType(field: FormanSchemaField, result: JSONSchema7, context
 
         root.addFields(nested, [...context.tail, field.name!]);
     } else if (nested) {
-        result['x-nested'] =
-            typeof nested === 'string'
-                ? nested
-                : toJSONSchemaInternal(
-                      { type: 'collection', spec: nested },
-                      {
-                          ...context,
-                          domain: domain || context.domain,
-                          tail: [...context.tail, field.name!],
-                      },
-                  );
+        Object.defineProperty(result, 'x-nested', {
+            configurable: true,
+            enumerable: true,
+            writable: true,
+            value:
+                typeof nested === 'string'
+                    ? nested
+                    : toJSONSchemaInternal(
+                          { type: 'collection', spec: nested },
+                          {
+                              ...context,
+                              domain: domain || context.domain,
+                              tail: [...context.tail, field.name!],
+                          },
+                      ),
+        });
     }
 
     return result;
