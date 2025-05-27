@@ -58,14 +58,36 @@ const formanSchema = toFormanSchema(jsonSchemaField);
 
 ### Forman Schema Types
 
-- text → string
-- number → number
-- boolean → boolean
-- date → string
-- json → string
-- select → string with enum
-- collection → object
+- account → number
+- aiagent → string
 - array → array
+- buffer → string
+- cert → string
+- collection → object
+- color → string
+- datastore → number
+- date → string
+- email → string
+- file → string
+- filename → string
+- folder → string
+- hidden → string
+- hook → number
+- integer → number
+- json → string
+- keychain → number
+- number → number
+- path → string
+- pkey → string
+- port → number
+- select → string with enum
+- text → string
+- time → string
+- timestamp → string
+- timezone → string
+- uinteger → number
+- url → string
+- uuid → string
 
 ### JSON Schema Types
 
@@ -74,6 +96,12 @@ const formanSchema = toFormanSchema(jsonSchemaField);
 - boolean → boolean
 - object → collection
 - array → array
+
+## Error Handling
+
+### SchemaConversionError
+
+`SchemaConversionError` is thrown when schema conversion fails. It includes a message and optionally the field that caused the error.
 
 ## Testing
 

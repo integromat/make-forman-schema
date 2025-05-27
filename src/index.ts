@@ -2,7 +2,6 @@ import type { JSONSchema7 } from 'json-schema';
 import { toJSONSchemaInternal } from './forman';
 import type { FormanSchemaField } from './types';
 
-export type { JSONSchema7 } from 'json-schema';
 export { toFormanSchema } from './json';
 export type {
     FormanSchemaFieldType,

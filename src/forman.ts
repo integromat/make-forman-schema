@@ -95,6 +95,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, JSONSchema7['type']>> = {
     timezone: 'string',
     url: 'string',
     uuid: 'string',
+    any: undefined,
 } as const;
 
 /**
@@ -207,7 +208,7 @@ export function toJSONSchemaInternal(
     const normalizedField = normalizeFieldType(field);
 
     const result: JSONSchema7 = {
-        type: FORMAN_TYPE_MAP[normalizedField.type] || 'string',
+        type: FORMAN_TYPE_MAP[normalizedField.type],
         title: noEmpty(normalizedField.label),
         description: noEmpty(normalizedField.help),
     };
@@ -235,7 +236,6 @@ export function toJSONSchemaInternal(
  */
 function handleCollectionType(field: FormanSchemaField, result: JSONSchema7, context: ConversionContext): JSONSchema7 {
     Object.assign(result, {
-        type: 'object',
         properties: {} as Record<string, JSONSchema7>,
         required: [],
     });
