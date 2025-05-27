@@ -89,6 +89,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, JSONSchema7['type']>> = {
     hidden: 'string',
     integer: 'number',
     uinteger: 'number',
+    password: 'string',
     path: 'string',
     pkey: 'string',
     port: 'number',
