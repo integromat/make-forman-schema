@@ -1,12 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from '@jest/globals';
-import { type FormanSchemaField, type JSONSchemaField, toFormanSchema, toJSONSchema } from '../src/index.js';
+import { type FormanSchemaField, toFormanSchema, toJSONSchema } from '../src/index.js';
+import type { JSONSchema7 } from 'json-schema';
 
 describe('Forman Schema', () => {
     const formanMock = JSON.parse(readFileSync('./test/mocks/forman.json').toString());
 
     let formanSchema: FormanSchemaField;
-    let jsonSchema: JSONSchemaField;
+    let jsonSchema: JSONSchema7;
 
     it('Forman Schema -> JSON Schema', async () => {
         formanSchema = {
@@ -75,6 +76,7 @@ describe('Forman Schema', () => {
                     type: 'array',
                 },
                 select: {
+                    title: 'Select',
                     enum: ['option 1', 'option 2'],
                     type: 'string',
                 },
@@ -159,6 +161,7 @@ describe('Forman Schema', () => {
                     required: false,
                 },
                 {
+                    label: 'Select',
                     type: 'select',
                     options: [
                         {

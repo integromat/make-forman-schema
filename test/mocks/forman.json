@@ -95,7 +95,7 @@
         "help": "",
         "name": "select",
         "type": "select",
-        "label": "",
+        "label": "Select",
         "options": [
             {
                 "value": "option 1"
