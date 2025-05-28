@@ -19,6 +19,12 @@ export interface ConversionContext {
     path: string[];
     /** Domain roots */
     roots: Record<string, DomainRoot>;
+    /**
+     * Add conditional fields to the schema
+     * @param name The name of the field
+     * @param value The value of the field
+     * @param nested The nested fields to add
+     */
     addConditionalFields: (name: string, value: FormanSchemaValue, nested: JSONSchema7 | string) => void;
 }
 
@@ -28,12 +34,20 @@ export interface ConversionContext {
 export interface DomainRoot {
     /** Buffer of fields to add before the root has been found */
     buffer?: FormainDomainBuffer[];
-    /** Add fields to the root */
+    /** Add fields to the root
+     * @param nested The nested fields to add
+     * @param tail The tail of parameters in nested selects, required to resolve RPC payloads
+     */
     addFields: (nested: FormanSchemaField[], tail?: string[]) => void;
 }
 
+/**
+ * Buffer of fields to be added to a domain before the root has been identified
+ */
 export type FormainDomainBuffer = {
+    /** Field to add */
     field: FormanSchemaField;
+    /** Tail of parameters in nested selects, required to resolve RPC payloads */
     tail?: string[];
 };
 
@@ -41,10 +55,14 @@ export type FormainDomainBuffer = {
  * Error thrown when schema conversion fails
  */
 export class SchemaConversionError extends Error {
-    constructor(
-        message: string,
-        public readonly field?: FormanSchemaField | JSONSchema7,
-    ) {
+    /** Field that caused the error */
+    public readonly field?: FormanSchemaField | JSONSchema7;
+
+    /**
+     * @param message The error message
+     * @param field The field that caused the error
+     */
+    constructor(message: string, field?: FormanSchemaField | JSONSchema7) {
         super(message);
         this.name = 'SchemaConversionError';
     }
@@ -233,6 +251,10 @@ export function toJSONSchemaInternal(
 
 /**
  * Handles collection type conversion
+ * @param field The field to convert
+ * @param result The prepared JSON Schema field
+ * @param context The context for the conversion
+ * @returns The converted JSON Schema field
  */
 function handleCollectionType(field: FormanSchemaField, result: JSONSchema7, context: ConversionContext): JSONSchema7 {
     Object.assign(result, {
@@ -293,6 +315,10 @@ function handleCollectionType(field: FormanSchemaField, result: JSONSchema7, con
 
 /**
  * Handles array type conversion
+ * @param field The field to convert
+ * @param result The prepared JSON Schema field
+ * @param context The context for the conversion
+ * @returns The converted JSON Schema field
  */
 function handleArrayType(field: FormanSchemaField, result: JSONSchema7, context: ConversionContext): JSONSchema7 {
     if (field.spec) {
@@ -320,6 +346,10 @@ function handleArrayType(field: FormanSchemaField, result: JSONSchema7, context:
 
 /**
  * Handles select type conversion
+ * @param field The field to convert
+ * @param result The prepared JSON Schema field
+ * @param context The context for the conversion
+ * @returns The converted JSON Schema field
  */
 function handleSelectType(field: FormanSchemaField, result: JSONSchema7, context: ConversionContext): JSONSchema7 {
     const options = isObject<FormanSchemaExtendedOptions>(field.options) ? field.options.store : field.options;
@@ -403,7 +433,7 @@ function handleSelectType(field: FormanSchemaField, result: JSONSchema7, context
             writable: true,
             value:
                 typeof nested === 'string'
-                    ? { $ref: nested }
+                    ? { $ref: appendQueryString(nested, context.domain, [...context.tail, field.name!]) }
                     : toJSONSchemaInternal(
                           { type: 'collection', spec: nested },
                           {
@@ -420,6 +450,9 @@ function handleSelectType(field: FormanSchemaField, result: JSONSchema7, context
 
 /**
  * Handles primitive type conversion
+ * @param field The field to convert
+ * @param result The prepared JSON Schema field
+ * @returns The converted JSON Schema field
  */
 function handlePrimitiveType(field: FormanSchemaField, result: JSONSchema7): JSONSchema7 {
     if (field.default !== '' && field.default != null) {
