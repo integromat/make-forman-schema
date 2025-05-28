@@ -1,3 +1,5 @@
+import { FormanSchemaOption, FormanSchemaOptionGroup } from './types';
+
 /**
  * Utility function to handle empty strings by converting them to undefined.
  * @param text The input text to check
@@ -14,4 +16,13 @@ export function noEmpty(text: string | undefined): string | undefined {
  */
 export function isObject<T = object>(value: unknown): value is T {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Utility function to check if a value is an option group.
+ * @param value The value to check
+ * @returns true if the value is an option group, false otherwise
+ */
+export function isOptionGroup(value: FormanSchemaOption | FormanSchemaOptionGroup): value is FormanSchemaOptionGroup {
+    return 'options' in value && Array.isArray(value.options);
 }

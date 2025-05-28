@@ -5,8 +5,10 @@ import type {
     FormanSchemaValue,
     FormanSchemaExtendedOptions,
     FormanSchemaExtendedNested,
+    FormanSchemaOption,
+    FormanSchemaOptionGroup,
 } from './types';
-import { noEmpty, isObject } from './utils';
+import { noEmpty, isObject, isOptionGroup } from './utils';
 
 /**
  * Context for schema conversion operations
@@ -352,7 +354,7 @@ function handleArrayType(field: FormanSchemaField, result: JSONSchema7, context:
  * @returns The converted JSON Schema field
  */
 function handleSelectType(field: FormanSchemaField, result: JSONSchema7, context: ConversionContext): JSONSchema7 {
-    const options = isObject<FormanSchemaExtendedOptions>(field.options) ? field.options.store : field.options;
+    const optionsOrGroups = isObject<FormanSchemaExtendedOptions>(field.options) ? field.options.store : field.options;
 
     const nested = isObject<FormanSchemaExtendedOptions>(field.options)
         ? isObject<FormanSchemaExtendedNested>(field.options.nested)
@@ -366,47 +368,64 @@ function handleSelectType(field: FormanSchemaField, result: JSONSchema7, context
             : undefined
         : undefined;
 
-    if (typeof options === 'string') {
+    if (typeof optionsOrGroups === 'string') {
         Object.defineProperty(result, 'x-fetch', {
             configurable: true,
             enumerable: true,
             writable: true,
-            value: appendQueryString(options, context.domain, context.tail),
-        });
-    } else if (options?.some(option => option.label || option.nested)) {
-        result.oneOf = (options || []).map(option => {
-            const localNested =
-                (isObject<FormanSchemaExtendedNested>(option.nested) ? option.nested.store : option.nested) || nested;
-
-            const localDomain =
-                (isObject<FormanSchemaExtendedNested>(option.nested) && option.nested.domain
-                    ? option.nested.domain
-                    : domain) || context.domain;
-
-            if (localNested) {
-                context.addConditionalFields(
-                    field.name!,
-                    option.value,
-                    typeof localNested === 'string'
-                        ? appendQueryString(localNested, localDomain, [...context.tail, field.name!])
-                        : toJSONSchemaInternal(
-                              { type: 'collection', spec: localNested },
-                              {
-                                  ...context,
-                                  domain: localDomain,
-                                  tail: [...context.tail, field.name!],
-                              },
-                          ),
-                );
-            }
-
-            return {
-                title: noEmpty(option.label),
-                const: option.value,
-            };
+            value: appendQueryString(optionsOrGroups, context.domain, context.tail),
         });
     } else {
-        result.enum = (options || []).map(option => option.value);
+        const options: FormanSchemaOption[] = optionsOrGroups?.some(isOptionGroup)
+            ? (optionsOrGroups as FormanSchemaOptionGroup[]).flatMap(group =>
+                  group.options.map(option => ({
+                      ...option,
+                      label: `${group.label}: ${option.label || option.value}`,
+                  })),
+              )
+            : (optionsOrGroups as FormanSchemaOption[]) || [];
+
+        if (
+            options?.some(option => {
+                if (isOptionGroup(option)) return option.options.some(option => option.label || option.nested);
+                return option.label || option.nested;
+            })
+        ) {
+            result.oneOf = (options || []).map(option => {
+                const localNested =
+                    (isObject<FormanSchemaExtendedNested>(option.nested) ? option.nested.store : option.nested) ||
+                    nested;
+
+                const localDomain =
+                    (isObject<FormanSchemaExtendedNested>(option.nested) && option.nested.domain
+                        ? option.nested.domain
+                        : domain) || context.domain;
+
+                if (localNested) {
+                    context.addConditionalFields(
+                        field.name!,
+                        option.value,
+                        typeof localNested === 'string'
+                            ? appendQueryString(localNested, localDomain, [...context.tail, field.name!])
+                            : toJSONSchemaInternal(
+                                  { type: 'collection', spec: localNested },
+                                  {
+                                      ...context,
+                                      domain: localDomain,
+                                      tail: [...context.tail, field.name!],
+                                  },
+                              ),
+                    );
+                }
+
+                return {
+                    title: noEmpty(option.label),
+                    const: option.value,
+                };
+            });
+        } else {
+            result.enum = (options || []).map(option => option.value);
+        }
     }
 
     if (nested && domain && domain !== context.domain) {
