@@ -82,7 +82,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, JSONSchema7['type']>> = {
     filename: 'string',
     file: 'string',
     folder: 'string',
-    hidden: 'string',
+    hidden: undefined,
     integer: 'number',
     uinteger: 'number',
     password: 'string',
@@ -262,7 +262,7 @@ function handleCollectionType(field: FormanSchemaField, result: JSONSchema7, con
                                 [name]: { const: value },
                             },
                         },
-                        then: typeof nested === 'string' ? { $ref: `${nested}#` } : nested,
+                        then: typeof nested === 'string' ? { $ref: nested } : nested,
                     });
                 },
             }),
@@ -403,7 +403,7 @@ function handleSelectType(field: FormanSchemaField, result: JSONSchema7, context
             writable: true,
             value:
                 typeof nested === 'string'
-                    ? nested
+                    ? { $ref: nested }
                     : toJSONSchemaInternal(
                           { type: 'collection', spec: nested },
                           {
