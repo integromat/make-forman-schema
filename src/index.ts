@@ -11,6 +11,8 @@ export type {
     FormanSchemaNested,
     FormanSchemaExtendedOptions,
     FormanSchemaExtendedNested,
+    FormanSchemaOptionGroup,
+    FormanSchemaRPCButton,
 } from './types';
 
 /**
