@@ -84,8 +84,14 @@ export type FormanSchemaField = {
     validate?: FormanSchemaValidation;
 } & Record<`x-${string}`, unknown>;
 
+/**
+ * Valid Forman Schema values
+ */
 export type FormanSchemaValue = string | number | boolean | null;
 
+/**
+ * Option for a select field
+ */
 export type FormanSchemaOption = {
     /** Option value */
     value: FormanSchemaValue;
@@ -95,6 +101,9 @@ export type FormanSchemaOption = {
     nested?: FormanSchemaNested;
 };
 
+/**
+ * Extended options for a select field
+ */
 export type FormanSchemaExtendedOptions = {
     /** Store for the options */
     store: FormanSchemaOption[] | string;
@@ -102,9 +111,17 @@ export type FormanSchemaExtendedOptions = {
     nested?: FormanSchemaNested;
 };
 
+/**
+ * Nested fields
+ */
 export type FormanSchemaNested = FormanSchemaField[] | string | FormanSchemaExtendedNested;
 
+/**
+ * Extended nested fields
+ */
 export type FormanSchemaExtendedNested = {
+    /** Store for the nested fields */
     store: FormanSchemaField[] | string;
+    /** Domain for the nested fields */
     domain?: string;
 };

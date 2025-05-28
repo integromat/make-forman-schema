@@ -372,7 +372,7 @@ describe('Forman Nested', () => {
                     type: 'string',
                     'x-fetch': 'rpc://function1?param=value',
                     'x-nested': {
-                        $ref: 'rpc://function2',
+                        $ref: 'rpc://function2?connection={{connection}}',
                     },
                 },
             },
