@@ -434,4 +434,75 @@ describe('Forman Nested', () => {
             type: 'object',
         });
     });
+
+    it('Forman Schema -> JSON Schema #8 (dynamic nested form in each option of each group)', async () => {
+        const formanSchema = {
+            type: 'collection',
+            spec: [
+                {
+                    help: 'Field description',
+                    name: 'connection',
+                    type: 'select',
+                    label: 'Connection',
+                    required: true,
+                    options: [
+                        {
+                            label: 'Group 1',
+                            options: [
+                                {
+                                    value: 'apple',
+                                    label: 'Apple',
+                                    nested: 'rpc://function1',
+                                },
+                            ],
+                        },
+                        {
+                            label: 'Group 2',
+                            options: [
+                                {
+                                    value: 'google',
+                                    label: 'Google',
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        };
+
+        const jsonSchema = toJSONSchema(formanSchema);
+        expect(jsonSchema).toEqual({
+            properties: {
+                connection: {
+                    title: 'Connection',
+                    description: 'Field description',
+                    type: 'string',
+                    oneOf: [
+                        {
+                            title: 'Group 1: Apple',
+                            const: 'apple',
+                        },
+                        {
+                            title: 'Group 2: Google',
+                            const: 'google',
+                        },
+                    ],
+                },
+            },
+            required: ['connection'],
+            type: 'object',
+            allOf: [
+                {
+                    if: {
+                        properties: {
+                            connection: { const: 'apple' },
+                        },
+                    },
+                    then: {
+                        $ref: 'rpc://function1?connection={{connection}}',
+                    },
+                },
+            ],
+        });
+    });
 });

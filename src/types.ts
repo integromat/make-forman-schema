@@ -69,7 +69,7 @@ export type FormanSchemaField = {
     /** Default value for the field */
     default?: FormanSchemaValue;
     /** Available options for select type fields */
-    options?: FormanSchemaOption[] | FormanSchemaExtendedOptions | string;
+    options?: FormanSchemaOption[] | FormanSchemaOptionGroup[] | FormanSchemaExtendedOptions | string;
     /** Help text or description for the field */
     help?: string;
     /** Sub-fields specification for collection or array types */
@@ -82,7 +82,47 @@ export type FormanSchemaField = {
     nested?: FormanSchemaNested;
     /** Validation rules */
     validate?: FormanSchemaValidation;
+    /** Whether the field is disabled (`false` by default) */
+    disabled?: boolean;
+    /** Whether the field is mappable */
+    mappable?: boolean;
+    /** Whether the user will be able to insert new lines in GUI (a textarea will be displayed instead of the text field) */
+    multiline?: boolean;
+    /** Specifies how to treat HTML tags in the field (text only) */
+    tags?: 'strip' | 'stripall' | 'escape';
+    /** Allowed extension or array of allowed extensions. (filename only) */
+    extension?: string | string[];
+    /** Semantic type for the field */
+    semantic?: string;
+    /** Whether to allow time selection (date only, `true` by default) */
+    time?: boolean;
+    /** Whether the properties of the object will be in the same order as they are defined in the spec (collection only) */
+    sequence?: boolean;
+    /** Codepage for the field (buffer only) */
+    codepage?: string;
+    /** Whether the field is grouped (select only) */
+    grouped?: boolean;
+    /** Whether a mapped value in the select should be validated against the option values. If true, the value is treated as a dynamic and validation is disabled. The value is set to `true` automatically if select options are generated using RPC. */
+    dynamic?: boolean;
+    /** Mode for the field (select only) */
+    mode?: 'edit' | 'choose';
+    /** Sort order for the field (select only) */
+    sort?: string;
+    /** Adds an extra button to the field which opens an extra form. When the form is submitted, a specified RPC is called and the result is set as a new value of the parameter. */
+    rpc?: FormanSchemaRPCButton;
 } & Record<`x-${string}`, unknown>;
+
+/**
+ * RPC button allows for dynamic value retrieval from an external source
+ */
+export type FormanSchemaRPCButton = {
+    /** RPC button label */
+    label: string;
+    /** RPC button URL */
+    url: string;
+    /** RPC button parameters */
+    parameters: FormanSchemaField[];
+};
 
 /**
  * Valid Forman Schema values
@@ -97,8 +137,20 @@ export type FormanSchemaOption = {
     value: FormanSchemaValue;
     /** Option label */
     label?: string;
+    /** Whether the option is the default */
+    default?: boolean;
     /** Nested fields for this option */
     nested?: FormanSchemaNested;
+};
+
+/**
+ * Option group for a select field
+ */
+export type FormanSchemaOptionGroup = {
+    /** Group label */
+    label: string;
+    /** Group options */
+    options: FormanSchemaOption[];
 };
 
 /**
@@ -106,7 +158,7 @@ export type FormanSchemaOption = {
  */
 export type FormanSchemaExtendedOptions = {
     /** Store for the options */
-    store: FormanSchemaOption[] | string;
+    store: FormanSchemaOption[] | FormanSchemaOptionGroup[] | string;
     /** Nested fields for every option */
     nested?: FormanSchemaNested;
 };
