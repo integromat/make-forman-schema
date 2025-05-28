@@ -292,7 +292,7 @@ describe('Forman Nested', () => {
                         {
                             value: 'google',
                             label: 'Google',
-                            nested: 'rpc://function2',
+                            nested: 'rpc://function2?param=value',
                         },
                     ],
                 },
@@ -328,7 +328,7 @@ describe('Forman Nested', () => {
                         },
                     },
                     then: {
-                        $ref: 'rpc://function1?connection={{connection}}#',
+                        $ref: 'rpc://function1?connection={{connection}}',
                     },
                 },
                 {
@@ -338,14 +338,50 @@ describe('Forman Nested', () => {
                         },
                     },
                     then: {
-                        $ref: 'rpc://function2?connection={{connection}}#',
+                        $ref: 'rpc://function2?param=value&connection={{connection}}',
                     },
                 },
             ],
         });
     });
 
-    it('Forman Schema -> JSON Schema #5 (nested form with dynamic select in select with dynamic options)', async () => {
+    it('Forman Schema -> JSON Schema #6 (dynamic nested form in select)', async () => {
+        const formanSchema = {
+            type: 'collection',
+            spec: [
+                {
+                    help: 'Field description',
+                    name: 'connection',
+                    type: 'select',
+                    label: 'Connection',
+                    required: true,
+                    options: {
+                        store: 'rpc://function1?param=value',
+                        nested: 'rpc://function2',
+                    },
+                },
+            ],
+        };
+
+        const jsonSchema = toJSONSchema(formanSchema);
+        expect(jsonSchema).toEqual({
+            properties: {
+                connection: {
+                    title: 'Connection',
+                    description: 'Field description',
+                    type: 'string',
+                    'x-fetch': 'rpc://function1?param=value',
+                    'x-nested': {
+                        $ref: 'rpc://function2',
+                    },
+                },
+            },
+            required: ['connection'],
+            type: 'object',
+        });
+    });
+
+    it('Forman Schema -> JSON Schema #7 (nested form with dynamic select in select with dynamic options)', async () => {
         const formanSchema = {
             type: 'collection',
             spec: [
