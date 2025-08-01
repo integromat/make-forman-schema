@@ -245,6 +245,7 @@ export function toJSONSchemaInternal(
         case 'datastore':
         case 'aiagent':
         case 'file':
+        case 'folder':
             return handleSelectType(normalizedField, result, context);
         default:
             return handlePrimitiveType(normalizedField, result);
