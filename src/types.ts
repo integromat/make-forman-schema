@@ -188,6 +188,8 @@ export type FormanValidationResult = {
     valid: boolean;
     /** Errors */
     errors: {
+        /** Field domain */
+        domain: string;
         /** Field path */
         path: string;
         /** Error message */

@@ -28,7 +28,7 @@
         "dist"
     ],
     "scripts": {
-        "test": "jest --runInBand --forceExit --verbose false",
+        "test": "jest --coverage --runInBand --forceExit --verbose false",
         "build": "tsup",
         "build:version": "node scripts/build-version.mjs",
         "format": "npx prettier . --write",

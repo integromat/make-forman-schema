@@ -38,7 +38,7 @@ export function isOptionGroup(value: FormanSchemaOption | FormanSchemaOptionGrou
  */
 export function containsIMLExpression(value: unknown): boolean {
     if (typeof value !== 'string') return false;
-    return /\{\{(.*?)\}\}/.test(value);
+    return value.indexOf('{{') > -1 && value.indexOf('}}') > -1;
 }
 
 /**

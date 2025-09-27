@@ -79,10 +79,11 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, string | undefined>> = {
     path: 'string',
     pkey: 'string',
     port: 'number',
-    select: 'string',
+    select: undefined,
     time: 'string',
     timestamp: 'string',
     timezone: 'string',
+    upload: 'array',
     url: 'string',
     uuid: 'string',
     any: undefined,
@@ -190,13 +191,38 @@ async function validateFormanValue(
     // Normalize field type (handle prefixed types)
     const normalizedField = normalizeFormanFieldType(field);
 
-    if (value === undefined && normalizedField.required) {
+    if (normalizedField.required && (value == null || value === '')) {
         return {
             valid: false,
             errors: [
                 {
-                    path: (normalizedField.name ? [...context.path, normalizedField.name] : context.path).join('.'),
+                    domain: context.domain,
+                    path: context.path.join('.'),
                     message: 'Field is mandatory.',
+                },
+            ],
+        };
+    }
+
+    if (value == null) {
+        return {
+            valid: true,
+            errors: [],
+        };
+    }
+
+    const expectedType = FORMAN_TYPE_MAP[normalizedField.type];
+    let actualType: string = typeof value;
+    if (actualType === 'object' && Array.isArray(value)) actualType = 'array';
+
+    if (expectedType && expectedType !== actualType) {
+        return {
+            valid: false,
+            errors: [
+                {
+                    domain: context.domain,
+                    path: context.path.join('.'),
+                    message: `Expected type '${expectedType}', got type '${actualType}'.`,
                 },
             ],
         };
@@ -234,35 +260,37 @@ async function handleCollectionType(
     context: ValidationContext,
 ): Promise<FormanValidationResult> {
     const errors: FormanValidationResult['errors'] = [];
-    const currentPath = field.name ? [...context.path, field.name] : context.path;
     const seen = context.path.length === 0 ? context.roots[context.domain]!.seenFields : new Set<string>();
+    const path = context.path;
 
     if (Array.isArray(field.spec)) {
         for (const subField of field.spec) {
             if (!subField.name) {
                 errors.push({
-                    path: currentPath.join('.'),
-                    message: 'Object with unknown field name.',
+                    domain: context.domain,
+                    path: context.path.join('.'),
+                    message: 'Object contains field with unknown name.',
                 });
                 continue;
             }
             if (context.strict && !seen.has(subField.name)) seen.add(subField.name);
             const result = await validateFormanValue(value[subField.name], subField, {
                 ...context,
-                path: currentPath,
+                path: [...path, subField.name],
                 validateNestedFields: async (fields: FormanSchemaField[], context: ValidationContext) => {
                     for (const subField of fields) {
                         if (!subField.name) {
                             errors.push({
-                                path: currentPath.join('.'),
-                                message: 'Object with unknown field name.',
+                                domain: context.domain,
+                                path: context.path.join('.'),
+                                message: 'Object contains field with unknown name.',
                             });
                             continue;
                         }
                         if (context.strict && !seen.has(subField.name)) seen.add(subField.name);
                         const result = await validateFormanValue(value[subField.name], subField, {
                             ...context,
-                            path: currentPath,
+                            path: [...path, subField.name],
                         });
                         errors.push(...result.errors);
                     }
@@ -277,7 +305,8 @@ async function handleCollectionType(
             if (!seen.has(key)) {
                 seen.add(key); // To avoid duplicate detection when nested fields are specified by another domain
                 errors.push({
-                    path: currentPath.join('.'),
+                    domain: context.domain,
+                    path: context.path.join('.'),
                     message: `Unknown field '${key}'.`,
                 });
             }
@@ -303,7 +332,6 @@ async function handleArrayType(
     context: ValidationContext,
 ): Promise<FormanValidationResult> {
     const errors: FormanValidationResult['errors'] = [];
-    const currentPath = field.name ? [...context.path, field.name] : context.path;
 
     if (field.spec) {
         for (const [index, item] of value.entries()) {
@@ -312,7 +340,7 @@ async function handleArrayType(
                 Array.isArray(field.spec)
                     ? { name: index.toString(), type: 'collection', spec: field.spec }
                     : Object.assign({}, field.spec, { name: index.toString() }),
-                { ...context, path: currentPath },
+                { ...context, path: [...context.path, index.toString()] },
             );
             errors.push(...result.errors);
         }
@@ -322,13 +350,15 @@ async function handleArrayType(
     if (field.validate) {
         if (field.validate.minItems !== undefined && value.length < field.validate.minItems) {
             errors.push({
-                path: currentPath.join('.'),
+                domain: context.domain,
+                path: context.path.join('.'),
                 message: `Array has less than ${field.validate.minItems} items.`,
             });
         }
         if (field.validate.maxItems !== undefined && value.length > field.validate.maxItems) {
             errors.push({
-                path: currentPath.join('.'),
+                domain: context.domain,
+                path: context.path.join('.'),
                 message: `Array has more than ${field.validate.maxItems} items.`,
             });
         }
@@ -353,7 +383,6 @@ async function handleSelectType(
     context: ValidationContext,
 ): Promise<FormanValidationResult> {
     const errors: FormanValidationResult['errors'] = [];
-    const currentPath = field.name ? [...context.path, field.name] : context.path;
 
     let optionsOrGroups = isObject<FormanSchemaExtendedOptions>(field.options) ? field.options.store : field.options;
     let nested = isObject<FormanSchemaExtendedOptions>(field.options) ? field.options.nested : undefined;
@@ -369,7 +398,8 @@ async function handleSelectType(
                 errors: [
                     ...errors,
                     {
-                        path: currentPath.join('.'),
+                        domain: context.domain,
+                        path: context.path.join('.'),
                         message: `Failed to resolve remote resource ${optionsOrGroups}: ${error}`,
                     },
                 ],
@@ -384,7 +414,8 @@ async function handleSelectType(
                 errors: [
                     ...errors,
                     {
-                        path: currentPath.join('.'),
+                        domain: context.domain,
+                        path: context.path.join('.'),
                         message: `Value is not an array.`,
                     },
                 ],
@@ -399,7 +430,8 @@ async function handleSelectType(
                 : (optionsOrGroups as FormanSchemaOption[]).some(option => option.value === singleValue);
             if (!found) {
                 errors.push({
-                    path: currentPath.join('.'),
+                    domain: context.domain,
+                    path: context.path.join('.'),
                     message: `Value '${singleValue}' not found in options.`,
                 });
             }
@@ -409,13 +441,15 @@ async function handleSelectType(
         if (field.validate) {
             if (field.validate.minItems !== undefined && value.length < field.validate.minItems) {
                 errors.push({
-                    path: currentPath.join('.'),
+                    domain: context.domain,
+                    path: context.path.join('.'),
                     message: `Selected less than ${field.validate.minItems} items.`,
                 });
             }
             if (field.validate.maxItems !== undefined && value.length > field.validate.maxItems) {
                 errors.push({
-                    path: currentPath.join('.'),
+                    domain: context.domain,
+                    path: context.path.join('.'),
                     message: `Selected more than ${field.validate.maxItems} items.`,
                 });
             }
@@ -433,7 +467,8 @@ async function handleSelectType(
                 errors: [
                     ...errors,
                     {
-                        path: currentPath.join('.'),
+                        domain: context.domain,
+                        path: context.path.join('.'),
                         message: `Value '${value}' not found in options.`,
                     },
                 ],
@@ -469,7 +504,6 @@ async function handleNestedFields(
     context: ValidationContext,
 ): Promise<FormanValidationResult> {
     const errors: FormanValidationResult['errors'] = [];
-    const currentPath = field.name ? [...context.path, field.name] : context.path;
 
     let store = isObject<FormanSchemaExtendedNested>(nested) ? nested.store : nested;
     const domain = isObject<FormanSchemaExtendedNested>(nested) && nested.domain ? nested.domain : undefined;
@@ -487,7 +521,8 @@ async function handleNestedFields(
                 errors: [
                     ...errors,
                     {
-                        path: currentPath.join('.'),
+                        domain: context.domain,
+                        path: context.path.join('.'),
                         message: `Failed to resolve remote resource ${store}: ${error}`,
                     },
                 ],
@@ -498,7 +533,8 @@ async function handleNestedFields(
     if (store && domain && domain !== context.domain) {
         if (!context.roots[domain]) {
             errors.push({
-                path: currentPath.join('.'),
+                domain: context.domain,
+                path: context.path.join('.'),
                 message: `Unable to process nested fields: Domain '${domain}' not found.`,
             });
         } else {
@@ -527,21 +563,12 @@ async function handlePrimitiveType(
     context: ValidationContext,
 ): Promise<FormanValidationResult> {
     const errors: FormanValidationResult['errors'] = [];
-    const currentPath = field.name ? [...context.path, field.name] : context.path;
 
     if (containsIMLExpression(value)) {
         return {
             valid: true,
             errors,
         };
-    }
-
-    const expectedType = FORMAN_TYPE_MAP[field.type];
-    if (value !== undefined && expectedType && expectedType !== typeof value) {
-        errors.push({
-            path: currentPath.join('.'),
-            message: `Expected type '${expectedType}', got type '${typeof value}'.`,
-        });
     }
 
     if (errors.length > 0) {
@@ -562,38 +589,44 @@ async function handlePrimitiveType(
                 ).test(value)
             ) {
                 errors.push({
-                    path: currentPath.join('.'),
+                    domain: context.domain,
+                    path: context.path.join('.'),
                     message: `Value doesn't match the pattern: ${typeof field.validate.pattern === 'object' ? field.validate.pattern.regexp : field.validate.pattern}`,
                 });
             }
             if (field.validate.min !== undefined && value.length < field.validate.min) {
                 errors.push({
-                    path: currentPath.join('.'),
+                    domain: context.domain,
+                    path: context.path.join('.'),
                     message: `Value must be at least ${field.validate.min} characters long.`,
                 });
             }
             if (field.validate.max !== undefined && value.length > field.validate.max) {
                 errors.push({
-                    path: currentPath.join('.'),
+                    domain: context.domain,
+                    path: context.path.join('.'),
                     message: `Value exceeded maximum length of ${field.validate.max} characters.`,
                 });
             }
             if (field.validate.enum && !field.validate.enum.includes(value)) {
                 errors.push({
-                    path: currentPath.join('.'),
+                    domain: context.domain,
+                    path: context.path.join('.'),
                     message: 'Value must be one of the following: ' + field.validate.enum.join(', '),
                 });
             }
         } else if (typeof value === 'number') {
             if (field.validate.min !== undefined && value < field.validate.min) {
                 errors.push({
-                    path: currentPath.join('.'),
+                    domain: context.domain,
+                    path: context.path.join('.'),
                     message: `Value is too small. Minimum value is ${field.validate.min}.`,
                 });
             }
             if (field.validate.max !== undefined && value > field.validate.max) {
                 errors.push({
-                    path: currentPath.join('.'),
+                    domain: context.domain,
+                    path: context.path.join('.'),
                     message: `Value is too big. Maximum value is ${field.validate.max}.`,
                 });
             }
