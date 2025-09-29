@@ -78,6 +78,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, JSONSchema7['type']>> = {
     keychain: 'number',
     datastore: 'number',
     aiagent: 'string',
+    udt: 'number',
     array: 'array',
     collection: 'object',
     text: 'string',

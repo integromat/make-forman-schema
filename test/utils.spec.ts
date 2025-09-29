@@ -193,15 +193,18 @@ describe('Utils Functions', () => {
 
     describe('API_ENDPOINTS', () => {
         it('should have correct endpoint values', () => {
-            expect(API_ENDPOINTS.CONNECTIONS).toBe('api://connections');
-            expect(API_ENDPOINTS.HOOKS).toBe('api://hooks');
-            expect(API_ENDPOINTS.KEYS).toBe('api://keys');
+            expect(API_ENDPOINTS.account).toBe('api://connections/{{kind}}');
+            expect(API_ENDPOINTS.hook).toBe('api://hooks/{{kind}}');
+            expect(API_ENDPOINTS.keychain).toBe('api://keys/{{kind}}');
+            expect(API_ENDPOINTS.aiagent).toBe('api://ai-agents/v1/agents');
+            expect(API_ENDPOINTS.datastore).toBe('api://data-stores');
+            expect(API_ENDPOINTS.udt).toBe('api://data-structures');
         });
 
         it('should be an object with defined endpoint values', () => {
             expect(typeof API_ENDPOINTS).toBe('object');
             expect(API_ENDPOINTS).toBeDefined();
-            expect(Object.keys(API_ENDPOINTS)).toEqual(['CONNECTIONS', 'HOOKS', 'KEYS']);
+            expect(Object.keys(API_ENDPOINTS)).toEqual(['account', 'aiagent', 'datastore', 'hook', 'keychain', 'udt']);
         });
     });
 });

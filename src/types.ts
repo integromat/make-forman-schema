@@ -2,11 +2,12 @@
  * Valid Forman Schema field types
  */
 export type FormanSchemaFieldType =
+    | 'aiagent'
     | 'account'
     | 'hook'
     | 'keychain'
     | 'datastore'
-    | 'aiagent'
+    | 'udt'
     | 'array'
     | 'collection'
     | 'text'

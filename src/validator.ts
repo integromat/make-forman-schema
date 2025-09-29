@@ -58,6 +58,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, string | undefined>> = {
     keychain: 'number',
     datastore: 'number',
     aiagent: 'string',
+    udt: 'number',
     array: 'array',
     collection: 'object',
     text: 'string',

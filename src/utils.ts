@@ -45,49 +45,37 @@ export function containsIMLExpression(value: unknown): boolean {
  * Constants for API endpoints
  */
 export const API_ENDPOINTS = {
-    CONNECTIONS: 'api://connections',
-    HOOKS: 'api://hooks',
-    KEYS: 'api://keys',
+    account: 'api://connections/{{kind}}',
+    aiagent: 'api://ai-agents/v1/agents',
+    datastore: 'api://data-stores',
+    hook: 'api://hooks/{{kind}}',
+    keychain: 'api://keys/{{kind}}',
+    udt: 'api://data-structures',
 } as const;
 
 /**
- * Normalizes a field type by handling prefixed types
+ * Normalizes a field type by handling special types and prefixed types
  * @param field The field to normalize
  * @returns A normalized copy of the field
  */
 export function normalizeFormanFieldType(field: FormanSchemaField): FormanSchemaField {
-    const typeHandlers = {
-        'account:': (type: string) => ({
-            ...field,
-            type: 'account' as FormanSchemaFieldType,
-            options: {
-                ...(field.options as FormanSchemaExtendedOptions),
-                store: `${API_ENDPOINTS.CONNECTIONS}/${type.substring(8)}`,
-            },
-        }),
-        'hook:': (type: string) => ({
-            ...field,
-            type: 'hook' as FormanSchemaFieldType,
-            options: {
-                ...(field.options as FormanSchemaExtendedOptions),
-                store: `${API_ENDPOINTS.HOOKS}/${type.substring(5)}`,
-            },
-        }),
-        'keychain:': (type: string) => ({
-            ...field,
-            type: 'keychain' as FormanSchemaFieldType,
-            options: {
-                ...(field.options as FormanSchemaExtendedOptions),
-                store: `${API_ENDPOINTS.KEYS}/${type.substring(9)}`,
-            },
-        }),
+    const [type, kind] = field.type.split(':');
+    if (!type) return field;
+    if (!(type in API_ENDPOINTS)) return field;
+
+    // If store is already defined, return the field as is
+    let store = isObject<FormanSchemaExtendedOptions>(field.options) ? field.options.store : field.options;
+    if (typeof store === 'string' || Array.isArray(store)) return field;
+
+    store = API_ENDPOINTS[type as keyof typeof API_ENDPOINTS];
+    store = store.replace('/{{kind}}', kind ? `/${kind}` : '');
+
+    return {
+        ...field,
+        type: type! as FormanSchemaFieldType,
+        options: {
+            ...(field.options as FormanSchemaExtendedOptions),
+            store,
+        },
     };
-
-    for (const [prefix, handler] of Object.entries(typeHandlers)) {
-        if (field.type.startsWith(prefix)) {
-            return handler(field.type);
-        }
-    }
-
-    return field;
 }
