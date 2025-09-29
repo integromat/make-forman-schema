@@ -8,7 +8,7 @@ import {
     FormanValidationOptions,
     FormanSchemaNested,
 } from './types';
-import { containsIMLExpression, isObject, isOptionGroup, normalizeFormanFieldType } from './utils';
+import { containsIMLExpression, FORMAN_VISUAL_TYPES, isObject, isOptionGroup, normalizeFormanFieldType } from './utils';
 
 /**
  * Context for schema validation operations
@@ -189,6 +189,13 @@ async function validateFormanValue(
     field: FormanSchemaField,
     context: ValidationContext,
 ): Promise<FormanValidationResult> {
+    if (FORMAN_VISUAL_TYPES.includes(field.type)) {
+        return {
+            valid: true,
+            errors: [],
+        };
+    }
+
     // Normalize field type (handle prefixed types)
     const normalizedField = normalizeFormanFieldType(field);
 
@@ -266,6 +273,9 @@ async function handleCollectionType(
 
     if (Array.isArray(field.spec)) {
         for (const subField of field.spec) {
+            if (FORMAN_VISUAL_TYPES.includes(subField.type)) {
+                continue;
+            }
             if (!subField.name) {
                 errors.push({
                     domain: context.domain,
@@ -280,6 +290,9 @@ async function handleCollectionType(
                 path: [...path, subField.name],
                 validateNestedFields: async (fields: FormanSchemaField[], context: ValidationContext) => {
                     for (const subField of fields) {
+                        if (FORMAN_VISUAL_TYPES.includes(subField.type)) {
+                            continue;
+                        }
                         if (!subField.name) {
                             errors.push({
                                 domain: context.domain,

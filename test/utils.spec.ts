@@ -6,6 +6,7 @@ import {
     containsIMLExpression,
     normalizeFormanFieldType,
     API_ENDPOINTS,
+    FORMAN_VISUAL_TYPES,
 } from '../src/utils.js';
 
 describe('Utils Functions', () => {
@@ -100,14 +101,12 @@ describe('Utils Functions', () => {
         it('should normalize account: prefixed types', () => {
             const field = {
                 name: 'connection',
-                type: 'account:google' as any,
-                options: { existing: 'option' } as any,
+                type: 'account:google',
             };
 
             const normalized = normalizeFormanFieldType(field);
             expect(normalized.type).toBe('account');
             expect(normalized.options).toEqual({
-                existing: 'option',
                 store: 'api://connections/google',
             });
         });
@@ -115,8 +114,7 @@ describe('Utils Functions', () => {
         it('should normalize hook: prefixed types', () => {
             const field = {
                 name: 'webhook',
-                type: 'hook:github' as any,
-                options: {} as any,
+                type: 'hook:github',
             };
 
             const normalized = normalizeFormanFieldType(field);
@@ -129,7 +127,7 @@ describe('Utils Functions', () => {
         it('should normalize keychain: prefixed types', () => {
             const field = {
                 name: 'apiKey',
-                type: 'keychain:openai' as any,
+                type: 'keychain:openai',
                 required: true,
             };
 
@@ -143,7 +141,7 @@ describe('Utils Functions', () => {
         it('should return field unchanged for non-prefixed types', () => {
             const field = {
                 name: 'text',
-                type: 'text' as any,
+                type: 'text',
                 required: true,
             };
 
@@ -154,7 +152,7 @@ describe('Utils Functions', () => {
         it('should handle fields without existing options', () => {
             const field = {
                 name: 'connection',
-                type: 'account:slack' as any,
+                type: 'account:slack',
             };
 
             const normalized = normalizeFormanFieldType(field);
@@ -167,12 +165,11 @@ describe('Utils Functions', () => {
         it('should preserve existing field properties', () => {
             const field = {
                 name: 'webhook',
-                type: 'hook:stripe' as any,
+                type: 'hook:stripe',
                 required: true,
                 help: 'Select a webhook',
                 label: 'Webhook',
                 advanced: true,
-                options: { existingProp: 'value' } as any,
             };
 
             const normalized = normalizeFormanFieldType(field);
@@ -184,7 +181,6 @@ describe('Utils Functions', () => {
                 label: 'Webhook',
                 advanced: true,
                 options: {
-                    existingProp: 'value',
                     store: 'api://hooks/stripe',
                 },
             });
@@ -205,6 +201,13 @@ describe('Utils Functions', () => {
             expect(typeof API_ENDPOINTS).toBe('object');
             expect(API_ENDPOINTS).toBeDefined();
             expect(Object.keys(API_ENDPOINTS)).toEqual(['account', 'aiagent', 'datastore', 'hook', 'keychain', 'udt']);
+        });
+    });
+
+    describe('FORMAN_VISUAL_TYPES', () => {
+        it('should contain expected visual types and nothing else', () => {
+            expect(Array.isArray(FORMAN_VISUAL_TYPES)).toBe(true);
+            expect(FORMAN_VISUAL_TYPES.sort()).toEqual(['banner', 'html', 'markdown', 'separator'].sort());
         });
     });
 });

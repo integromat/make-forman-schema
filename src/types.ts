@@ -37,6 +37,10 @@ export type FormanSchemaFieldType =
     | `account:${string}`
     | `hook:${string}`
     | `keychain:${string}`
+    | 'banner'
+    | 'markdown'
+    | 'html'
+    | 'separator'
     | string;
 
 /**
@@ -164,6 +168,17 @@ export type FormanSchemaExtendedOptions = {
     store: FormanSchemaOption[] | FormanSchemaOptionGroup[] | string;
     /** Nested fields for every option */
     nested?: FormanSchemaNested;
+    /** Name of the property as the label of an option */
+    label?: string;
+    /** Name of the property as the value of an option */
+    value?: string;
+    /** Label to display when no value is selected */
+    placeholder?:
+        | string
+        | {
+              label: string;
+              nested?: FormanSchemaNested;
+          };
 };
 
 /**

@@ -7,6 +7,11 @@ import {
 } from './types';
 
 /**
+ * Visual types are not a real input fields, they are used to display information in the UI.
+ */
+export const FORMAN_VISUAL_TYPES = ['banner', 'markdown', 'html', 'separator'];
+
+/**
  * Utility function to handle empty strings by converting them to undefined.
  * @param text The input text to check
  * @returns undefined if the input is falsy, otherwise returns the input text

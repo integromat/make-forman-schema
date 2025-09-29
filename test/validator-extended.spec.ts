@@ -353,6 +353,56 @@ describe('Forman Schema Extended Validation', () => {
         });
     });
 
+    describe('Visual Types Handling', () => {
+        it('should ignore validation for visual types at root and nested', async () => {
+            const formanValue = {
+                text: 'ok',
+            };
+
+            const formanSchema = [
+                { name: 'text', type: 'text' },
+                { type: 'banner', label: 'Banner' },
+                { name: 'separator', type: 'separator' },
+                {
+                    name: 'group',
+                    type: 'collection',
+                    spec: [
+                        { type: 'markdown', label: 'Info' },
+                        { name: 'inner', type: 'text' },
+                    ],
+                },
+            ];
+
+            expect(await validateForman(formanValue, formanSchema)).toEqual({ valid: true, errors: [] });
+        });
+
+        it('should not attempt to validate or coerce values for visual types', async () => {
+            const formanValue = {
+                text: 'ok',
+                // Values for visual fields should be ignored entirely
+                banner: 123,
+                separator: false,
+                group: { inner: 'x', visual: 'ignored' },
+            };
+
+            const formanSchema = [
+                { name: 'text', type: 'text' },
+                { name: 'banner', type: 'banner' },
+                { name: 'separator', type: 'separator' },
+                {
+                    name: 'group',
+                    type: 'collection',
+                    spec: [
+                        { name: 'visual', type: 'html' },
+                        { name: 'inner', type: 'text' },
+                    ],
+                },
+            ];
+
+            expect(await validateForman(formanValue, formanSchema)).toEqual({ valid: true, errors: [] });
+        });
+    });
+
     describe('Grouped Select Options', () => {
         it('should validate grouped select options', async () => {
             const formanValue = {
@@ -876,11 +926,11 @@ describe('Forman Schema Extended Validation', () => {
             const formanSchema = [
                 {
                     name: 'googleAccount',
-                    type: 'account:google' as any,
+                    type: 'account:google',
                 },
                 {
                     name: 'slackAccount',
-                    type: 'account:slack' as any,
+                    type: 'account:slack',
                 },
             ];
 
@@ -910,7 +960,7 @@ describe('Forman Schema Extended Validation', () => {
             const formanSchema = [
                 {
                     name: 'webhookHook',
-                    type: 'hook:webhook' as any,
+                    type: 'hook:webhook',
                 },
             ];
 
@@ -937,7 +987,7 @@ describe('Forman Schema Extended Validation', () => {
             const formanSchema = [
                 {
                     name: 'apiKey',
-                    type: 'keychain:api' as any,
+                    type: 'keychain:api',
                 },
             ];
 
