@@ -1,0 +1,660 @@
+{
+    "crud": "create",
+    "name": "addRow",
+    "label": "Add a Row",
+    "scope": ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"],
+    "expect": [],
+    "interface": [
+        {
+            "name": "spreadsheetId",
+            "type": "text",
+            "label": "Spreadsheet ID"
+        },
+        {
+            "name": "tableRange",
+            "type": "text",
+            "label": "Table Range"
+        },
+        {
+            "name": "updates",
+            "spec": [
+                {
+                    "name": "spreadsheetId",
+                    "type": "text",
+                    "label": "Spreadsheet ID"
+                },
+                {
+                    "name": "updatedRange",
+                    "type": "text",
+                    "label": "Updated range"
+                },
+                {
+                    "name": "updatedRows",
+                    "type": "text",
+                    "label": "Updated rows"
+                },
+                {
+                    "name": "updatedColumns",
+                    "type": "text",
+                    "label": "Updated columns"
+                },
+                {
+                    "name": "updatedCells",
+                    "type": "text",
+                    "label": "Updated cells"
+                }
+            ],
+            "type": "collection",
+            "label": "Updates"
+        },
+        {
+            "name": "sheetName",
+            "type": "text",
+            "label": "Sheet"
+        },
+        {
+            "name": "rowNumber",
+            "type": "number",
+            "label": "Row Number"
+        }
+    ],
+    "deprecated": false,
+    "parameters": [
+        {
+            "name": "__IMTCONN__",
+            "type": "account:google",
+            "label": "Connection",
+            "options": {
+                "nested": {
+                    "store": [
+                        {
+                            "name": "mode",
+                            "type": "select",
+                            "label": "Search Method",
+                            "default": "select",
+                            "options": [
+                                {
+                                    "label": "Search by path",
+                                    "value": "select",
+                                    "nested": [
+                                        {
+                                            "name": "from",
+                                            "type": "select",
+                                            "label": "Drive",
+                                            "options": [
+                                                {
+                                                    "label": "My Drive",
+                                                    "value": "drive",
+                                                    "nested": [
+                                                        {
+                                                            "name": "spreadsheetId",
+                                                            "type": "file",
+                                                            "label": "Spreadsheet ID",
+                                                            "options": {
+                                                                "ids": true,
+                                                                "store": "rpc://google-sheets@2/listSpreadsheets",
+                                                                "nested": [
+                                                                    {
+                                                                        "name": "sheetId",
+                                                                        "type": "select",
+                                                                        "label": "Sheet Name",
+                                                                        "options": {
+                                                                            "store": "rpc://google-sheets@2/rpcSheet",
+                                                                            "nested": [
+                                                                                {
+                                                                                    "name": "includesHeaders",
+                                                                                    "type": "select",
+                                                                                    "label": "Table contains headers",
+                                                                                    "default": true,
+                                                                                    "options": [
+                                                                                        {
+                                                                                            "label": "Yes",
+                                                                                            "value": true,
+                                                                                            "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                        },
+                                                                                        {
+                                                                                            "label": "No",
+                                                                                            "value": false,
+                                                                                            "nested": [
+                                                                                                {
+                                                                                                    "help": "Please select the column range you want to work with.",
+                                                                                                    "name": "tableFirstRow",
+                                                                                                    "type": "select",
+                                                                                                    "label": "Column range",
+                                                                                                    "options": [
+                                                                                                        {
+                                                                                                            "label": "A-Z",
+                                                                                                            "value": "A1:Z1",
+                                                                                                            "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "label": "A-BZ",
+                                                                                                            "value": "A1:BZ1",
+                                                                                                            "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "label": "A-CZ",
+                                                                                                            "value": "A1:CZ1",
+                                                                                                            "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "label": "A-DZ",
+                                                                                                            "value": "A1:DZ1",
+                                                                                                            "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "label": "A-MZ",
+                                                                                                            "value": "A1:MZ1",
+                                                                                                            "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "label": "A-ZZ",
+                                                                                                            "value": "A1:ZZ1",
+                                                                                                            "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                                        }
+                                                                                                    ],
+                                                                                                    "mappable": false,
+                                                                                                    "required": true
+                                                                                                }
+                                                                                            ]
+                                                                                        }
+                                                                                    ],
+                                                                                    "mappable": false,
+                                                                                    "required": true
+                                                                                }
+                                                                            ]
+                                                                        },
+                                                                        "mappable": false,
+                                                                        "required": true
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "mappable": false,
+                                                            "required": true
+                                                        }
+                                                    ],
+                                                    "default": true
+                                                },
+                                                {
+                                                    "label": "Shared with me",
+                                                    "value": "share",
+                                                    "nested": [
+                                                        {
+                                                            "name": "spreadsheetId",
+                                                            "type": "file",
+                                                            "label": "Spreadsheet ID",
+                                                            "options": {
+                                                                "ids": true,
+                                                                "store": "rpc://google-sheets@2/listSpreadsheets?share=true",
+                                                                "nested": [
+                                                                    {
+                                                                        "name": "sheetId",
+                                                                        "type": "select",
+                                                                        "label": "Sheet Name",
+                                                                        "options": {
+                                                                            "store": "rpc://google-sheets@2/rpcSheet",
+                                                                            "nested": [
+                                                                                {
+                                                                                    "name": "includesHeaders",
+                                                                                    "type": "select",
+                                                                                    "label": "Table contains headers",
+                                                                                    "default": true,
+                                                                                    "options": [
+                                                                                        {
+                                                                                            "label": "Yes",
+                                                                                            "value": true,
+                                                                                            "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                        },
+                                                                                        {
+                                                                                            "label": "No",
+                                                                                            "value": false,
+                                                                                            "nested": [
+                                                                                                {
+                                                                                                    "help": "Please select the column range you want to work with.",
+                                                                                                    "name": "tableFirstRow",
+                                                                                                    "type": "select",
+                                                                                                    "label": "Column range",
+                                                                                                    "options": [
+                                                                                                        {
+                                                                                                            "label": "A-Z",
+                                                                                                            "value": "A1:Z1",
+                                                                                                            "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "label": "A-BZ",
+                                                                                                            "value": "A1:BZ1",
+                                                                                                            "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "label": "A-CZ",
+                                                                                                            "value": "A1:CZ1",
+                                                                                                            "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "label": "A-DZ",
+                                                                                                            "value": "A1:DZ1",
+                                                                                                            "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "label": "A-MZ",
+                                                                                                            "value": "A1:MZ1",
+                                                                                                            "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "label": "A-ZZ",
+                                                                                                            "value": "A1:ZZ1",
+                                                                                                            "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                                        }
+                                                                                                    ],
+                                                                                                    "mappable": false,
+                                                                                                    "required": true
+                                                                                                }
+                                                                                            ]
+                                                                                        }
+                                                                                    ],
+                                                                                    "mappable": false,
+                                                                                    "required": true
+                                                                                }
+                                                                            ]
+                                                                        },
+                                                                        "mappable": false,
+                                                                        "required": true
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "mappable": false,
+                                                            "required": true
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "label": "Google Shared Drive",
+                                                    "value": "team",
+                                                    "nested": [
+                                                        {
+                                                            "help": "Issue the request as a domain administrator\nIf set to`Yes`, then all shared drives of the domain in which the requester is an administrator are returned.",
+                                                            "name": "useDomainAdminAccess",
+                                                            "type": "select",
+                                                            "label": "Use Domain Admin Access",
+                                                            "options": {
+                                                                "store": [
+                                                                    {
+                                                                        "label": "Yes",
+                                                                        "value": true
+                                                                    },
+                                                                    {
+                                                                        "label": "No",
+                                                                        "value": false,
+                                                                        "default": true
+                                                                    }
+                                                                ],
+                                                                "nested": [
+                                                                    {
+                                                                        "name": "sharedDrive",
+                                                                        "type": "select",
+                                                                        "label": "Shared Drive",
+                                                                        "options": {
+                                                                            "store": "rpc://google-sheets@2/listSharedDrives",
+                                                                            "nested": [
+                                                                                {
+                                                                                    "name": "spreadsheetId",
+                                                                                    "type": "file",
+                                                                                    "label": "Spreadsheet ID",
+                                                                                    "options": {
+                                                                                        "ids": true,
+                                                                                        "store": "rpc://google-sheets@2/listTeamSpreadsheets",
+                                                                                        "nested": [
+                                                                                            {
+                                                                                                "name": "sheetId",
+                                                                                                "type": "select",
+                                                                                                "label": "Sheet Name",
+                                                                                                "options": {
+                                                                                                    "store": "rpc://google-sheets@2/rpcSheet",
+                                                                                                    "nested": [
+                                                                                                        {
+                                                                                                            "name": "includesHeaders",
+                                                                                                            "type": "select",
+                                                                                                            "label": "Table contains headers",
+                                                                                                            "default": true,
+                                                                                                            "options": [
+                                                                                                                {
+                                                                                                                    "label": "Yes",
+                                                                                                                    "value": true,
+                                                                                                                    "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                                                },
+                                                                                                                {
+                                                                                                                    "label": "No",
+                                                                                                                    "value": false,
+                                                                                                                    "nested": [
+                                                                                                                        {
+                                                                                                                            "help": "Please select the column range you want to work with.",
+                                                                                                                            "name": "tableFirstRow",
+                                                                                                                            "type": "select",
+                                                                                                                            "label": "Column range",
+                                                                                                                            "options": [
+                                                                                                                                {
+                                                                                                                                    "label": "A-Z",
+                                                                                                                                    "value": "A1:Z1",
+                                                                                                                                    "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "label": "A-BZ",
+                                                                                                                                    "value": "A1:BZ1",
+                                                                                                                                    "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "label": "A-CZ",
+                                                                                                                                    "value": "A1:CZ1",
+                                                                                                                                    "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "label": "A-DZ",
+                                                                                                                                    "value": "A1:DZ1",
+                                                                                                                                    "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "label": "A-MZ",
+                                                                                                                                    "value": "A1:MZ1",
+                                                                                                                                    "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "label": "A-ZZ",
+                                                                                                                                    "value": "A1:ZZ1",
+                                                                                                                                    "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                                                                }
+                                                                                                                            ],
+                                                                                                                            "mappable": false,
+                                                                                                                            "required": true
+                                                                                                                        }
+                                                                                                                    ]
+                                                                                                                }
+                                                                                                            ],
+                                                                                                            "mappable": false,
+                                                                                                            "required": true
+                                                                                                        }
+                                                                                                    ]
+                                                                                                },
+                                                                                                "mappable": false,
+                                                                                                "required": true
+                                                                                            }
+                                                                                        ]
+                                                                                    },
+                                                                                    "mappable": false,
+                                                                                    "required": true
+                                                                                }
+                                                                            ]
+                                                                        },
+                                                                        "mappable": false,
+                                                                        "required": true
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "mappable": false,
+                                                            "required": true
+                                                        }
+                                                    ]
+                                                }
+                                            ],
+                                            "mappable": false,
+                                            "required": true
+                                        }
+                                    ]
+                                },
+                                {
+                                    "label": "Select from all",
+                                    "value": "fromAll",
+                                    "nested": [
+                                        {
+                                            "rpc": {
+                                                "url": "rpc://google-sheets@2/rpcSpreadsheet",
+                                                "label": "ID Finder",
+                                                "parameters": [
+                                                    {
+                                                        "help": "Leave the field empty to display all files. Enter the filename or its part(s).",
+                                                        "name": "spreadsheetName",
+                                                        "type": "text",
+                                                        "label": "Filename Keywords"
+                                                    },
+                                                    {
+                                                        "name": "enableSharedDrives",
+                                                        "type": "boolean",
+                                                        "label": "Search in Shared Drives",
+                                                        "nested": [
+                                                            {
+                                                                "help": "Must have **domain administrator** access.\nIf set to `Yes`, all shared drives will be searched for results.",
+                                                                "name": "useDomainAdminAccess",
+                                                                "type": "select",
+                                                                "label": "Use Domain Admin Access",
+                                                                "options": {
+                                                                    "store": [
+                                                                        {
+                                                                            "label": "Yes",
+                                                                            "value": true
+                                                                        },
+                                                                        {
+                                                                            "label": "No",
+                                                                            "value": false,
+                                                                            "default": true
+                                                                        }
+                                                                    ],
+                                                                    "nested": [
+                                                                        {
+                                                                            "name": "drive",
+                                                                            "type": "select",
+                                                                            "label": "Shared Drive",
+                                                                            "options": "rpc://google-sheets@2/listSharedDrives",
+                                                                            "required": true
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "mappable": false,
+                                                                "required": true
+                                                            }
+                                                        ],
+                                                        "default": false,
+                                                        "required": true
+                                                    }
+                                                ]
+                                            },
+                                            "help": "Find the Spreadsheet ID by clicking **ID Finder** .\ne.g. 1a1ADVruoa0YztkOpKM6BWXIYO9GWaA",
+                                            "name": "spreadsheetId",
+                                            "type": "text",
+                                            "label": "Spreadsheet ID",
+                                            "nested": [
+                                                {
+                                                    "name": "sheetId",
+                                                    "type": "select",
+                                                    "label": "Sheet Name",
+                                                    "options": {
+                                                        "store": "rpc://google-sheets@2/rpcSheet",
+                                                        "nested": [
+                                                            {
+                                                                "name": "includesHeaders",
+                                                                "type": "select",
+                                                                "label": "Table contains headers",
+                                                                "default": true,
+                                                                "options": [
+                                                                    {
+                                                                        "label": "Yes",
+                                                                        "value": true,
+                                                                        "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                    },
+                                                                    {
+                                                                        "label": "No",
+                                                                        "value": false,
+                                                                        "nested": [
+                                                                            {
+                                                                                "help": "Please select the column range you want to work with.",
+                                                                                "name": "tableFirstRow",
+                                                                                "type": "select",
+                                                                                "label": "Column range",
+                                                                                "options": [
+                                                                                    {
+                                                                                        "label": "A-Z",
+                                                                                        "value": "A1:Z1",
+                                                                                        "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                    },
+                                                                                    {
+                                                                                        "label": "A-BZ",
+                                                                                        "value": "A1:BZ1",
+                                                                                        "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                    },
+                                                                                    {
+                                                                                        "label": "A-CZ",
+                                                                                        "value": "A1:CZ1",
+                                                                                        "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                    },
+                                                                                    {
+                                                                                        "label": "A-DZ",
+                                                                                        "value": "A1:DZ1",
+                                                                                        "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                    },
+                                                                                    {
+                                                                                        "label": "A-MZ",
+                                                                                        "value": "A1:MZ1",
+                                                                                        "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                    },
+                                                                                    {
+                                                                                        "label": "A-ZZ",
+                                                                                        "value": "A1:ZZ1",
+                                                                                        "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                                                    }
+                                                                                ],
+                                                                                "mappable": false,
+                                                                                "required": true
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                ],
+                                                                "mappable": false,
+                                                                "required": true
+                                                            }
+                                                        ]
+                                                    },
+                                                    "required": true
+                                                }
+                                            ],
+                                            "required": true
+                                        }
+                                    ]
+                                },
+                                {
+                                    "label": "Enter manually",
+                                    "value": "map",
+                                    "nested": [
+                                        {
+                                            "help": "A spreadsheet ID can be extracted from its URL.\nFor example, the spreadsheet ID in the URL `https://docs.google.com/spreadsheets/d/abc1234567/edit#gid=0` is `abc1234567`",
+                                            "name": "spreadsheetId",
+                                            "type": "text",
+                                            "label": "Spreadsheet ID",
+                                            "required": true
+                                        },
+                                        {
+                                            "help": "Enter a sheet name.",
+                                            "name": "sheetId",
+                                            "type": "text",
+                                            "label": "Sheet Name",
+                                            "required": true
+                                        },
+                                        {
+                                            "help": "Please select the column range you want to work with.",
+                                            "name": "tableFirstRow",
+                                            "type": "select",
+                                            "label": "Column range",
+                                            "options": [
+                                                {
+                                                    "label": "A-Z",
+                                                    "value": "A1:Z1",
+                                                    "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                },
+                                                {
+                                                    "label": "A-BZ",
+                                                    "value": "A1:BZ1",
+                                                    "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                },
+                                                {
+                                                    "label": "A-CZ",
+                                                    "value": "A1:CZ1",
+                                                    "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                },
+                                                {
+                                                    "label": "A-DZ",
+                                                    "value": "A1:DZ1",
+                                                    "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                },
+                                                {
+                                                    "label": "A-MZ",
+                                                    "value": "A1:MZ1",
+                                                    "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                },
+                                                {
+                                                    "label": "A-ZZ",
+                                                    "value": "A1:ZZ1",
+                                                    "nested": "rpc://google-sheets@2/rpcSheetInput"
+                                                }
+                                            ],
+                                            "mappable": false,
+                                            "required": true
+                                        }
+                                    ]
+                                }
+                            ],
+                            "mappable": false,
+                            "required": true
+                        },
+                        {
+                            "help": "Whether to insert a row unformatted. This e.g. means that if you try to add new URLs into a column in Google Sheets, they will not be converted to clickable links if you select `Yes` here.",
+                            "name": "insertUnformatted",
+                            "type": "boolean",
+                            "label": "Unformatted",
+                            "default": false,
+                            "required": true
+                        },
+                        {
+                            "help": "The way the input data will be interpreted. More detailed explanations can be found in the [Make Help Center](https://www.make.com/en/help/app/google-sheets#add-a-row-964718).",
+                            "name": "valueInputOption",
+                            "type": "select",
+                            "label": "Value input option",
+                            "default": "USER_ENTERED",
+                            "options": [
+                                {
+                                    "label": "User entered",
+                                    "value": "USER_ENTERED"
+                                },
+                                {
+                                    "label": "Raw",
+                                    "value": "RAW"
+                                }
+                            ],
+                            "advanced": true,
+                            "editable": true
+                        },
+                        {
+                            "help": "The way existing data is changed when new data is input. More detailed explanations can be found in the [Make Help Center](https://www.make.com/en/help/app/google-sheets#add-a-row-964718).",
+                            "name": "insertDataOption",
+                            "type": "select",
+                            "label": "Insert data option",
+                            "default": "INSERT_ROWS",
+                            "options": [
+                                {
+                                    "label": "Insert rows",
+                                    "value": "INSERT_ROWS"
+                                },
+                                {
+                                    "label": "Overwrite",
+                                    "value": "OVERWRITE"
+                                }
+                            ],
+                            "advanced": true,
+                            "editable": true
+                        }
+                    ],
+                    "domain": "expect"
+                }
+            },
+            "required": true
+        }
+    ],
+    "description": "Appends a new row to the bottom of the table.",
+    "supportsAgent": false
+}

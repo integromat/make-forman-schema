@@ -1,6 +1,7 @@
 import type { JSONSchema7 } from 'json-schema';
 import { toJSONSchemaInternal } from './forman';
-import type { FormanSchemaField } from './types';
+import type { FormanSchemaField, FormanValidationResult, FormanValidationOptions } from './types';
+import { validateFormanWithDomainsInternal } from './validator';
 
 export { toFormanSchema } from './json';
 export type {
@@ -22,4 +23,32 @@ export type {
  */
 export function toJSONSchema(field: FormanSchemaField): JSONSchema7 {
     return toJSONSchemaInternal(field);
+}
+
+/**
+ * Validates a Forman domains against schemas
+ * @param domains The domains to validate
+ * @param options The validation options
+ * @returns The validation result
+ */
+export function validateFormanWithDomains(
+    domains: Record<string, { values: Record<string, unknown>; schema: FormanSchemaField[] }>,
+    options?: FormanValidationOptions,
+): Promise<FormanValidationResult> {
+    return validateFormanWithDomainsInternal(domains, options);
+}
+
+/**
+ * Validates a simple Forman values against a schema
+ * @param values The values to validate
+ * @param schema The schema to validate against
+ * @param options The validation options
+ * @returns The validation result
+ */
+export function validateForman(
+    values: Record<string, unknown>,
+    schema: FormanSchemaField[],
+    options?: FormanValidationOptions,
+): Promise<FormanValidationResult> {
+    return validateFormanWithDomains({ default: { values, schema } }, options);
 }

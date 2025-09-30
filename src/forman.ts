@@ -1,6 +1,5 @@
 import type { JSONSchema7 } from 'json-schema';
 import type {
-    FormanSchemaFieldType,
     FormanSchemaField,
     FormanSchemaValue,
     FormanSchemaExtendedOptions,
@@ -8,7 +7,7 @@ import type {
     FormanSchemaOption,
     FormanSchemaOptionGroup,
 } from './types';
-import { noEmpty, isObject, isOptionGroup } from './utils';
+import { noEmpty, isObject, isOptionGroup, normalizeFormanFieldType, FORMAN_VISUAL_TYPES } from './utils';
 
 /**
  * Context for schema conversion operations
@@ -71,15 +70,6 @@ export class SchemaConversionError extends Error {
 }
 
 /**
- * Constants for API endpoints
- */
-export const API_ENDPOINTS = {
-    CONNECTIONS: 'api://connections',
-    HOOKS: 'api://hooks',
-    KEYS: 'api://keys',
-} as const;
-
-/**
  * Maps Forman Schema types to JSON Schema types.
  */
 const FORMAN_TYPE_MAP: Readonly<Record<string, JSONSchema7['type']>> = {
@@ -88,6 +78,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, JSONSchema7['type']>> = {
     keychain: 'number',
     datastore: 'number',
     aiagent: 'string',
+    udt: 'number',
     array: 'array',
     collection: 'object',
     text: 'string',
@@ -132,48 +123,6 @@ function validateFormanField(field: FormanSchemaField): void {
     if (!Object.keys(FORMAN_TYPE_MAP).includes(normalizedType!)) {
         throw new SchemaConversionError(`Unknown field type: ${field.type}`, field);
     }
-}
-
-/**
- * Normalizes a field type by handling prefixed types
- * @param field The field to normalize
- * @returns A normalized copy of the field
- */
-function normalizeFieldType(field: FormanSchemaField): FormanSchemaField {
-    const typeHandlers = {
-        'account:': (type: string) => ({
-            ...field,
-            type: 'account' as FormanSchemaFieldType,
-            options: {
-                ...(field.options as FormanSchemaExtendedOptions),
-                store: `${API_ENDPOINTS.CONNECTIONS}/${type.substring(8)}`,
-            },
-        }),
-        'hook:': (type: string) => ({
-            ...field,
-            type: 'hook' as FormanSchemaFieldType,
-            options: {
-                ...(field.options as FormanSchemaExtendedOptions),
-                store: `${API_ENDPOINTS.HOOKS}/${type.substring(5)}`,
-            },
-        }),
-        'keychain:': (type: string) => ({
-            ...field,
-            type: 'keychain' as FormanSchemaFieldType,
-            options: {
-                ...(field.options as FormanSchemaExtendedOptions),
-                store: `${API_ENDPOINTS.KEYS}/${type.substring(9)}`,
-            },
-        }),
-    };
-
-    for (const [prefix, handler] of Object.entries(typeHandlers)) {
-        if (field.type.startsWith(prefix)) {
-            return handler(field.type);
-        }
-    }
-
-    return field;
 }
 
 /**
@@ -225,7 +174,7 @@ export function toJSONSchemaInternal(
     validateFormanField(field);
 
     // Normalize field type (handle prefixed types)
-    const normalizedField = normalizeFieldType(field);
+    const normalizedField = normalizeFormanFieldType(field);
 
     const result: JSONSchema7 = {
         type: FORMAN_TYPE_MAP[normalizedField.type],
@@ -266,6 +215,10 @@ function handleCollectionType(field: FormanSchemaField, result: JSONSchema7, con
     });
 
     function addField(subField: FormanSchemaField, tail?: string[]) {
+        if (FORMAN_VISUAL_TYPES.includes(subField.type)) {
+            return;
+        }
+
         if (!subField.name) return;
 
         if (subField.required) {
@@ -482,7 +435,8 @@ function handlePrimitiveType(field: FormanSchemaField, result: JSONSchema7): JSO
     // Add validation if present
     if (field.validate) {
         if (field.validate.pattern) {
-            result.pattern = field.validate.pattern;
+            result.pattern =
+                typeof field.validate.pattern === 'object' ? field.validate.pattern.regexp : field.validate.pattern;
         }
         if (field.validate.min !== undefined) {
             result.minimum = field.validate.min;

@@ -505,4 +505,28 @@ describe('Forman Nested', () => {
             ],
         });
     });
+
+    it('Forman Schema -> JSON Schema #9 (skip visual types in collection)', async () => {
+        const formanSchema = {
+            type: 'collection',
+            spec: [
+                { type: 'banner', label: 'Banner' },
+                { type: 'markdown', label: 'Markdown' },
+                { type: 'html', label: 'HTML' },
+                { type: 'separator' },
+                { name: 'real', type: 'text' },
+            ],
+        };
+
+        const jsonSchema = toJSONSchema(formanSchema);
+        expect(jsonSchema).toEqual({
+            properties: {
+                real: {
+                    type: 'string',
+                },
+            },
+            required: [],
+            type: 'object',
+        });
+    });
 });

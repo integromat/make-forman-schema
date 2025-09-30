@@ -2,11 +2,12 @@
  * Valid Forman Schema field types
  */
 export type FormanSchemaFieldType =
+    | 'aiagent'
     | 'account'
     | 'hook'
     | 'keychain'
     | 'datastore'
-    | 'aiagent'
+    | 'udt'
     | 'array'
     | 'collection'
     | 'text'
@@ -36,6 +37,10 @@ export type FormanSchemaFieldType =
     | `account:${string}`
     | `hook:${string}`
     | `keychain:${string}`
+    | 'banner'
+    | 'markdown'
+    | 'html'
+    | 'separator'
     | string;
 
 /**
@@ -43,7 +48,7 @@ export type FormanSchemaFieldType =
  */
 export interface FormanSchemaValidation {
     /** Pattern for string validation */
-    pattern?: string;
+    pattern?: string | { regexp: string };
     /** Minimum value */
     min?: number;
     /** Maximum value */
@@ -88,6 +93,8 @@ export type FormanSchemaField = {
     mappable?: boolean;
     /** Whether the user will be able to insert new lines in GUI (a textarea will be displayed instead of the text field) */
     multiline?: boolean;
+    /** Whether the select field allows multiple values */
+    multiple?: boolean;
     /** Specifies how to treat HTML tags in the field (text only) */
     tags?: 'strip' | 'stripall' | 'escape';
     /** Allowed extension or array of allowed extensions. (filename only) */
@@ -161,6 +168,17 @@ export type FormanSchemaExtendedOptions = {
     store: FormanSchemaOption[] | FormanSchemaOptionGroup[] | string;
     /** Nested fields for every option */
     nested?: FormanSchemaNested;
+    /** Name of the property as the label of an option */
+    label?: string;
+    /** Name of the property as the value of an option */
+    value?: string;
+    /** Label to display when no value is selected */
+    placeholder?:
+        | string
+        | {
+              label: string;
+              nested?: FormanSchemaNested;
+          };
 };
 
 /**
@@ -176,4 +194,28 @@ export type FormanSchemaExtendedNested = {
     store: FormanSchemaField[] | string;
     /** Domain for the nested fields */
     domain?: string;
+};
+
+/**
+ * Validation result
+ */
+export type FormanValidationResult = {
+    /** Whether the object is valid */
+    valid: boolean;
+    /** Errors */
+    errors: {
+        /** Field domain */
+        domain: string;
+        /** Field path */
+        path: string;
+        /** Error message */
+        message: string;
+    }[];
+};
+
+export type FormanValidationOptions = {
+    /** Unknown fields are not allowed when strict is true */
+    strict?: boolean;
+    /** Remote resource resolver */
+    resolveRemote?(path: string, data: Record<string, unknown>): Promise<unknown>;
 };
