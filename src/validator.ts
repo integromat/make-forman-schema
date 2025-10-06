@@ -247,6 +247,7 @@ async function validateFormanValue(
         case 'keychain':
         case 'datastore':
         case 'aiagent':
+        case 'udt':
         case 'file':
         case 'folder':
             return handleSelectType(value, normalizedField, context);
