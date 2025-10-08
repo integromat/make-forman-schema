@@ -196,4 +196,76 @@ describe('Forman Schema Manifest Validation', () => {
             errors: [],
         });
     });
+
+    it('should validate ai-tools manifest', async () => {
+        const aiToolsAnalyzeSentimentMock = JSON.parse(
+            readFileSync('./test/mocks/ai-tools-analyze-sentiment.json').toString(),
+        );
+
+        expect(
+            await validateFormanWithDomains(
+                {
+                    default: {
+                        values: {
+                            model: 'o4-mini',
+                            makeConnectionId: 1,
+                        },
+                        schema: aiToolsAnalyzeSentimentMock.parameters,
+                    },
+                    expect: {
+                        values: {
+                            input: 'asdf',
+                            shouldGenerateDescription: false,
+                        },
+                        schema: aiToolsAnalyzeSentimentMock.expect,
+                    },
+                },
+                {
+                    async resolveRemote(path: string, data: Record<string, unknown>) {
+                        switch (path) {
+                            case 'api://connections/ai-provider':
+                                expect(data).toEqual({});
+                                return [{ value: 1, label: 'Connection 1' }];
+                            case 'rpc://RpcGetConnections?teamId={{teamId}}':
+                                expect(data).toEqual({});
+                                return [
+                                    {
+                                        name: 'makeConnectionId',
+                                        type: 'account:ai-provider',
+                                        label: 'Connection',
+                                        required: true,
+                                        nested: [
+                                            {
+                                                name: 'model',
+                                                type: 'select',
+                                                label: 'Model',
+                                                required: true,
+                                                mappable: true,
+                                                options: {
+                                                    store: 'rpc://RpcGetModels?connectionId={{makeConnectionId}}&teamId=1',
+                                                },
+                                            },
+                                        ],
+                                    },
+                                ];
+                            case 'rpc://RpcGetModels?connectionId={{makeConnectionId}}&teamId=1':
+                                expect(data).toEqual({
+                                    makeConnectionId: 1,
+                                });
+                                return [
+                                    {
+                                        value: 'o4-mini',
+                                        label: 'o4-mini',
+                                    },
+                                ];
+                        }
+                        throw new Error(`Unknown remote resource: ${path}`);
+                    },
+                },
+            ),
+        ).toEqual({
+            valid: true,
+            errors: [],
+        });
+    });
 });

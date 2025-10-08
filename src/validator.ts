@@ -273,7 +273,35 @@ async function handleCollectionType(
     const path = context.path;
 
     if (Array.isArray(field.spec)) {
-        for (const subField of field.spec) {
+        const spec = field.spec.slice();
+        while (spec.length > 0) {
+            let subField = spec.shift();
+            if (!subField) continue;
+
+            if (typeof subField === 'string') {
+                try {
+                    const resolved = (await context.resolveRemote(subField, context)) as FormanSchemaField;
+                    if (Array.isArray(resolved)) {
+                        spec.unshift(...resolved);
+                        continue;
+                    } else {
+                        subField = resolved;
+                    }
+                } catch (error) {
+                    return {
+                        valid: false,
+                        errors: [
+                            ...errors,
+                            {
+                                domain: context.domain,
+                                path: context.path.join('.'),
+                                message: `Failed to resolve remote resource ${subField}: ${error}`,
+                            },
+                        ],
+                    };
+                }
+            }
+
             if (FORMAN_VISUAL_TYPES.includes(subField.type)) {
                 continue;
             }
@@ -400,7 +428,11 @@ async function handleSelectType(
     const errors: FormanValidationResult['errors'] = [];
 
     let optionsOrGroups = isObject<FormanSchemaExtendedOptions>(field.options) ? field.options.store : field.options;
-    let nested = isObject<FormanSchemaExtendedOptions>(field.options) ? field.options.nested : undefined;
+    let nested = field.nested
+        ? field.nested
+        : isObject<FormanSchemaExtendedOptions>(field.options)
+          ? field.options.nested
+          : undefined;
 
     if (typeof optionsOrGroups === 'string') {
         try {
