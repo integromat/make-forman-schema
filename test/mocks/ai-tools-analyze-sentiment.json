@@ -1,0 +1,20 @@
+{
+    "name": "AnalyzeSentiment",
+    "label": "Analyze sentiment",
+    "parameters": ["rpc://RpcGetConnections?teamId={{teamId}}"],
+    "expect": [
+        {
+            "name": "input",
+            "label": "Text to analyze",
+            "type": "text",
+            "required": true
+        },
+        {
+            "name": "shouldGenerateDescription",
+            "label": "Return a description of the sentiment",
+            "type": "boolean",
+            "default": false,
+            "required": true
+        }
+    ]
+}
