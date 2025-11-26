@@ -225,6 +225,15 @@ function handleCollectionType(field: FormanSchemaField, result: JSONSchema7, con
             result.required!.push(subField.name);
         }
 
+        /*
+        Some app configs may have duplicate field names.
+        Forman handles that with bidirectional value binding.
+        In JSON Schema, we can't have duplicate property names,
+        so if the property has already been defined, we skip the redefinition,
+        and keep the first defined one only.
+         */
+        if (result.properties && Object.hasOwn(result.properties, subField.name)) return;
+
         Object.defineProperty(result.properties, subField.name, {
             enumerable: true,
             value: toJSONSchemaInternal(subField, {

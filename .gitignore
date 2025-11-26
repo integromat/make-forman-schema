@@ -1,6 +1,7 @@
 # system related
 .DS_Store
 .vscode
+.idea
 
 #test related
 coverage/*
