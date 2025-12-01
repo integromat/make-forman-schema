@@ -20,18 +20,25 @@ const JSON_PRIMITIVE_TYPE_MAP: Readonly<Record<string, FormanSchemaFieldType>> =
 export function toFormanSchema(field: JSONSchema7): FormanSchemaField {
     switch (field.type) {
         case 'object':
+            // When there are no defined properties in the spec, assume the collection is dynamic.
+            if (!field.properties || !Object.entries(field.properties).length) {
+                return {
+                    type: 'dynamicCollection',
+                    label: noEmpty(field.title),
+                    help: noEmpty(field.description),
+                };
+            }
+
             // For objects, create a collection type with spec from properties
-            const spec: FormanSchemaField[] = field.properties
-                ? Object.entries(field.properties)
-                      .filter(([name, property]) => !!property)
-                      .map(([name, property]) => {
-                          // Convert each property to a Forman Schema field
-                          const subField = toFormanSchema(property as JSONSchema7);
-                          subField.name = name;
-                          subField.required = field.required?.includes(name) || false;
-                          return subField;
-                      })
-                : [];
+            const spec: FormanSchemaField[] = Object.entries(field.properties)
+                .filter(([name, property]) => !!property)
+                .map(([name, property]) => {
+                    // Convert each property to a Forman Schema field
+                    const subField = toFormanSchema(property as JSONSchema7);
+                    subField.name = name;
+                    subField.required = field.required?.includes(name) || false;
+                    return subField;
+                });
 
             return {
                 type: 'collection',

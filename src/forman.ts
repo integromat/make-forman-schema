@@ -81,6 +81,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, JSONSchema7['type']>> = {
     udt: 'number',
     array: 'array',
     collection: 'object',
+    dynamicCollection: 'object',
     text: 'string',
     number: 'number',
     boolean: 'boolean',
@@ -184,6 +185,7 @@ export function toJSONSchemaInternal(
 
     switch (normalizedField.type) {
         case 'collection':
+        case 'dynamicCollection':
             return handleCollectionType(normalizedField, result, context);
         case 'array':
             return handleArrayType(normalizedField, result, context);

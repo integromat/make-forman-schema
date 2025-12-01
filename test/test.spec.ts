@@ -56,6 +56,12 @@ describe('Forman Schema', () => {
                     description: 'description',
                     type: 'string',
                 },
+                dynamicCollection: {
+                    properties: {},
+                    required: [],
+                    title: 'Dynamic Collection',
+                    type: 'object',
+                },
                 json: {
                     description: 'description',
                     type: 'string',
@@ -190,6 +196,12 @@ describe('Forman Schema', () => {
                     type: 'any',
                     label: 'Any',
                     required: false,
+                },
+                {
+                    label: 'Dynamic Collection',
+                    name: 'dynamicCollection',
+                    required: false,
+                    type: 'dynamicCollection',
                 },
             ],
         });
