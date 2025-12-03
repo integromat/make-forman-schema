@@ -798,7 +798,7 @@ describe('Forman Schema Extended Validation', () => {
             });
         });
 
-        it('should validate select with options.nested and options.store both as RPCs', async () => {
+        it('should validate select with mix of dynamic and static nested forms', async () => {
             const formanValue = {
                 edible: 'fruit',
                 fruit: 'apple',
@@ -815,9 +815,34 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
-                valid: true,
-                errors: [],
+            expect(
+                await validateForman(formanValue, formanSchema, {
+                    async resolveRemote(path, data) {
+                        if (path === 'rpc://edibles') {
+                            return [{ value: 'fruit', label: 'Fruit' }];
+                        }
+                        if (path === 'rpc://edible-options') {
+                            return [
+                                {
+                                    name: 'fruit',
+                                    type: 'select',
+                                    required: true,
+                                    options: [{ value: 'cucumber', label: 'Cucumber' }],
+                                },
+                            ];
+                        }
+                        throw new Error(`Unknown resource: ${path}`);
+                    },
+                }),
+            ).toEqual({
+                valid: false,
+                errors: [
+                    {
+                        domain: 'default',
+                        path: 'fruit',
+                        message: "Value 'apple' not found in options.",
+                    },
+                ],
             });
         });
     });

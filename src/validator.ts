@@ -560,21 +560,33 @@ async function handleNestedFields(
     };
 
     if (typeof store === 'string') {
-        try {
-            store = (await context.resolveRemote(store, context)) as FormanSchemaField[];
-        } catch (error) {
-            return {
-                valid: false,
-                errors: [
-                    ...errors,
-                    {
-                        domain: context.domain,
-                        path: context.path.join('.'),
-                        message: `Failed to resolve remote resource ${store}: ${error}`,
-                    },
-                ],
-            };
+        store = [store];
+    }
+
+    if (Array.isArray(store) && store.some(item => typeof item === 'string')) {
+        const resolvedStore: FormanSchemaField[] = [];
+        for (const item of store) {
+            if (typeof item === 'string') {
+                try {
+                    resolvedStore.push(...((await context.resolveRemote(item, context)) as FormanSchemaField[]));
+                } catch (error) {
+                    return {
+                        valid: false,
+                        errors: [
+                            ...errors,
+                            {
+                                domain: context.domain,
+                                path: context.path.join('.'),
+                                message: `Failed to resolve remote resource ${item}: ${error}`,
+                            },
+                        ],
+                    };
+                }
+            } else {
+                resolvedStore.push(item);
+            }
         }
+        store = resolvedStore;
     }
 
     if (store && domain && domain !== context.domain) {

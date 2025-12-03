@@ -381,7 +381,107 @@ describe('Forman Nested', () => {
         });
     });
 
-    it('Forman Schema -> JSON Schema #7 (nested form with dynamic select in select with dynamic options)', async () => {
+    it('Forman Schema -> JSON Schema #7 (mix of dynamic and static nested forms in select)', async () => {
+        const formanSchema = {
+            type: 'collection',
+            spec: [
+                {
+                    help: 'Field description',
+                    name: 'connection',
+                    type: 'select',
+                    label: 'Connection',
+                    required: true,
+                    options: {
+                        store: 'rpc://function1?param=value',
+                        nested: ['rpc://function2', { type: 'text', name: 'folder' }, 'rpc://function3'],
+                    },
+                },
+                {
+                    name: 'connection2',
+                    type: 'select',
+                    label: 'Connection 2',
+                    required: true,
+                    options: {
+                        store: [
+                            {
+                                value: 'apple',
+                                label: 'Apple',
+                                nested: ['rpc://function4', 'rpc://function5'],
+                            },
+                        ],
+                    },
+                },
+            ],
+        };
+
+        const jsonSchema = toJSONSchema(formanSchema);
+        expect(jsonSchema).toEqual({
+            properties: {
+                connection: {
+                    title: 'Connection',
+                    description: 'Field description',
+                    type: 'string',
+                    'x-fetch': 'rpc://function1?param=value',
+                    'x-nested': {
+                        type: 'object',
+                        allOf: [
+                            {
+                                $ref: 'rpc://function2?connection={{connection}}',
+                            },
+                            {
+                                properties: {
+                                    folder: {
+                                        type: 'string',
+                                    },
+                                },
+                                required: [],
+                                type: 'object',
+                            },
+                            {
+                                $ref: 'rpc://function3?connection={{connection}}',
+                            },
+                        ],
+                    },
+                },
+                connection2: {
+                    title: 'Connection 2',
+                    type: 'string',
+                    oneOf: [
+                        {
+                            title: 'Apple',
+                            const: 'apple',
+                        },
+                    ],
+                },
+            },
+            required: ['connection', 'connection2'],
+            type: 'object',
+            allOf: [
+                {
+                    if: {
+                        properties: {
+                            connection2: {
+                                const: 'apple',
+                            },
+                        },
+                    },
+                    then: {
+                        type: 'object',
+                        allOf: [
+                            {
+                                $ref: 'rpc://function4?connection2={{connection2}}',
+                            },
+                            {
+                                $ref: 'rpc://function5?connection2={{connection2}}',
+                            },
+                        ],
+                    },
+                },
+            ],
+        });
+    });
+
+    it('Forman Schema -> JSON Schema #8 (nested form with dynamic select in select with dynamic options)', async () => {
         const formanSchema = {
             type: 'collection',
             spec: [
@@ -435,7 +535,7 @@ describe('Forman Nested', () => {
         });
     });
 
-    it('Forman Schema -> JSON Schema #8 (dynamic nested form in each option of each group)', async () => {
+    it('Forman Schema -> JSON Schema #9 (dynamic nested form in each option of each group)', async () => {
         const formanSchema = {
             type: 'collection',
             spec: [
@@ -506,7 +606,7 @@ describe('Forman Nested', () => {
         });
     });
 
-    it('Forman Schema -> JSON Schema #9 (skip visual types in collection)', async () => {
+    it('Forman Schema -> JSON Schema #10 (skip visual types in collection)', async () => {
         const formanSchema = {
             type: 'collection',
             spec: [
