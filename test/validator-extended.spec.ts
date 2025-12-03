@@ -797,6 +797,54 @@ describe('Forman Schema Extended Validation', () => {
                 ],
             });
         });
+
+        it('should validate select with mix of dynamic and static nested forms', async () => {
+            const formanValue = {
+                edible: 'fruit',
+                fruit: 'apple',
+            };
+
+            const formanSchema = [
+                {
+                    name: 'edible',
+                    type: 'select',
+                    options: {
+                        store: 'rpc://edibles',
+                        nested: ['rpc://edible-options'],
+                    },
+                },
+            ];
+
+            expect(
+                await validateForman(formanValue, formanSchema, {
+                    async resolveRemote(path, data) {
+                        if (path === 'rpc://edibles') {
+                            return [{ value: 'fruit', label: 'Fruit' }];
+                        }
+                        if (path === 'rpc://edible-options') {
+                            return [
+                                {
+                                    name: 'fruit',
+                                    type: 'select',
+                                    required: true,
+                                    options: [{ value: 'cucumber', label: 'Cucumber' }],
+                                },
+                            ];
+                        }
+                        throw new Error(`Unknown resource: ${path}`);
+                    },
+                }),
+            ).toEqual({
+                valid: false,
+                errors: [
+                    {
+                        domain: 'default',
+                        path: 'fruit',
+                        message: "Value 'apple' not found in options.",
+                    },
+                ],
+            });
+        });
     });
 
     describe('Collection Type Edge Cases', () => {

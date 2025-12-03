@@ -184,7 +184,7 @@ export type FormanSchemaExtendedOptions = {
 /**
  * Nested fields
  */
-export type FormanSchemaNested = FormanSchemaField[] | string | FormanSchemaExtendedNested;
+export type FormanSchemaNested = (FormanSchemaField | string)[] | string | FormanSchemaExtendedNested;
 
 /**
  * Extended nested fields
