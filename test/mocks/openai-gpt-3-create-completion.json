@@ -1,0 +1,706 @@
+{
+    "crud": "create",
+    "name": "CreateCompletion",
+    "label": "Generate a completion",
+    "scope": [],
+    "expect": [],
+    "interface": [
+        {
+            "name": "result",
+            "type": "any",
+            "label": "Result"
+        },
+        {
+            "name": "id",
+            "type": "text",
+            "label": "ID"
+        },
+        {
+            "name": "object",
+            "type": "text",
+            "label": "Object"
+        },
+        {
+            "name": "created",
+            "type": "date",
+            "label": "Created"
+        },
+        {
+            "name": "model",
+            "type": "text",
+            "label": "Model"
+        },
+        "rpc://openai-gpt-3@1/interfaceIncludeAudioVariablesInCompletion",
+        {
+            "name": "usage",
+            "spec": [
+                {
+                    "name": "prompt_tokens",
+                    "type": "number",
+                    "label": "Prompt Tokens"
+                },
+                {
+                    "name": "completion_tokens",
+                    "type": "text",
+                    "label": "Completion Tokens"
+                },
+                {
+                    "name": "total_tokens",
+                    "type": "number",
+                    "label": "Total Tokens"
+                },
+                {
+                    "name": "prompt_tokens_details",
+                    "spec": [
+                        {
+                            "name": "cached_tokens",
+                            "type": "uinteger",
+                            "label": "Cached Tokens"
+                        },
+                        {
+                            "name": "text_tokens",
+                            "type": "uinteger",
+                            "label": "Text Tokens"
+                        },
+                        {
+                            "name": "image_tokens",
+                            "type": "uinteger",
+                            "label": "Image Tokens"
+                        },
+                        {
+                            "name": "audio_tokens",
+                            "type": "uinteger",
+                            "label": "Audio Tokens"
+                        }
+                    ],
+                    "type": "collection",
+                    "label": "Prompt Tokens Details"
+                },
+                {
+                    "name": "completion_tokens_details",
+                    "spec": [
+                        {
+                            "name": "reasoning_tokens",
+                            "type": "uinteger",
+                            "label": "Reasoning Tokens"
+                        },
+                        {
+                            "name": "text_tokens",
+                            "type": "uinteger",
+                            "label": "Text Tokens"
+                        },
+                        {
+                            "name": "audio_tokens",
+                            "type": "uinteger",
+                            "label": "Audio Tokens"
+                        },
+                        {
+                            "name": "accepted_prediction_tokens",
+                            "type": "uinteger",
+                            "label": "Accepted Prediction Tokens"
+                        },
+                        {
+                            "name": "rejected_prediction_tokens",
+                            "type": "uinteger",
+                            "label": "Rejected Prediction Tokens"
+                        }
+                    ],
+                    "type": "collection",
+                    "label": "Completion Tokens Details"
+                }
+            ],
+            "type": "collection",
+            "label": "Usage"
+        },
+        {
+            "name": "service_tier",
+            "type": "text",
+            "label": "Service Tier"
+        },
+        {
+            "name": "system_fingerprint",
+            "type": "text",
+            "label": "System Fingerprint"
+        }
+    ],
+    "deprecated": false,
+    "parameters": [
+        {
+            "name": "__IMTCONN__",
+            "type": "account:openai-gpt-3",
+            "label": "Connection",
+            "options": {
+                "nested": {
+                    "store": [
+                        {
+                            "name": "select",
+                            "type": "select",
+                            "label": "Select Method",
+                            "options": [
+                                {
+                                    "label": "Create a Chat Completion (GPT and o1 models)",
+                                    "value": "chat",
+                                    "nested": [
+                                        {
+                                            "help": "For a full list of models and their capabilities, see [OpenAI's models page](https://platform.openai.com/docs/models).",
+                                            "name": "model",
+                                            "type": "select",
+                                            "label": "Model",
+                                            "grouped": true,
+                                            "options": {
+                                                "store": "rpc://openai-gpt-3@1/getModels?type=chat",
+                                                "nested": ["rpc://openai-gpt-3@1/getModelSettings?reasoning=true"]
+                                            },
+                                            "mappable": {
+                                                "help": "ID of the model to use. For a full list of models and their capabilities, see the [OpenAI Models page](https://platform.openai.com/docs/models)."
+                                            },
+                                            "required": true
+                                        },
+                                        {
+                                            "help": "Maximum number of tokens to use in the completion (output). If `empty`, the limit of the model will be used.\nNote that:\n- Low values may cause the output to be truncated.\n- High values may use a lot of OpenAI credit.\nWhen using reasoning models such as the o1 models, this value is the sum of reasoning + output tokens.\nFor details, check [OpenAI Pricing](https://openai.com/pricing) page and the [Reasoning Models Guide](https://platform.openai.com/docs/guides/reasoning) if relevant.",
+                                            "name": "max_tokens",
+                                            "type": "uinteger",
+                                            "label": "Max Output Tokens",
+                                            "default": 2048
+                                        }
+                                    ],
+                                    "default": true
+                                },
+                                {
+                                    "label": "Create a Prompt Completion (Legacy)",
+                                    "value": "prompt",
+                                    "nested": [
+                                        {
+                                            "name": "model",
+                                            "type": "select",
+                                            "label": "Model",
+                                            "grouped": true,
+                                            "options": "rpc://openai-gpt-3@1/getModels?type=completion",
+                                            "mappable": {
+                                                "help": "ID of the model to use."
+                                            },
+                                            "required": true
+                                        },
+                                        {
+                                            "name": "prompt",
+                                            "type": "any",
+                                            "label": "Prompt"
+                                        },
+                                        {
+                                            "help": "Maximum number of tokens to use in the completion (output). If `empty`, defaults to 16.\nNote that:\n- Low values may cause the output to be truncated.\n- High values may use a lot of OpenAI credit.\nFor details, check [OpenAI Pricing](https://openai.com/pricing) page.",
+                                            "name": "max_tokens",
+                                            "type": "uinteger",
+                                            "label": "Max Tokens",
+                                            "default": 2048
+                                        },
+                                        {
+                                            "help": "When using `JSON Object`, you must also instruct the model to produce JSON via a `System` or `User` message. If not, the model can generate an unending stream of whitespace until it reaches the token limit. This will result in a long-running and seemingly \"stuck\" request.",
+                                            "name": "response_format",
+                                            "type": "select",
+                                            "label": "Response Format",
+                                            "options": [
+                                                {
+                                                    "label": "Text",
+                                                    "value": "text",
+                                                    "default": true
+                                                },
+                                                {
+                                                    "label": "JSON Object",
+                                                    "value": "json_object",
+                                                    "nested": [
+                                                        {
+                                                            "help": "Whether the JSON object in the response should be parsed.",
+                                                            "name": "parseJSONResponse",
+                                                            "type": "boolean",
+                                                            "label": "Parse JSON Response",
+                                                            "required": true
+                                                        }
+                                                    ]
+                                                }
+                                            ],
+                                            "advanced": true
+                                        }
+                                    ]
+                                }
+                            ],
+                            "mappable": false,
+                            "required": true
+                        },
+                        {
+                            "help": "Higher temperatures generate more diverse and creative responses. For example, `0.8`. Lower temperatures generate more focused and well-defined responses. For example, `0.2`.\nThe default value is `1`.",
+                            "name": "temperature",
+                            "type": "number",
+                            "label": "Temperature",
+                            "default": 1,
+                            "advanced": true,
+                            "validate": {
+                                "max": 2,
+                                "min": 0
+                            }
+                        },
+                        {
+                            "help": "Alternative to sampling with temperature, based on token probability.  For example, `.1` means only the tokens in the top 10% probability mass are considered.\nThe default value is `1`.",
+                            "name": "top_p",
+                            "type": "number",
+                            "label": "Top P",
+                            "default": 1,
+                            "advanced": true,
+                            "validate": {
+                                "max": 1,
+                                "min": 0
+                            }
+                        },
+                        {
+                            "help": "Number of responses to generate. The results can be found in the module's output in Choices.\nThe default value is `1`.",
+                            "name": "n_completions",
+                            "type": "number",
+                            "label": "Number",
+                            "default": 1,
+                            "advanced": true
+                        },
+                        {
+                            "help": "Positive values penalize new tokens based on their existing frequency, decreasing repetition. Negative values prioritize tokens that have already appeared, increasing repetition and reinforcing existing patterns.",
+                            "name": "frequency_penalty",
+                            "type": "number",
+                            "label": "Frequency Penalty",
+                            "default": 0,
+                            "advanced": true,
+                            "validate": {
+                                "max": 2,
+                                "min": -2
+                            }
+                        },
+                        {
+                            "help": "Positive values discourage repeated token usage, increasing diversity and the likelihood of new topics. Negative values encourage repeated token usage, reinforcing existing patterns.",
+                            "name": "presence_penalty",
+                            "type": "number",
+                            "label": "Presence Penalty",
+                            "default": 0,
+                            "advanced": true,
+                            "validate": {
+                                "max": 2,
+                                "min": -2
+                            }
+                        },
+                        {
+                            "help": "Configuration of the occurence of specific tokens in the generated response.",
+                            "name": "logit_bias",
+                            "spec": {
+                                "spec": [
+                                    {
+                                        "help": "To obtain token IDs, see the [OpenAI Tokenizer tool](https://platform.openai.com/tokenizer?view=bpe).",
+                                        "name": "token",
+                                        "type": "text",
+                                        "label": "Token ID",
+                                        "required": true
+                                    },
+                                    {
+                                        "help": "Likelihood of selecting the **Token ID** in the completion. For example, `-1` decreases and `1` increases the likelihood of selection. `-100` bans and `100` enforces the exclusive selection of the token.",
+                                        "name": "probability",
+                                        "type": "number",
+                                        "label": "Probability",
+                                        "required": true,
+                                        "validate": {
+                                            "max": 100,
+                                            "min": -100
+                                        }
+                                    }
+                                ],
+                                "type": "collection",
+                                "label": "Token Probability"
+                            },
+                            "type": "array",
+                            "label": "Token Probability",
+                            "labels": {
+                                "add": "Add token probability"
+                            },
+                            "advanced": true
+                        },
+                        {
+                            "help": "**This feature is in Beta.** If specified, OpenAI will make a best effort to sample deterministically so that repeated requests with the same seed and parameters return the same result. Determinism is not guaranteed, and you should refer to the `system_fingerprint` response parameter to monitor changes in the backend.",
+                            "name": "seed",
+                            "type": "integer",
+                            "label": "Seed",
+                            "advanced": true
+                        },
+                        {
+                            "name": "tool_choice",
+                            "type": "select",
+                            "label": "Tool Choice",
+                            "nested": [
+                                {
+                                    "name": "tools",
+                                    "spec": {
+                                        "spec": [
+                                            {
+                                                "name": "type",
+                                                "type": "select",
+                                                "label": "Type",
+                                                "default": "function",
+                                                "options": [
+                                                    {
+                                                        "label": "Function",
+                                                        "value": "function",
+                                                        "nested": [
+                                                            {
+                                                                "name": "function",
+                                                                "spec": [
+                                                                    {
+                                                                        "name": "name",
+                                                                        "type": "text",
+                                                                        "label": "Name",
+                                                                        "required": true
+                                                                    },
+                                                                    {
+                                                                        "name": "description",
+                                                                        "type": "text",
+                                                                        "label": "Description"
+                                                                    },
+                                                                    {
+                                                                        "name": "parameterMode",
+                                                                        "type": "select",
+                                                                        "label": "Parameters Input Mode",
+                                                                        "options": [
+                                                                            {
+                                                                                "label": "Simple (assisted mapping)",
+                                                                                "value": "simple",
+                                                                                "nested": [
+                                                                                    {
+                                                                                        "help": "Configuration of the parameters that the function accepts.",
+                                                                                        "name": "parameters",
+                                                                                        "spec": {
+                                                                                            "spec": [
+                                                                                                {
+                                                                                                    "help": "Use only letters, digits, and underscore `_`. The first character must not be a digit.",
+                                                                                                    "name": "name",
+                                                                                                    "type": "text",
+                                                                                                    "label": "Parameter Name",
+                                                                                                    "required": true,
+                                                                                                    "validate": {
+                                                                                                        "pattern": "^[a-zA-Z_]+\\w*$"
+                                                                                                    }
+                                                                                                },
+                                                                                                {
+                                                                                                    "help": "The AI will use the parameters descriptions to decide what value to use for this parameter. The more specific your descriptions are, the better your results should be.",
+                                                                                                    "name": "description",
+                                                                                                    "type": "text",
+                                                                                                    "label": "Description",
+                                                                                                    "required": true
+                                                                                                },
+                                                                                                {
+                                                                                                    "help": "To use parameters with type `collection` (object), select `Manual (JSON Schema)` as your **Parameters Input Mode**.",
+                                                                                                    "name": "type",
+                                                                                                    "type": "select",
+                                                                                                    "label": "Type",
+                                                                                                    "options": [
+                                                                                                        {
+                                                                                                            "label": "Text (String)",
+                                                                                                            "value": "string"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "label": "Number",
+                                                                                                            "value": "number"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "label": "Boolean",
+                                                                                                            "value": "boolean"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "label": "Array of Texts (Strings)",
+                                                                                                            "value": "array_string"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "label": "Array of Numbers",
+                                                                                                            "value": "array_number"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "label": "Array of Booleans",
+                                                                                                            "value": "array_boolean"
+                                                                                                        }
+                                                                                                    ],
+                                                                                                    "required": true
+                                                                                                },
+                                                                                                {
+                                                                                                    "name": "required",
+                                                                                                    "type": "boolean",
+                                                                                                    "label": "Required",
+                                                                                                    "required": true
+                                                                                                }
+                                                                                            ],
+                                                                                            "type": "collection",
+                                                                                            "label": "Parameter"
+                                                                                        },
+                                                                                        "type": "array",
+                                                                                        "label": "Parameters",
+                                                                                        "labels": {
+                                                                                            "add": "Add parameter"
+                                                                                        },
+                                                                                        "required": true
+                                                                                    }
+                                                                                ]
+                                                                            },
+                                                                            {
+                                                                                "label": "Manual (JSON Schema)",
+                                                                                "value": "manual",
+                                                                                "nested": [
+                                                                                    {
+                                                                                        "rpc": {
+                                                                                            "url": "rpc://openai-gpt-3@1/jsonSchema",
+                                                                                            "label": "Generate Schema",
+                                                                                            "parameters": [
+                                                                                                {
+                                                                                                    "help": "Example JSON object representing the format you expect in the response. This will be automatically converted into a JSON Schema.\nFor instance, if you input `{ \"name\": \"Alice\", \"age\": 30 }`, it will generate a schema like: `{ \"type\": \"object\", \"properties\": { \"name\": { \"type\": \"string\" }, \"age\": { \"type\": \"integer\" } }, \"required\": [\"name\", \"age\"] }`.\nWhen using this generator, you should double-check the required fields in the output, and add descriptions as desired.",
+                                                                                                    "name": "jsonObject",
+                                                                                                    "type": "text",
+                                                                                                    "label": "Example JSON Object",
+                                                                                                    "required": true,
+                                                                                                    "multiline": true
+                                                                                                }
+                                                                                            ]
+                                                                                        },
+                                                                                        "name": "parameters",
+                                                                                        "type": "text",
+                                                                                        "label": "Parameters JSON Schema"
+                                                                                    }
+                                                                                ]
+                                                                            }
+                                                                        ]
+                                                                    },
+                                                                    {
+                                                                        "name": "strict",
+                                                                        "type": "boolean",
+                                                                        "label": "Strict"
+                                                                    }
+                                                                ],
+                                                                "type": "collection",
+                                                                "label": "Function"
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "label": "Custom",
+                                                        "value": "custom",
+                                                        "nested": [
+                                                            {
+                                                                "name": "custom",
+                                                                "spec": [
+                                                                    {
+                                                                        "help": "The name of the custom tool, used to identify it in tool calls.",
+                                                                        "name": "name",
+                                                                        "type": "text",
+                                                                        "label": "Name",
+                                                                        "required": true
+                                                                    },
+                                                                    {
+                                                                        "help": "Description of the custom tool, used to provide more context.",
+                                                                        "name": "description",
+                                                                        "type": "text",
+                                                                        "label": "Description"
+                                                                    },
+                                                                    {
+                                                                        "name": "format",
+                                                                        "spec": [
+                                                                            {
+                                                                                "name": "type",
+                                                                                "type": "select",
+                                                                                "label": "Type",
+                                                                                "options": [
+                                                                                    {
+                                                                                        "label": "Text",
+                                                                                        "value": "text"
+                                                                                    },
+                                                                                    {
+                                                                                        "label": "Grammar",
+                                                                                        "value": "grammar",
+                                                                                        "nested": [
+                                                                                            {
+                                                                                                "name": "grammar",
+                                                                                                "spec": [
+                                                                                                    {
+                                                                                                        "help": "The syntax of the grammar definition.",
+                                                                                                        "name": "syntax",
+                                                                                                        "type": "select",
+                                                                                                        "label": "Syntax",
+                                                                                                        "options": [
+                                                                                                            {
+                                                                                                                "label": "Lark",
+                                                                                                                "value": "lark"
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "label": "Regex",
+                                                                                                                "value": "regex"
+                                                                                                            }
+                                                                                                        ],
+                                                                                                        "required": true
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "help": "The grammar definition.",
+                                                                                                        "name": "definition",
+                                                                                                        "type": "text",
+                                                                                                        "label": "Definition",
+                                                                                                        "required": true
+                                                                                                    }
+                                                                                                ],
+                                                                                                "type": "collection",
+                                                                                                "label": "Grammar"
+                                                                                            }
+                                                                                        ]
+                                                                                    }
+                                                                                ]
+                                                                            }
+                                                                        ],
+                                                                        "type": "collection",
+                                                                        "label": "Format"
+                                                                    }
+                                                                ],
+                                                                "type": "collection",
+                                                                "label": "Custom"
+                                                            }
+                                                        ]
+                                                    }
+                                                ],
+                                                "required": true
+                                            }
+                                        ],
+                                        "type": "collection",
+                                        "label": "Tool"
+                                    },
+                                    "type": "array",
+                                    "label": "Tools (functions)",
+                                    "labels": {
+                                        "add": "Add tool"
+                                    },
+                                    "validate": {
+                                        "maxItems": 128,
+                                        "minItems": 1
+                                    }
+                                }
+                            ],
+                            "options": [
+                                {
+                                    "label": "None (no tools)",
+                                    "value": "none"
+                                },
+                                {
+                                    "label": "Auto (AI decides to use tools or not)",
+                                    "value": "auto"
+                                },
+                                {
+                                    "label": "Required (forces the AI to use the listed tool(s))",
+                                    "value": "required"
+                                }
+                            ],
+                            "advanced": true
+                        },
+                        {
+                            "help": "Maximum of 4 sequences that will trigger OpenAI to stop generating further text. The returned text will not contain the stop sequences.",
+                            "name": "stop",
+                            "spec": {
+                                "type": "text",
+                                "label": "Stop Sequence"
+                            },
+                            "type": "array",
+                            "label": "Stop Sequences",
+                            "labels": {
+                                "add": "Add stop sequence"
+                            },
+                            "advanced": true,
+                            "validate": {
+                                "maxItems": 4
+                            }
+                        },
+                        {
+                            "help": "Additional parameters to use. For a complete list of parameters, see the [OpenAI API Reference](https://platform.openai.com/docs/api-reference/chat/create).",
+                            "name": "additionalParameters",
+                            "spec": {
+                                "spec": [
+                                    {
+                                        "name": "key",
+                                        "type": "text",
+                                        "label": "Parameter Name",
+                                        "required": true
+                                    },
+                                    {
+                                        "name": "type",
+                                        "type": "select",
+                                        "label": "Input Type",
+                                        "options": [
+                                            {
+                                                "label": "Text",
+                                                "value": "text",
+                                                "nested": [
+                                                    {
+                                                        "name": "value",
+                                                        "type": "text",
+                                                        "label": "Parameter Value"
+                                                    }
+                                                ],
+                                                "default": true
+                                            },
+                                            {
+                                                "label": "Number",
+                                                "value": "number",
+                                                "nested": [
+                                                    {
+                                                        "name": "value",
+                                                        "type": "number",
+                                                        "label": "Parameter Value"
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "label": "Boolean",
+                                                "value": "boolean",
+                                                "nested": [
+                                                    {
+                                                        "name": "value",
+                                                        "type": "boolean",
+                                                        "label": "Parameter Value"
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "label": "Date",
+                                                "value": "date",
+                                                "nested": [
+                                                    {
+                                                        "name": "value",
+                                                        "type": "date",
+                                                        "label": "Parameter Value"
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "label": "Any",
+                                                "value": "any",
+                                                "nested": [
+                                                    {
+                                                        "name": "value",
+                                                        "type": "any",
+                                                        "label": "Parameter Value"
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ],
+                                "type": "collection",
+                                "label": "Input Parameter"
+                            },
+                            "type": "array",
+                            "label": "Other Input Parameters",
+                            "labels": {
+                                "add": "Add input parameter"
+                            },
+                            "advanced": true
+                        }
+                    ],
+                    "domain": "expect"
+                }
+            },
+            "required": true
+        }
+    ],
+    "description": "Generates a chat completion.",
+    "supportsAgent": false
+}

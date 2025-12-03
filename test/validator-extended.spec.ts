@@ -797,6 +797,29 @@ describe('Forman Schema Extended Validation', () => {
                 ],
             });
         });
+
+        it('should validate select with options.nested and options.store both as RPCs', async () => {
+            const formanValue = {
+                edible: 'fruit',
+                fruit: 'apple',
+            };
+
+            const formanSchema = [
+                {
+                    name: 'edible',
+                    type: 'select',
+                    options: {
+                        store: 'rpc://edibles',
+                        nested: ['rpc://edible-options'],
+                    },
+                },
+            ];
+
+            expect(await validateForman(formanValue, formanSchema)).toEqual({
+                valid: true,
+                errors: [],
+            });
+        });
     });
 
     describe('Collection Type Edge Cases', () => {
