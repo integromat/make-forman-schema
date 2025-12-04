@@ -317,6 +317,7 @@ describe('Forman Schema Extended Validation', () => {
                 numericField: '{{1.id}}',
                 booleanField: '{{2.isEmpty}}',
                 conflatedNumericField: '{{object.firstHalf}}{{object.secondHalf}}',
+                complexField: '{{user}}',
             };
 
             const formanSchema = [
@@ -352,6 +353,14 @@ describe('Forman Schema Extended Validation', () => {
                 {
                     name: 'conflatedNumericField',
                     type: 'number',
+                },
+                {
+                    name: 'complexField',
+                    type: 'collection',
+                    spec: [
+                        { name: 'name', type: 'text' },
+                        { name: 'email', type: 'email' },
+                    ],
                 },
             ];
 
