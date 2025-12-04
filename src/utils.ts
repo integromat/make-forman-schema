@@ -47,6 +47,16 @@ export function containsIMLExpression(value: unknown): boolean {
 }
 
 /**
+ * Utility function to check if a value is a primitive IML expression.
+ * @param value
+ */
+export function isPrimitiveIMLExpression(value: unknown): boolean {
+    if (typeof value !== 'string') return false;
+    // The last index of '{{' has to be at the start, meaning there's no following '{{' anywhere further, and the first closing '}}' has to be at the end
+    return value.lastIndexOf('{{') === 0 && value.indexOf('}}') === value.length - 2;
+}
+
+/**
  * Constants for API endpoints
  */
 export const API_ENDPOINTS = {
