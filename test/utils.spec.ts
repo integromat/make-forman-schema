@@ -4,6 +4,7 @@ import {
     isObject,
     isOptionGroup,
     containsIMLExpression,
+    isPrimitiveIMLExpression,
     normalizeFormanFieldType,
     API_ENDPOINTS,
     FORMAN_VISUAL_TYPES,
@@ -94,6 +95,53 @@ describe('Utils Functions', () => {
             expect(containsIMLExpression(true)).toBe(false);
             expect(containsIMLExpression({})).toBe(false);
             expect(containsIMLExpression([])).toBe(false);
+        });
+    });
+
+    describe('isPrimitiveIMLExpression', () => {
+        it('should return true for primitive IML expressions', () => {
+            expect(isPrimitiveIMLExpression('{{variable}}')).toBe(true);
+            expect(isPrimitiveIMLExpression('{{user.email}}')).toBe(true);
+            expect(isPrimitiveIMLExpression('{{data.items[0].name}}')).toBe(true);
+        });
+
+        it('should return false for strings with IML expressions but not primitive', () => {
+            expect(isPrimitiveIMLExpression('Hello {{name}}')).toBe(false);
+            expect(isPrimitiveIMLExpression('{{name}} welcome')).toBe(false);
+            expect(isPrimitiveIMLExpression('Start {{middle}} end')).toBe(false);
+            expect(isPrimitiveIMLExpression('prefix{{variable}}')).toBe(false);
+            expect(isPrimitiveIMLExpression('{{variable}}suffix')).toBe(false);
+        });
+
+        it('should return false for strings with multiple IML expressions', () => {
+            expect(isPrimitiveIMLExpression('{{first}}{{second}}')).toBe(false);
+            expect(isPrimitiveIMLExpression('{{first}} {{second}}')).toBe(false);
+            expect(isPrimitiveIMLExpression('{{a}}{{b}}{{c}}')).toBe(false);
+        });
+
+        it('should return false for strings without IML expressions', () => {
+            expect(isPrimitiveIMLExpression('regular string')).toBe(false);
+            expect(isPrimitiveIMLExpression('{ single brace }')).toBe(false);
+            expect(isPrimitiveIMLExpression('{{ incomplete')).toBe(false);
+            expect(isPrimitiveIMLExpression('incomplete }}')).toBe(false);
+            expect(isPrimitiveIMLExpression('')).toBe(false);
+        });
+
+        it('should return false for non-string values', () => {
+            expect(isPrimitiveIMLExpression(123)).toBe(false);
+            expect(isPrimitiveIMLExpression(null)).toBe(false);
+            expect(isPrimitiveIMLExpression(undefined)).toBe(false);
+            expect(isPrimitiveIMLExpression(true)).toBe(false);
+            expect(isPrimitiveIMLExpression({})).toBe(false);
+            expect(isPrimitiveIMLExpression([])).toBe(false);
+        });
+
+        it('should return false for malformed IML expressions', () => {
+            expect(isPrimitiveIMLExpression('{variable}')).toBe(false);
+            expect(isPrimitiveIMLExpression('{{variable}')).toBe(false);
+            expect(isPrimitiveIMLExpression('{{{variable}}}')).toBe(false);
+            expect(isPrimitiveIMLExpression('{{varia{{ble}}')).toBe(false);
+            expect(isPrimitiveIMLExpression('{{varia}}ble}}')).toBe(false);
         });
     });
 

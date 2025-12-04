@@ -8,7 +8,14 @@ import {
     FormanValidationOptions,
     FormanSchemaNested,
 } from './types';
-import { containsIMLExpression, FORMAN_VISUAL_TYPES, isObject, isOptionGroup, normalizeFormanFieldType } from './utils';
+import {
+    containsIMLExpression,
+    FORMAN_VISUAL_TYPES,
+    isObject,
+    isOptionGroup,
+    isPrimitiveIMLExpression,
+    normalizeFormanFieldType,
+} from './utils';
 
 /**
  * Context for schema validation operations
@@ -223,7 +230,7 @@ async function validateFormanValue(
     let actualType: string = typeof value;
     if (actualType === 'object' && Array.isArray(value)) actualType = 'array';
 
-    if (expectedType && expectedType !== actualType) {
+    if (expectedType && expectedType !== actualType && !isPrimitiveIMLExpression(value)) {
         return {
             valid: false,
             errors: [

@@ -314,6 +314,9 @@ describe('Forman Schema Extended Validation', () => {
                 normalField: 'invalid-email',
                 imlField: '{{user.email}}',
                 mixedField: 'Hello {{user.name}}, welcome!',
+                numericField: '{{1.id}}',
+                booleanField: '{{2.isEmpty}}',
+                conflatedNumericField: '{{object.firstHalf}}{{object.secondHalf}}',
             };
 
             const formanSchema = [
@@ -338,6 +341,18 @@ describe('Forman Schema Extended Validation', () => {
                         min: 50,
                     },
                 },
+                {
+                    name: 'numericField',
+                    type: 'number',
+                },
+                {
+                    name: 'booleanField',
+                    type: 'boolean',
+                },
+                {
+                    name: 'conflatedNumericField',
+                    type: 'number',
+                },
             ];
 
             expect(await validateForman(formanValue, formanSchema)).toEqual({
@@ -347,6 +362,11 @@ describe('Forman Schema Extended Validation', () => {
                         domain: 'default',
                         path: 'normalField',
                         message: "Value doesn't match the pattern: ^[^@]+@[^@]+\\.[^@]+$",
+                    },
+                    {
+                        domain: 'default',
+                        message: "Expected type 'number', got type 'string'.",
+                        path: 'conflatedNumericField',
                     },
                 ],
             });
