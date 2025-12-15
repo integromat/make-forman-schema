@@ -249,7 +249,15 @@ describe('Utils Functions', () => {
         it('should be an object with defined endpoint values', () => {
             expect(typeof API_ENDPOINTS).toBe('object');
             expect(API_ENDPOINTS).toBeDefined();
-            expect(Object.keys(API_ENDPOINTS)).toEqual(['account', 'aiagent', 'datastore', 'hook', 'keychain', 'udt']);
+            expect(Object.keys(API_ENDPOINTS)).toEqual([
+                'account',
+                'aiagent',
+                'datastore',
+                'hook',
+                'device',
+                'keychain',
+                'udt',
+            ]);
         });
     });
 

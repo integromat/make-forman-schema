@@ -288,10 +288,12 @@ async function validateFormanValue(
         case 'select':
         case 'account':
         case 'hook':
+        case 'device':
         case 'keychain':
         case 'datastore':
         case 'aiagent':
         case 'udt':
+        case 'scenario':
         case 'file':
         case 'folder':
             return handleSelectType(value, normalizedField, context);
@@ -677,14 +679,6 @@ async function handlePrimitiveType(
     context: ValidationContext,
 ): Promise<FormanValidationResult> {
     const errors: FormanValidationResult['errors'] = [];
-
-    if (errors.length > 0) {
-        // No need to continue if type is not valid
-        return {
-            valid: false,
-            errors,
-        };
-    }
 
     // Add validation if present
     if (field.validate) {

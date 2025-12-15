@@ -24,7 +24,16 @@ export function isVisualType(type: FormanSchemaFieldType): type is (typeof FORMA
 /**
  * Reference types are types of type select that reference external resources.
  */
-export const FORMAN_REFERENCE_TYPES = ['account', 'hook', 'keychain', 'datastore', 'aiagent', 'udt'] as const;
+export const FORMAN_REFERENCE_TYPES = [
+    'account',
+    'hook',
+    'device',
+    'keychain',
+    'datastore',
+    'aiagent',
+    'udt',
+    'scenario',
+] as const;
 
 /**
  * Type guard to check if a field type is a reference type.
@@ -88,8 +97,10 @@ export const API_ENDPOINTS = {
     aiagent: 'api://ai-agents/v1/agents',
     datastore: 'api://data-stores',
     hook: 'api://hooks/{{kind}}',
+    device: 'api://devices',
     keychain: 'api://keys/{{kind}}',
     udt: 'api://data-structures',
+    // scenario: '', // Endpoint is defined in manifest
 } as const;
 
 /**
@@ -142,8 +153,7 @@ export function buildRestoreStructure(
 
         // Navigate through the path
         for (let i = 0; i < path.length; i++) {
-            const key = path[i];
-            if (!key) continue;
+            const key = path[i]!;
 
             if (i === path.length - 1) {
                 // Last element in path - merge state
