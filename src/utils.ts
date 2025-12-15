@@ -1,6 +1,7 @@
 import {
     FormanSchemaExtendedOptions,
     FormanSchemaField,
+    FormanSchemaFieldState,
     FormanSchemaFieldType,
     FormanSchemaOption,
     FormanSchemaOptionGroup,
@@ -9,7 +10,30 @@ import {
 /**
  * Visual types are not a real input fields, they are used to display information in the UI.
  */
-export const FORMAN_VISUAL_TYPES = ['banner', 'markdown', 'html', 'separator'];
+export const FORMAN_VISUAL_TYPES = ['banner', 'markdown', 'html', 'separator'] as const;
+
+/**
+ * Type guard to check if a field type is a visual type.
+ * @param type The field type to check
+ * @returns true if the type is a visual type
+ */
+export function isVisualType(type: FormanSchemaFieldType): type is (typeof FORMAN_VISUAL_TYPES)[number] {
+    return (FORMAN_VISUAL_TYPES as readonly string[]).includes(type);
+}
+
+/**
+ * Reference types are types of type select that reference external resources.
+ */
+export const FORMAN_REFERENCE_TYPES = ['account', 'hook', 'keychain', 'datastore', 'aiagent', 'udt'] as const;
+
+/**
+ * Type guard to check if a field type is a reference type.
+ * @param type The field type to check
+ * @returns true if the type is a reference type
+ */
+export function isReferenceType(type: FormanSchemaFieldType): type is (typeof FORMAN_REFERENCE_TYPES)[number] {
+    return (FORMAN_REFERENCE_TYPES as readonly string[]).includes(type);
+}
 
 /**
  * Utility function to handle empty strings by converting them to undefined.
@@ -93,4 +117,52 @@ export function normalizeFormanFieldType(field: FormanSchemaField): FormanSchema
             store,
         },
     };
+}
+
+/**
+ * Transforms a flat array of domain/path/state items into a nested object structure.
+ * Intermediate path levels are placed in a 'nested' property.
+ * @param items Array of items with domain, path, and state properties
+ * @returns Nested object structure organized by domain
+ */
+export function buildRestoreStructure(
+    items: Array<{ domain: string; path: string[]; state: FormanSchemaFieldState }>,
+): Record<string, FormanSchemaFieldState> {
+    const result: Record<string, Record<string, FormanSchemaFieldState>> = {};
+
+    for (const item of items) {
+        const { domain, path, state } = item;
+
+        // Ensure domain exists
+        if (!result[domain]) {
+            result[domain] = {};
+        }
+
+        let current = result[domain];
+
+        // Navigate through the path
+        for (let i = 0; i < path.length; i++) {
+            const key = path[i];
+            if (!key) continue;
+
+            if (i === path.length - 1) {
+                // Last element in path - merge state
+                if (!current[key]) {
+                    current[key] = {};
+                }
+                Object.assign(current[key], state);
+            } else {
+                // Not the last element - ensure it exists and navigate to nested
+                if (!current[key]) {
+                    current[key] = {};
+                }
+                if (!current[key].nested) {
+                    current[key].nested = {};
+                }
+                current = current[key].nested;
+            }
+        }
+    }
+
+    return result;
 }

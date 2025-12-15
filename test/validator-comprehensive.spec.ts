@@ -367,6 +367,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
 
             expect(
                 await validateFormanWithDomains(domains, {
+                    states: true,
                     async resolveRemote(path, data) {
                         if (path === 'rpc://services') {
                             expect(data).toEqual({});
@@ -386,6 +387,14 @@ describe('Forman Schema Comprehensive Coverage', () => {
             ).toEqual({
                 valid: true,
                 errors: [],
+                states: {
+                    default: {
+                        service: {
+                            label: 'Google Sheets',
+                            mode: 'chose',
+                        },
+                    },
+                },
             });
 
             expect(serviceConfigCalled).toBe(true);

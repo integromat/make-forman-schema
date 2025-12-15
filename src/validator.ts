@@ -1,4 +1,4 @@
-import {
+import type {
     FormanSchemaField,
     FormanValidationResult,
     FormanSchemaExtendedNested,
@@ -7,14 +7,16 @@ import {
     FormanSchemaOptionGroup,
     FormanValidationOptions,
     FormanSchemaNested,
+    FormanSchemaFieldState,
 } from './types';
 import {
     containsIMLExpression,
-    FORMAN_VISUAL_TYPES,
     isObject,
-    isOptionGroup,
+    buildRestoreStructure,
     isPrimitiveIMLExpression,
     normalizeFormanFieldType,
+    isVisualType,
+    isReferenceType,
 } from './utils';
 
 /**
@@ -54,6 +56,13 @@ export interface DomainRoot {
     validateFields: (fields: FormanSchemaField[], context: ValidationContext) => Promise<FormanValidationResult>;
     /** Fields seen by the validator (for strict mode) */
     seenFields: Set<string>;
+    /** States of fields used to restore UI components */
+    fieldStates: Array<{
+        /** Path of the field */
+        path: string[];
+        /** State of the field */
+        state: Omit<FormanSchemaFieldState, 'nested'>;
+    }>;
 }
 
 /**
@@ -119,6 +128,7 @@ export async function validateFormanWithDomainsInternal(
         (acc, domain) => {
             acc[domain] = {
                 seenFields: new Set(),
+                fieldStates: [],
                 validateFields: (fields: FormanSchemaField[], context: ValidationContext) => {
                     return validateFormanValue(
                         domains[domain]!.values,
@@ -181,6 +191,14 @@ export async function validateFormanWithDomainsInternal(
     return {
         valid: errors.length === 0,
         errors,
+        states:
+            errors.length === 0 && options?.states
+                ? buildRestoreStructure(
+                      Object.keys(domains)
+                          .map(domain => roots[domain]!.fieldStates.map(state => ({ domain, ...state })))
+                          .flat(),
+                  )
+                : undefined,
     };
 }
 
@@ -196,7 +214,7 @@ async function validateFormanValue(
     field: FormanSchemaField,
     context: ValidationContext,
 ): Promise<FormanValidationResult> {
-    if (FORMAN_VISUAL_TYPES.includes(field.type)) {
+    if (isVisualType(field.type)) {
         return {
             valid: true,
             errors: [],
@@ -240,6 +258,25 @@ async function validateFormanValue(
                     message: `Expected type '${expectedType}', got type '${actualType}'.`,
                 },
             ],
+        };
+    }
+
+    if (containsIMLExpression(value)) {
+        if (normalizedField.mappable === false) {
+            return {
+                valid: false,
+                errors: [
+                    {
+                        domain: context.domain,
+                        path: context.path.join('.'),
+                        message: 'Value contains prohibited IML expression.',
+                    },
+                ],
+            };
+        }
+        return {
+            valid: true,
+            errors: [],
         };
     }
 
@@ -309,7 +346,7 @@ async function handleCollectionType(
                 }
             }
 
-            if (FORMAN_VISUAL_TYPES.includes(subField.type)) {
+            if (isVisualType(subField.type)) {
                 continue;
             }
             if (!subField.name) {
@@ -326,7 +363,7 @@ async function handleCollectionType(
                 path: [...path, subField.name],
                 validateNestedFields: async (fields: FormanSchemaField[], context: ValidationContext) => {
                     for (const subField of fields) {
-                        if (FORMAN_VISUAL_TYPES.includes(subField.type)) {
+                        if (isVisualType(subField.type)) {
                             continue;
                         }
                         if (!subField.name) {
@@ -529,6 +566,17 @@ async function handleSelectType(
             };
         }
 
+        if (item.label) {
+            /** Add state of the field to the domain root */
+            context.roots[context.domain]!.fieldStates.push({
+                path: context.path,
+                state: {
+                    mode: isReferenceType(field.type) ? undefined : 'chose',
+                    label: item.label,
+                },
+            });
+        }
+
         if (item.nested) nested = item.nested;
     }
 
@@ -629,13 +677,6 @@ async function handlePrimitiveType(
     context: ValidationContext,
 ): Promise<FormanValidationResult> {
     const errors: FormanValidationResult['errors'] = [];
-
-    if (containsIMLExpression(value)) {
-        return {
-            valid: true,
-            errors,
-        };
-    }
 
     if (errors.length > 0) {
         // No need to continue if type is not valid
