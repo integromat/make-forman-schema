@@ -61,7 +61,7 @@ export interface DomainRoot {
         /** Path of the field (string for field name, number for array index) */
         path: (string | number)[];
         /** State of the field */
-        state: Omit<FormanSchemaFieldState, 'nested'>;
+        state: Omit<FormanSchemaFieldState, 'nested' | 'items'>;
     }>;
 }
 

@@ -137,7 +137,11 @@ export function normalizeFormanFieldType(field: FormanSchemaField): FormanSchema
  * @returns Nested object structure organized by domain
  */
 export function buildRestoreStructure(
-    items: Array<{ domain: string; path: (string | number)[]; state: FormanSchemaFieldState }>,
+    items: Array<{
+        domain: string;
+        path: (string | number)[];
+        state: Omit<FormanSchemaFieldState, 'nested' | 'items'>;
+    }>,
 ): Record<string, FormanSchemaFieldState> {
     const result: Record<string, Record<string, FormanSchemaFieldState>> = {};
 
