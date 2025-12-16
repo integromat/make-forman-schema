@@ -222,6 +222,7 @@ export type FormanSchemaFieldState = {
     label?: string;
     data?: Record<string, unknown>;
     nested?: Record<string, FormanSchemaFieldState>;
+    items?: Record<string, FormanSchemaFieldState>[];
 };
 
 export type FormanValidationOptions = {

@@ -100,7 +100,7 @@ export const API_ENDPOINTS = {
     device: 'api://devices',
     keychain: 'api://keys/{{kind}}',
     udt: 'api://data-structures',
-    // scenario: '', // Endpoint is defined in manifest
+    scenario: 'api://scenario-list',
 } as const;
 
 /**
@@ -137,7 +137,7 @@ export function normalizeFormanFieldType(field: FormanSchemaField): FormanSchema
  * @returns Nested object structure organized by domain
  */
 export function buildRestoreStructure(
-    items: Array<{ domain: string; path: string[]; state: FormanSchemaFieldState }>,
+    items: Array<{ domain: string; path: (string | number)[]; state: FormanSchemaFieldState }>,
 ): Record<string, FormanSchemaFieldState> {
     const result: Record<string, Record<string, FormanSchemaFieldState>> = {};
 
@@ -149,27 +149,73 @@ export function buildRestoreStructure(
             result[domain] = {};
         }
 
-        let current = result[domain];
+        let current: Record<string, FormanSchemaFieldState> | Record<string, FormanSchemaFieldState>[] = result[domain];
 
         // Navigate through the path
-        for (let i = 0; i < path.length; i++) {
-            const key = path[i]!;
+        for (const [index, key] of path.entries()) {
+            const nextKey = path[index + 1];
+            const isLastElement = index === path.length - 1;
+            const nextIsNumber = typeof nextKey === 'number';
 
-            if (i === path.length - 1) {
-                // Last element in path - merge state
+            if (Array.isArray(current)) {
+                // We're in an array context
+                if (typeof key !== 'number') {
+                    throw new Error('Invalid path');
+                }
+                // Ensure the array item exists
                 if (!current[key]) {
                     current[key] = {};
                 }
-                Object.assign(current[key], state);
+
+                if (nextIsNumber) {
+                    // Next level is also an array - create nested array structure
+                    if (!current[key].value) {
+                        current[key].value = {
+                            mode: 'chose',
+                            items: [],
+                        };
+                    }
+                    if (!current[key].value.items) {
+                        current[key].value.items = [];
+                    }
+                    current = current[key].value.items;
+                } else if (isLastElement) {
+                    // Last element - merge the state
+                    Object.assign(current[key], state);
+                } else {
+                    // Move to the object at this array index
+                    current = current[key];
+                }
             } else {
-                // Not the last element - ensure it exists and navigate to nested
+                // We're in an object context
+                if (typeof key !== 'string') {
+                    throw new Error('Invalid path');
+                }
+                // Ensure the object item exists
                 if (!current[key]) {
                     current[key] = {};
                 }
-                if (!current[key].nested) {
-                    current[key].nested = {};
+
+                if (isLastElement) {
+                    // Last element - merge the state
+                    Object.assign(current[key], state);
+                } else {
+                    // Intermediate element - ensure it exists and navigate
+                    if (nextIsNumber) {
+                        // Next level is an array - create array structure
+                        if (!current[key].items) {
+                            current[key].items = [];
+                            current[key].mode = 'chose';
+                        }
+                        current = current[key].items;
+                    } else {
+                        // Next level is an object - navigate to nested
+                        if (!current[key].nested) {
+                            current[key].nested = {};
+                        }
+                        current = current[key].nested;
+                    }
                 }
-                current = current[key].nested;
             }
         }
     }

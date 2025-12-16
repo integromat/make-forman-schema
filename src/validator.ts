@@ -34,8 +34,8 @@ export interface ValidationContext {
         /** Value of the parameter */
         value: unknown;
     }[];
-    /** Path of parameters in nested collections */
-    path: string[];
+    /** Path of parameters in nested collections (string for field name, number for array index) */
+    path: (string | number)[];
     /** Unknown fields are not allowed when strict is true */
     strict: boolean;
     /** Validate nested fields */
@@ -58,8 +58,8 @@ export interface DomainRoot {
     seenFields: Set<string>;
     /** States of fields used to restore UI components */
     fieldStates: Array<{
-        /** Path of the field */
-        path: string[];
+        /** Path of the field (string for field name, number for array index) */
+        path: (string | number)[];
         /** State of the field */
         state: Omit<FormanSchemaFieldState, 'nested'>;
     }>;
@@ -429,7 +429,7 @@ async function handleArrayType(
                 Array.isArray(field.spec)
                     ? { name: index.toString(), type: 'collection', spec: field.spec }
                     : Object.assign({}, field.spec, { name: index.toString() }),
-                { ...context, path: [...context.path, index.toString()] },
+                { ...context, path: [...context.path, index] },
             );
             errors.push(...result.errors);
         }

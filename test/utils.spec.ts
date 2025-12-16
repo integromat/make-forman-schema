@@ -257,6 +257,7 @@ describe('Utils Functions', () => {
                 'device',
                 'keychain',
                 'udt',
+                'scenario',
             ]);
         });
     });
@@ -285,6 +286,9 @@ describe('Utils Functions', () => {
             const input = [
                 { domain: 'parameters', path: ['field'], state: { label: 'xxx' } },
                 { domain: 'parameters', path: ['field', 'subfield'], state: { label: 'yyy' } },
+                { domain: 'parameters', path: ['field', 'array', 0, 'field'], state: { label: 'zzz' } },
+                { domain: 'parameters', path: ['field', 'array2', 0, 0, 'field'], state: { label: 'foo' } },
+                { domain: 'parameters', path: ['field', 'array2', 0, 1, 'field'], state: { label: 'bar' } },
             ];
 
             const result = buildRestoreStructure(input);
@@ -295,6 +299,32 @@ describe('Utils Functions', () => {
                         label: 'xxx',
                         nested: {
                             subfield: { label: 'yyy' },
+                            array: {
+                                mode: 'chose',
+                                items: [
+                                    {
+                                        field: { label: 'zzz' },
+                                    },
+                                ],
+                            },
+                            array2: {
+                                mode: 'chose',
+                                items: [
+                                    {
+                                        value: {
+                                            mode: 'chose',
+                                            items: [
+                                                {
+                                                    field: { label: 'foo' },
+                                                },
+                                                {
+                                                    field: { label: 'bar' },
+                                                },
+                                            ],
+                                        },
+                                    },
+                                ],
+                            },
                         },
                     },
                 },

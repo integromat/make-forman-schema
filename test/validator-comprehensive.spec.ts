@@ -203,6 +203,66 @@ describe('Forman Schema Comprehensive Coverage', () => {
             });
         });
 
+        it('should generate correct states for nested simple arrays', async () => {
+            const formanValue = {
+                coordinates: [
+                    [10, 20],
+                    [30, 40],
+                ],
+            };
+
+            const formanSchema = [
+                {
+                    name: 'coordinates',
+                    type: 'array',
+                    spec: {
+                        type: 'array',
+                        spec: {
+                            type: 'select',
+                            options: [
+                                { value: 10, label: '10' },
+                                { value: 20, label: '20' },
+                                { value: 30, label: '30' },
+                                { value: 40, label: '40' },
+                            ],
+                        },
+                    },
+                },
+            ];
+
+            expect(await validateForman(formanValue, formanSchema, { states: true })).toEqual({
+                valid: true,
+                errors: [],
+                states: {
+                    default: {
+                        coordinates: {
+                            items: [
+                                {
+                                    value: {
+                                        items: [
+                                            { label: '10', mode: 'chose' },
+                                            { label: '20', mode: 'chose' },
+                                        ],
+                                        mode: 'chose',
+                                    },
+                                },
+                                {
+                                    value: {
+                                        items: [
+                                            { label: '30', mode: 'chose' },
+                                            { label: '40', mode: 'chose' },
+                                        ],
+                                        mode: 'chose',
+                                    },
+                                },
+                            ],
+                            mode: 'chose',
+                        },
+                    },
+                },
+            });
+        });
+
         it('should handle complex select with extended options and nested fields', async () => {
             const formanValue = {
                 connection: 'google',
