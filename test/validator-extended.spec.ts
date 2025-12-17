@@ -380,6 +380,48 @@ describe('Forman Schema Extended Validation', () => {
                 ],
             });
         });
+
+        it('should reject IML expressions when mappable is false', async () => {
+            const formanValue = {
+                nonMappableField: '{{user.email}}',
+                mixedNonMappableField: 'Hello {{user.name}}!',
+                normalNonMappableField: 'static-value',
+            };
+
+            const formanSchema = [
+                {
+                    name: 'nonMappableField',
+                    type: 'text',
+                    mappable: false,
+                },
+                {
+                    name: 'mixedNonMappableField',
+                    type: 'text',
+                    mappable: false,
+                },
+                {
+                    name: 'normalNonMappableField',
+                    type: 'text',
+                    mappable: false,
+                },
+            ];
+
+            expect(await validateForman(formanValue, formanSchema)).toEqual({
+                valid: false,
+                errors: [
+                    {
+                        domain: 'default',
+                        path: 'nonMappableField',
+                        message: 'Value contains prohibited IML expression.',
+                    },
+                    {
+                        domain: 'default',
+                        path: 'mixedNonMappableField',
+                        message: 'Value contains prohibited IML expression.',
+                    },
+                ],
+            });
+        });
     });
 
     describe('Visual Types Handling', () => {

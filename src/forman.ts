@@ -7,7 +7,7 @@ import type {
     FormanSchemaOption,
     FormanSchemaOptionGroup,
 } from './types';
-import { noEmpty, isObject, isOptionGroup, normalizeFormanFieldType, FORMAN_VISUAL_TYPES } from './utils';
+import { noEmpty, isObject, isOptionGroup, normalizeFormanFieldType, isVisualType } from './utils';
 
 /**
  * Context for schema conversion operations
@@ -217,7 +217,7 @@ function handleCollectionType(field: FormanSchemaField, result: JSONSchema7, con
     });
 
     function addField(subField: FormanSchemaField, tail?: string[]) {
-        if (FORMAN_VISUAL_TYPES.includes(subField.type)) {
+        if (isVisualType(subField.type)) {
             return;
         }
 

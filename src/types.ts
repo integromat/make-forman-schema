@@ -5,9 +5,11 @@ export type FormanSchemaFieldType =
     | 'aiagent'
     | 'account'
     | 'hook'
+    | 'device'
     | 'keychain'
     | 'datastore'
     | 'udt'
+    | 'scenario'
     | 'array'
     | 'collection'
     | 'text'
@@ -211,11 +213,23 @@ export type FormanValidationResult = {
         /** Error message */
         message: string;
     }[];
+    /** States of fields grouped by domain */
+    states?: Record<string, FormanSchemaFieldState>;
+};
+
+export type FormanSchemaFieldState = {
+    mode?: 'chose' | 'edit';
+    label?: string;
+    data?: Record<string, unknown>;
+    nested?: Record<string, FormanSchemaFieldState>;
+    items?: Record<string, FormanSchemaFieldState>[];
 };
 
 export type FormanValidationOptions = {
     /** Unknown fields are not allowed when strict is true */
     strict?: boolean;
+    /** Whether to generate states for fields */
+    states?: boolean;
     /** Remote resource resolver */
     resolveRemote?(path: string, data: Record<string, unknown>): Promise<unknown>;
 };

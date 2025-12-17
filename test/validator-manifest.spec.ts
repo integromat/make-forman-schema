@@ -92,6 +92,7 @@ describe('Forman Schema Manifest Validation', () => {
                     },
                 },
                 {
+                    states: true,
                     async resolveRemote(path: string, data: Record<string, unknown>) {
                         switch (path) {
                             case 'api://connections/google':
@@ -133,6 +134,36 @@ describe('Forman Schema Manifest Validation', () => {
         ).toEqual({
             valid: true,
             errors: [],
+            states: {
+                default: {
+                    __IMTCONN__: {
+                        label: 'Google Connection 1',
+                        mode: undefined,
+                    },
+                },
+                expect: {
+                    from: {
+                        label: 'My Drive',
+                        mode: 'chose',
+                    },
+                    includesHeaders: {
+                        label: 'Yes',
+                        mode: 'chose',
+                    },
+                    insertDataOption: {
+                        label: 'Insert rows',
+                        mode: 'chose',
+                    },
+                    mode: {
+                        label: 'Search by path',
+                        mode: 'chose',
+                    },
+                    valueInputOption: {
+                        label: 'User entered',
+                        mode: 'chose',
+                    },
+                },
+            },
         });
 
         // Nested fields in primitive type

@@ -6,6 +6,7 @@ import {
     containsIMLExpression,
     isPrimitiveIMLExpression,
     normalizeFormanFieldType,
+    buildRestoreStructure,
     API_ENDPOINTS,
     FORMAN_VISUAL_TYPES,
 } from '../src/utils.js';
@@ -248,14 +249,202 @@ describe('Utils Functions', () => {
         it('should be an object with defined endpoint values', () => {
             expect(typeof API_ENDPOINTS).toBe('object');
             expect(API_ENDPOINTS).toBeDefined();
-            expect(Object.keys(API_ENDPOINTS)).toEqual(['account', 'aiagent', 'datastore', 'hook', 'keychain', 'udt']);
+            expect(Object.keys(API_ENDPOINTS)).toEqual([
+                'account',
+                'aiagent',
+                'datastore',
+                'hook',
+                'device',
+                'keychain',
+                'udt',
+                'scenario',
+            ]);
         });
     });
 
     describe('FORMAN_VISUAL_TYPES', () => {
         it('should contain expected visual types and nothing else', () => {
             expect(Array.isArray(FORMAN_VISUAL_TYPES)).toBe(true);
-            expect(FORMAN_VISUAL_TYPES.sort()).toEqual(['banner', 'html', 'markdown', 'separator'].sort());
+            expect(FORMAN_VISUAL_TYPES).toEqual(['banner', 'markdown', 'html', 'separator']);
+        });
+    });
+
+    describe('buildRestoreStructure', () => {
+        it('should handle single-level paths', () => {
+            const input = [{ domain: 'expect', path: ['field'], state: { label: 'asdf' } }];
+
+            const result = buildRestoreStructure(input);
+
+            expect(result).toEqual({
+                expect: {
+                    field: { label: 'asdf' },
+                },
+            });
+        });
+
+        it('should handle multi-level paths with nested structure', () => {
+            const input = [
+                { domain: 'parameters', path: ['field'], state: { label: 'xxx' } },
+                { domain: 'parameters', path: ['field', 'subfield'], state: { label: 'yyy' } },
+                { domain: 'parameters', path: ['field', 'array', 0, 'field'], state: { label: 'zzz' } },
+                { domain: 'parameters', path: ['field', 'array2', 0, 0, 'field'], state: { label: 'foo' } },
+                { domain: 'parameters', path: ['field', 'array2', 0, 1, 'field'], state: { label: 'bar' } },
+            ];
+
+            const result = buildRestoreStructure(input);
+
+            expect(result).toEqual({
+                parameters: {
+                    field: {
+                        label: 'xxx',
+                        nested: {
+                            subfield: { label: 'yyy' },
+                            array: {
+                                mode: 'chose',
+                                items: [
+                                    {
+                                        field: { label: 'zzz' },
+                                    },
+                                ],
+                            },
+                            array2: {
+                                mode: 'chose',
+                                items: [
+                                    {
+                                        value: {
+                                            mode: 'chose',
+                                            items: [
+                                                {
+                                                    field: { label: 'foo' },
+                                                },
+                                                {
+                                                    field: { label: 'bar' },
+                                                },
+                                            ],
+                                        },
+                                    },
+                                ],
+                            },
+                        },
+                    },
+                },
+            });
+        });
+
+        it('should handle multiple domains', () => {
+            const input = [
+                { domain: 'expect', path: ['field'], state: { label: 'asdf' } },
+                { domain: 'parameters', path: ['field'], state: { label: 'xxx' } },
+                { domain: 'parameters', path: ['field', 'subfield'], state: { label: 'yyy' } },
+            ];
+
+            const result = buildRestoreStructure(input);
+
+            expect(result).toEqual({
+                expect: {
+                    field: { label: 'asdf' },
+                },
+                parameters: {
+                    field: {
+                        label: 'xxx',
+                        nested: {
+                            subfield: { label: 'yyy' },
+                        },
+                    },
+                },
+            });
+        });
+
+        it('should handle deeply nested paths', () => {
+            const input = [{ domain: 'test', path: ['a', 'b', 'c'], state: { label: 'deep' } }];
+
+            const result = buildRestoreStructure(input);
+
+            expect(result).toEqual({
+                test: {
+                    a: {
+                        nested: {
+                            b: {
+                                nested: {
+                                    c: { label: 'deep' },
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+        });
+
+        it('should merge states for the same path', () => {
+            const input = [
+                { domain: 'test', path: ['field'], state: { label: 'first' } },
+                { domain: 'test', path: ['field'], state: { data: { value: 'second' } } },
+            ];
+
+            const result = buildRestoreStructure(input);
+
+            expect(result).toEqual({
+                test: {
+                    field: {
+                        label: 'first',
+                        data: {
+                            value: 'second',
+                        },
+                    },
+                },
+            });
+        });
+
+        it('should handle empty input array', () => {
+            const input: Array<{ domain: string; path: string[]; state: any }> = [];
+
+            const result = buildRestoreStructure(input);
+
+            expect(result).toEqual({});
+        });
+
+        it('should handle multiple fields in the same domain', () => {
+            const input = [
+                { domain: 'config', path: ['field1'], state: { label: 'first' } },
+                { domain: 'config', path: ['field2'], state: { label: 'second' } },
+            ];
+
+            const result = buildRestoreStructure(input);
+
+            expect(result).toEqual({
+                config: {
+                    field1: { label: 'first' },
+                    field2: { label: 'second' },
+                },
+            });
+        });
+
+        it('should handle complex nested structures with multiple branches', () => {
+            const input = [
+                { domain: 'form', path: ['user'], state: { label: 'User' } },
+                { domain: 'form', path: ['user', 'address'], state: { label: 'Address' } },
+                { domain: 'form', path: ['user', 'address', 'zip'], state: { label: 'Zip' } },
+                { domain: 'form', path: ['user', 'contact'], state: { label: 'Contact' } },
+            ];
+
+            const result = buildRestoreStructure(input);
+
+            expect(result).toEqual({
+                form: {
+                    user: {
+                        label: 'User',
+                        nested: {
+                            address: {
+                                label: 'Address',
+                                nested: {
+                                    zip: { label: 'Zip' },
+                                },
+                            },
+                            contact: { label: 'Contact' },
+                        },
+                    },
+                },
+            });
         });
     });
 });
