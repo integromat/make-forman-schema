@@ -1,4 +1,4 @@
-import type { JSONSchema7 } from 'json-schema';
+import type { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 import type {
     FormanSchemaField,
     FormanSchemaValue,
@@ -7,7 +7,16 @@ import type {
     FormanSchemaOption,
     FormanSchemaOptionGroup,
 } from './types';
-import { noEmpty, isObject, isOptionGroup, normalizeFormanFieldType, isVisualType } from './utils';
+import {
+    noEmpty,
+    isObject,
+    isOptionGroup,
+    normalizeFormanFieldType,
+    isVisualType,
+    IML_UNARY_FILTER_OPERATORS,
+    IML_BINARY_FILTER_OPERATORS,
+    IML_FILTER_ENTRY_TYPES,
+} from './utils';
 
 /**
  * Context for schema conversion operations
@@ -93,6 +102,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, JSONSchema7['type']>> = {
     email: 'string',
     filename: 'string',
     file: 'string',
+    filter: 'array',
     folder: 'string',
     hidden: undefined,
     integer: 'number',
@@ -198,6 +208,8 @@ export function toJSONSchemaInternal(
         case 'file':
         case 'folder':
             return handleSelectType(normalizedField, result, context);
+        case 'filter':
+            return handleFilterType(normalizedField, result, context);
         default:
             return handlePrimitiveType(normalizedField, result);
     }
@@ -307,6 +319,54 @@ function handleArrayType(field: FormanSchemaField, result: JSONSchema7, context:
             result.maxItems = field.validate.maxItems;
         }
     }
+
+    return result;
+}
+
+/**
+ * Handles filter type conversion
+ * @param field The field to convert
+ * @param result The prepared JSON Schema field
+ * @param context The context for the conversion
+ * @returns The converted JSON Schema field
+ */
+function handleFilterType(field: FormanSchemaField, result: JSONSchema7, context: ConversionContext): JSONSchema7 {
+    const filterItems: JSONSchema7Definition = {
+        oneOf: [
+            {
+                type: 'object',
+                properties: {
+                    a: { type: IML_FILTER_ENTRY_TYPES },
+                    o: { enum: IML_UNARY_FILTER_OPERATORS },
+                },
+                required: ['a', 'o'],
+            },
+            {
+                type: 'object',
+                properties: {
+                    a: { type: IML_FILTER_ENTRY_TYPES },
+                    b: { type: IML_FILTER_ENTRY_TYPES },
+                    o: { enum: IML_BINARY_FILTER_OPERATORS },
+                },
+                required: ['a', 'b', 'o'],
+            },
+        ],
+    };
+    const logic = field.logic ?? 'default';
+
+    result.items = ['and', 'or'].includes(logic)
+        ? filterItems
+        : {
+              type: 'array',
+              items: filterItems,
+          };
+    // Store this to the JSON Schema to allow safe conversion back to the Forman Schema
+    Object.defineProperty(result, 'x-filter', {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        value: logic,
+    });
 
     return result;
 }

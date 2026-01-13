@@ -17,6 +17,7 @@ import {
     normalizeFormanFieldType,
     isVisualType,
     isReferenceType,
+    IML_FILTER_OPERATORS,
 } from './utils';
 
 /**
@@ -88,6 +89,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, string | undefined>> = {
     email: 'string',
     filename: 'string',
     file: 'string',
+    filter: 'array',
     folder: 'string',
     hidden: undefined,
     integer: 'number',
@@ -297,6 +299,8 @@ async function validateFormanValue(
         case 'file':
         case 'folder':
             return handleSelectType(value, normalizedField, context);
+        case 'filter':
+            return handleFilterType(value, normalizedField, context);
         default:
             return handlePrimitiveType(value, normalizedField, context);
     }
@@ -457,6 +461,54 @@ async function handleArrayType(
         valid: errors.length === 0,
         errors,
     };
+}
+
+/**
+ * Handles filter type validation
+ * @param value Value to validate
+ * @param field Forman Field Definition
+ * @param context The context for the validation
+ * @returns Validation result
+ */
+async function handleFilterType(value: unknown, field: FormanSchemaField, context: ValidationContext) {
+    // The filter is technically just an array or arrays, or an array. Craft the inline definition and pass to array validator instead.
+    const filterEntry: FormanSchemaField = {
+        type: 'collection',
+        spec: [
+            {
+                name: 'a',
+                type: 'any',
+                required: true,
+            },
+            {
+                name: 'b',
+                type: 'any',
+            },
+            {
+                name: 'o',
+                type: 'text',
+                validate: {
+                    enum: IML_FILTER_OPERATORS,
+                },
+            },
+        ],
+    };
+
+    const inlineSchema: FormanSchemaField = ['and', 'or'].includes(field.logic ?? 'default')
+        ? {
+              name: field.name,
+              type: 'array',
+              spec: filterEntry,
+          }
+        : {
+              name: field.name,
+              type: 'array',
+              spec: {
+                  type: 'array',
+                  spec: filterEntry,
+              },
+          };
+    return handleArrayType(value as unknown[], inlineSchema, context);
 }
 
 /**
