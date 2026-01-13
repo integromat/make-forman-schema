@@ -185,6 +185,7 @@ const result = await validateFormanWithDomains(
 - email → string
 - file → string
 - filename → string
+- filter → array
 - folder → string
 - hidden → string
 - hook → number

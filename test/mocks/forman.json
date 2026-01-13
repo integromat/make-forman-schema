@@ -125,5 +125,22 @@
         "name": "dynamicCollection",
         "type": "dynamicCollection",
         "label": "Dynamic Collection"
+    },
+    {
+        "name": "filter",
+        "type": "filter",
+        "label": "Filter"
+    },
+    {
+        "name": "flatFilter",
+        "type": "filter",
+        "logic": "and",
+        "label": "Flat Filter"
+    },
+    {
+        "name": "reversedFilter",
+        "type": "filter",
+        "logic": "reverse",
+        "label": "Reversed Filter"
     }
 ]

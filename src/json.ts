@@ -47,6 +47,17 @@ export function toFormanSchema(field: JSONSchema7): FormanSchemaField {
                 spec,
             };
         case 'array':
+            // If the array is flagged as filter field root, then short-circuit to it
+            const filterLogic = Object.getOwnPropertyDescriptor(field, 'x-filter');
+            if (filterLogic) {
+                return {
+                    type: 'filter',
+                    label: noEmpty(field.title),
+                    help: noEmpty(field.description),
+                    logic: filterLogic.value === 'default' ? undefined : filterLogic.value,
+                };
+            }
+
             // For arrays, create an array type with spec from items
             const items = field.items && isObject<JSONSchema7>(field.items) ? field.items : undefined;
 

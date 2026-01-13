@@ -1,4 +1,4 @@
-import type { JSONSchema7 } from 'json-schema';
+import type { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 import type {
     FormanSchemaField,
     FormanSchemaValue,
@@ -93,6 +93,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, JSONSchema7['type']>> = {
     email: 'string',
     filename: 'string',
     file: 'string',
+    filter: 'array',
     folder: 'string',
     hidden: undefined,
     integer: 'number',
@@ -198,6 +199,8 @@ export function toJSONSchemaInternal(
         case 'file':
         case 'folder':
             return handleSelectType(normalizedField, result, context);
+        case 'filter':
+            return handleFilterType(normalizedField, result, context);
         default:
             return handlePrimitiveType(normalizedField, result);
     }
@@ -307,6 +310,212 @@ function handleArrayType(field: FormanSchemaField, result: JSONSchema7, context:
             result.maxItems = field.validate.maxItems;
         }
     }
+
+    return result;
+}
+
+/**
+ * Handles filter type conversion
+ * @param field The field to convert
+ * @param result The prepared JSON Schema field
+ * @param context The context for the conversion
+ * @returns The converted JSON Schema field
+ */
+function handleFilterType(field: FormanSchemaField, result: JSONSchema7, context: ConversionContext): JSONSchema7 {
+    const filterItems: JSONSchema7Definition = {
+        oneOf: [
+            {
+                type: 'object',
+                properties: {
+                    a: {},
+                    o: {
+                        enum: ['exist', 'notexist'],
+                    },
+                },
+                required: ['a', 'o'],
+            },
+            {
+                type: 'object',
+                properties: {
+                    a: {
+                        type: 'string',
+                    },
+                    b: {
+                        type: 'string',
+                    },
+                    o: {
+                        enum: [
+                            'text:equal',
+                            'text:equal:ci',
+                            'text:notequal',
+                            'text:notequal:ci',
+                            'text:contain',
+                            'text:contain:ci',
+                            'text:notcontain',
+                            'text:notcontain:ci',
+                            'text:startwith',
+                            'text:startwith:ci',
+                            'text:notstartwith',
+                            'text:notstartwith:ci',
+                            'text:endwith',
+                            'text:endwith:ci',
+                            'text:notendwith',
+                            'text:notendwith:ci',
+                            'text:pattern',
+                            'text:pattern:ci',
+                            'text:notpattern',
+                            'text:notpattern:ci',
+                        ],
+                    },
+                },
+                required: ['a', 'b', 'o'],
+            },
+            {
+                type: 'object',
+                properties: {
+                    a: {
+                        type: ['string', 'number'],
+                    },
+                    b: {
+                        type: ['string', 'number'],
+                    },
+                    o: {
+                        enum: [
+                            'number:equal',
+                            'number:notequal',
+                            'number:greater',
+                            'number:less',
+                            'number:greaterorequal',
+                            'number:lessorequal',
+                        ],
+                    },
+                },
+                required: ['a', 'b', 'o'],
+            },
+            {
+                type: 'object',
+                properties: {
+                    a: {
+                        type: 'string',
+                    },
+                    b: {
+                        type: 'string',
+                    },
+                    o: {
+                        enum: [
+                            'date:equal',
+                            'date:notequal',
+                            'date:greater',
+                            'date:less',
+                            'date:greaterorequal',
+                            'date:lessorequal',
+                        ],
+                    },
+                },
+                required: ['a', 'b', 'o'],
+            },
+            {
+                type: 'object',
+                properties: {
+                    a: {
+                        type: 'string',
+                    },
+                    b: {
+                        type: 'string',
+                    },
+                    o: {
+                        enum: [
+                            'time:equal',
+                            'time:notequal',
+                            'time:greater',
+                            'time:less',
+                            'time:greaterorequal',
+                            'time:lessorequal',
+                        ],
+                    },
+                },
+                required: ['a', 'b', 'o'],
+            },
+            {
+                type: 'object',
+                properties: {
+                    a: {
+                        type: 'string',
+                    },
+                    b: {
+                        type: 'string',
+                    },
+                    o: {
+                        enum: [
+                            'semver:equal',
+                            'semver:notequal',
+                            'semver:greater',
+                            'semver:less',
+                            'semver:greaterorequal',
+                            'semver:lessorequal',
+                        ],
+                    },
+                },
+                required: ['a', 'b', 'o'],
+            },
+            {
+                type: 'object',
+                properties: {
+                    a: {
+                        type: ['string', 'array'],
+                    },
+                    b: {
+                        type: ['string', 'array'],
+                    },
+                    o: {
+                        enum: [
+                            'array:contain',
+                            'array:contain:ci',
+                            'array:notcontain',
+                            'array:notcontain:ci',
+                            'array:equal',
+                            'array:notequal',
+                            'array:greater',
+                            'array:less',
+                            'array:greaterorequal',
+                            'array:lessorequal',
+                        ],
+                    },
+                },
+                required: ['a', 'b', 'o'],
+            },
+            {
+                type: 'object',
+                properties: {
+                    a: {
+                        type: ['string', 'boolean'],
+                    },
+                    b: {
+                        type: ['string', 'boolean'],
+                    },
+                    o: {
+                        enum: ['boolean:equal', 'boolean:notequal'],
+                    },
+                },
+                required: ['a', 'b', 'o'],
+            },
+        ],
+    };
+    const logic = field.logic ?? 'default';
+
+    result.items = ['and', 'or'].includes(logic)
+        ? filterItems
+        : {
+              type: 'array',
+              items: filterItems,
+          };
+    // Store this to the JSON Schema to allow safe conversion back to the Forman Schema
+    Object.defineProperty(result, 'x-filter', {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        value: logic,
+    });
 
     return result;
 }
