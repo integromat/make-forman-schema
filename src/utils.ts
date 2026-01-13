@@ -226,3 +226,80 @@ export function buildRestoreStructure(
 
     return result;
 }
+
+/**
+ * Constants for IML filter entry types
+ */
+export const IML_FILTER_ENTRY_TYPES = ['null' as const, 'boolean' as const, 'number' as const, 'string' as const];
+
+/**
+ * Constants for unary IML filter operators
+ */
+export const IML_UNARY_FILTER_OPERATORS = ['exist' as const, 'notexist' as const];
+
+/**
+ * Constants for binary IML filter operators
+ */
+export const IML_BINARY_FILTER_OPERATORS = [
+    'text:equal' as const,
+    'text:equal:ci' as const,
+    'text:notequal' as const,
+    'text:notequal:ci' as const,
+    'text:contain' as const,
+    'text:contain:ci' as const,
+    'text:notcontain' as const,
+    'text:notcontain:ci' as const,
+    'text:startwith' as const,
+    'text:startwith:ci' as const,
+    'text:notstartwith' as const,
+    'text:notstartwith:ci' as const,
+    'text:endwith' as const,
+    'text:endwith:ci' as const,
+    'text:notendwith' as const,
+    'text:notendwith:ci' as const,
+    'text:pattern' as const,
+    'text:pattern:ci' as const,
+    'text:notpattern' as const,
+    'text:notpattern:ci' as const,
+    'number:equal' as const,
+    'number:notequal' as const,
+    'number:greater' as const,
+    'number:less' as const,
+    'number:greaterorequal' as const,
+    'number:lessorequal' as const,
+    'date:equal' as const,
+    'date:notequal' as const,
+    'date:greater' as const,
+    'date:less' as const,
+    'date:greaterorequal' as const,
+    'date:lessorequal' as const,
+    'time:equal' as const,
+    'time:notequal' as const,
+    'time:greater' as const,
+    'time:less' as const,
+    'time:greaterorequal' as const,
+    'time:lessorequal' as const,
+    'semver:equal' as const,
+    'semver:notequal' as const,
+    'semver:greater' as const,
+    'semver:less' as const,
+    'semver:greaterorequal' as const,
+    'semver:lessorequal' as const,
+    'array:contain' as const,
+    'array:contain:ci' as const,
+    'array:notcontain' as const,
+    'array:notcontain:ci' as const,
+    'array:equal' as const,
+    'array:notequal' as const,
+    'array:greater' as const,
+    'array:less' as const,
+    'array:greaterorequal' as const,
+    'array:lessorequal' as const,
+    'boolean:equal' as const,
+    'boolean:notequal' as const,
+];
+
+/**3
+ * Constants for all IML filter operators
+ */
+export const IML_FILTER_OPERATORS = [...IML_UNARY_FILTER_OPERATORS, ...IML_BINARY_FILTER_OPERATORS];

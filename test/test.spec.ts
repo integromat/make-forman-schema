@@ -96,7 +96,9 @@ describe('Forman Schema', () => {
                             oneOf: [
                                 {
                                     properties: {
-                                        a: {},
+                                        a: {
+                                            type: ['null', 'boolean', 'number', 'string'],
+                                        },
                                         o: {
                                             enum: ['exist', 'notexist'],
                                         },
@@ -107,10 +109,10 @@ describe('Forman Schema', () => {
                                 {
                                     properties: {
                                         a: {
-                                            type: 'string',
+                                            type: ['null', 'boolean', 'number', 'string'],
                                         },
                                         b: {
-                                            type: 'string',
+                                            type: ['null', 'boolean', 'number', 'string'],
                                         },
                                         o: {
                                             enum: [
@@ -134,110 +136,30 @@ describe('Forman Schema', () => {
                                                 'text:pattern:ci',
                                                 'text:notpattern',
                                                 'text:notpattern:ci',
-                                            ],
-                                        },
-                                    },
-                                    required: ['a', 'b', 'o'],
-                                    type: 'object',
-                                },
-                                {
-                                    properties: {
-                                        a: {
-                                            type: ['string', 'number'],
-                                        },
-                                        b: {
-                                            type: ['string', 'number'],
-                                        },
-                                        o: {
-                                            enum: [
                                                 'number:equal',
                                                 'number:notequal',
                                                 'number:greater',
                                                 'number:less',
                                                 'number:greaterorequal',
                                                 'number:lessorequal',
-                                            ],
-                                        },
-                                    },
-                                    required: ['a', 'b', 'o'],
-                                    type: 'object',
-                                },
-                                {
-                                    properties: {
-                                        a: {
-                                            type: 'string',
-                                        },
-                                        b: {
-                                            type: 'string',
-                                        },
-                                        o: {
-                                            enum: [
                                                 'date:equal',
                                                 'date:notequal',
                                                 'date:greater',
                                                 'date:less',
                                                 'date:greaterorequal',
                                                 'date:lessorequal',
-                                            ],
-                                        },
-                                    },
-                                    required: ['a', 'b', 'o'],
-                                    type: 'object',
-                                },
-                                {
-                                    properties: {
-                                        a: {
-                                            type: 'string',
-                                        },
-                                        b: {
-                                            type: 'string',
-                                        },
-                                        o: {
-                                            enum: [
                                                 'time:equal',
                                                 'time:notequal',
                                                 'time:greater',
                                                 'time:less',
                                                 'time:greaterorequal',
                                                 'time:lessorequal',
-                                            ],
-                                        },
-                                    },
-                                    required: ['a', 'b', 'o'],
-                                    type: 'object',
-                                },
-                                {
-                                    properties: {
-                                        a: {
-                                            type: 'string',
-                                        },
-                                        b: {
-                                            type: 'string',
-                                        },
-                                        o: {
-                                            enum: [
                                                 'semver:equal',
                                                 'semver:notequal',
                                                 'semver:greater',
                                                 'semver:less',
                                                 'semver:greaterorequal',
                                                 'semver:lessorequal',
-                                            ],
-                                        },
-                                    },
-                                    required: ['a', 'b', 'o'],
-                                    type: 'object',
-                                },
-                                {
-                                    properties: {
-                                        a: {
-                                            type: ['string', 'array'],
-                                        },
-                                        b: {
-                                            type: ['string', 'array'],
-                                        },
-                                        o: {
-                                            enum: [
                                                 'array:contain',
                                                 'array:contain:ci',
                                                 'array:notcontain',
@@ -248,22 +170,9 @@ describe('Forman Schema', () => {
                                                 'array:less',
                                                 'array:greaterorequal',
                                                 'array:lessorequal',
+                                                'boolean:equal',
+                                                'boolean:notequal',
                                             ],
-                                        },
-                                    },
-                                    required: ['a', 'b', 'o'],
-                                    type: 'object',
-                                },
-                                {
-                                    properties: {
-                                        a: {
-                                            type: ['string', 'boolean'],
-                                        },
-                                        b: {
-                                            type: ['string', 'boolean'],
-                                        },
-                                        o: {
-                                            enum: ['boolean:equal', 'boolean:notequal'],
                                         },
                                     },
                                     required: ['a', 'b', 'o'],
@@ -282,7 +191,9 @@ describe('Forman Schema', () => {
                         oneOf: [
                             {
                                 properties: {
-                                    a: {},
+                                    a: {
+                                        type: ['null', 'boolean', 'number', 'string'],
+                                    },
                                     o: {
                                         enum: ['exist', 'notexist'],
                                     },
@@ -293,10 +204,10 @@ describe('Forman Schema', () => {
                             {
                                 properties: {
                                     a: {
-                                        type: 'string',
+                                        type: ['null', 'boolean', 'number', 'string'],
                                     },
                                     b: {
-                                        type: 'string',
+                                        type: ['null', 'boolean', 'number', 'string'],
                                     },
                                     o: {
                                         enum: [
@@ -320,110 +231,30 @@ describe('Forman Schema', () => {
                                             'text:pattern:ci',
                                             'text:notpattern',
                                             'text:notpattern:ci',
-                                        ],
-                                    },
-                                },
-                                required: ['a', 'b', 'o'],
-                                type: 'object',
-                            },
-                            {
-                                properties: {
-                                    a: {
-                                        type: ['string', 'number'],
-                                    },
-                                    b: {
-                                        type: ['string', 'number'],
-                                    },
-                                    o: {
-                                        enum: [
                                             'number:equal',
                                             'number:notequal',
                                             'number:greater',
                                             'number:less',
                                             'number:greaterorequal',
                                             'number:lessorequal',
-                                        ],
-                                    },
-                                },
-                                required: ['a', 'b', 'o'],
-                                type: 'object',
-                            },
-                            {
-                                properties: {
-                                    a: {
-                                        type: 'string',
-                                    },
-                                    b: {
-                                        type: 'string',
-                                    },
-                                    o: {
-                                        enum: [
                                             'date:equal',
                                             'date:notequal',
                                             'date:greater',
                                             'date:less',
                                             'date:greaterorequal',
                                             'date:lessorequal',
-                                        ],
-                                    },
-                                },
-                                required: ['a', 'b', 'o'],
-                                type: 'object',
-                            },
-                            {
-                                properties: {
-                                    a: {
-                                        type: 'string',
-                                    },
-                                    b: {
-                                        type: 'string',
-                                    },
-                                    o: {
-                                        enum: [
                                             'time:equal',
                                             'time:notequal',
                                             'time:greater',
                                             'time:less',
                                             'time:greaterorequal',
                                             'time:lessorequal',
-                                        ],
-                                    },
-                                },
-                                required: ['a', 'b', 'o'],
-                                type: 'object',
-                            },
-                            {
-                                properties: {
-                                    a: {
-                                        type: 'string',
-                                    },
-                                    b: {
-                                        type: 'string',
-                                    },
-                                    o: {
-                                        enum: [
                                             'semver:equal',
                                             'semver:notequal',
                                             'semver:greater',
                                             'semver:less',
                                             'semver:greaterorequal',
                                             'semver:lessorequal',
-                                        ],
-                                    },
-                                },
-                                required: ['a', 'b', 'o'],
-                                type: 'object',
-                            },
-                            {
-                                properties: {
-                                    a: {
-                                        type: ['string', 'array'],
-                                    },
-                                    b: {
-                                        type: ['string', 'array'],
-                                    },
-                                    o: {
-                                        enum: [
                                             'array:contain',
                                             'array:contain:ci',
                                             'array:notcontain',
@@ -434,22 +265,9 @@ describe('Forman Schema', () => {
                                             'array:less',
                                             'array:greaterorequal',
                                             'array:lessorequal',
+                                            'boolean:equal',
+                                            'boolean:notequal',
                                         ],
-                                    },
-                                },
-                                required: ['a', 'b', 'o'],
-                                type: 'object',
-                            },
-                            {
-                                properties: {
-                                    a: {
-                                        type: ['string', 'boolean'],
-                                    },
-                                    b: {
-                                        type: ['string', 'boolean'],
-                                    },
-                                    o: {
-                                        enum: ['boolean:equal', 'boolean:notequal'],
                                     },
                                 },
                                 required: ['a', 'b', 'o'],
@@ -467,7 +285,9 @@ describe('Forman Schema', () => {
                             oneOf: [
                                 {
                                     properties: {
-                                        a: {},
+                                        a: {
+                                            type: ['null', 'boolean', 'number', 'string'],
+                                        },
                                         o: {
                                             enum: ['exist', 'notexist'],
                                         },
@@ -478,10 +298,10 @@ describe('Forman Schema', () => {
                                 {
                                     properties: {
                                         a: {
-                                            type: 'string',
+                                            type: ['null', 'boolean', 'number', 'string'],
                                         },
                                         b: {
-                                            type: 'string',
+                                            type: ['null', 'boolean', 'number', 'string'],
                                         },
                                         o: {
                                             enum: [
@@ -505,110 +325,30 @@ describe('Forman Schema', () => {
                                                 'text:pattern:ci',
                                                 'text:notpattern',
                                                 'text:notpattern:ci',
-                                            ],
-                                        },
-                                    },
-                                    required: ['a', 'b', 'o'],
-                                    type: 'object',
-                                },
-                                {
-                                    properties: {
-                                        a: {
-                                            type: ['string', 'number'],
-                                        },
-                                        b: {
-                                            type: ['string', 'number'],
-                                        },
-                                        o: {
-                                            enum: [
                                                 'number:equal',
                                                 'number:notequal',
                                                 'number:greater',
                                                 'number:less',
                                                 'number:greaterorequal',
                                                 'number:lessorequal',
-                                            ],
-                                        },
-                                    },
-                                    required: ['a', 'b', 'o'],
-                                    type: 'object',
-                                },
-                                {
-                                    properties: {
-                                        a: {
-                                            type: 'string',
-                                        },
-                                        b: {
-                                            type: 'string',
-                                        },
-                                        o: {
-                                            enum: [
                                                 'date:equal',
                                                 'date:notequal',
                                                 'date:greater',
                                                 'date:less',
                                                 'date:greaterorequal',
                                                 'date:lessorequal',
-                                            ],
-                                        },
-                                    },
-                                    required: ['a', 'b', 'o'],
-                                    type: 'object',
-                                },
-                                {
-                                    properties: {
-                                        a: {
-                                            type: 'string',
-                                        },
-                                        b: {
-                                            type: 'string',
-                                        },
-                                        o: {
-                                            enum: [
                                                 'time:equal',
                                                 'time:notequal',
                                                 'time:greater',
                                                 'time:less',
                                                 'time:greaterorequal',
                                                 'time:lessorequal',
-                                            ],
-                                        },
-                                    },
-                                    required: ['a', 'b', 'o'],
-                                    type: 'object',
-                                },
-                                {
-                                    properties: {
-                                        a: {
-                                            type: 'string',
-                                        },
-                                        b: {
-                                            type: 'string',
-                                        },
-                                        o: {
-                                            enum: [
                                                 'semver:equal',
                                                 'semver:notequal',
                                                 'semver:greater',
                                                 'semver:less',
                                                 'semver:greaterorequal',
                                                 'semver:lessorequal',
-                                            ],
-                                        },
-                                    },
-                                    required: ['a', 'b', 'o'],
-                                    type: 'object',
-                                },
-                                {
-                                    properties: {
-                                        a: {
-                                            type: ['string', 'array'],
-                                        },
-                                        b: {
-                                            type: ['string', 'array'],
-                                        },
-                                        o: {
-                                            enum: [
                                                 'array:contain',
                                                 'array:contain:ci',
                                                 'array:notcontain',
@@ -619,22 +359,9 @@ describe('Forman Schema', () => {
                                                 'array:less',
                                                 'array:greaterorequal',
                                                 'array:lessorequal',
+                                                'boolean:equal',
+                                                'boolean:notequal',
                                             ],
-                                        },
-                                    },
-                                    required: ['a', 'b', 'o'],
-                                    type: 'object',
-                                },
-                                {
-                                    properties: {
-                                        a: {
-                                            type: ['string', 'boolean'],
-                                        },
-                                        b: {
-                                            type: ['string', 'boolean'],
-                                        },
-                                        o: {
-                                            enum: ['boolean:equal', 'boolean:notequal'],
                                         },
                                     },
                                     required: ['a', 'b', 'o'],

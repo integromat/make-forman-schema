@@ -123,6 +123,62 @@ describe('Forman Schema Comprehensive Coverage', () => {
                 ],
             });
         });
+
+        it('should validate filters', async () => {
+            const formanValue = {
+                emptyFilter: [],
+                normalFilter: [
+                    [
+                        { a: 'a', o: 'text:equal', b: 'b' },
+                        { a: 'c', o: 'text:equal', b: 'd' },
+                    ],
+                    [{ a: 'e', o: 'text:equal', b: 'f' }],
+                ],
+                flatFilter: [
+                    { a: 'a', o: 'text:equal', b: 'b' },
+                    { a: 'c', o: 'text:equal', b: 'd' },
+                ],
+                reversedFilter: [[{ a: 'c', o: 'text:equal', b: 'd' }], [{ a: 'e', o: 'text:equal', b: 'f' }]],
+                invalidFilter: [
+                    [
+                        { a: 'a', o: 'unknown:operator', b: 'b' },
+                        { o: 'text:equal', b: 'missingFirstElement' },
+                    ],
+                ],
+                invalidFlatFilter: [[{ a: 'a', o: 'text:equal', b: 'b' }]],
+            };
+
+            const formanSchema = [
+                { name: 'emptyFilter', type: 'filter' },
+                { name: 'normalFilter', type: 'filter' },
+                { name: 'flatFilter', type: 'filter', logic: 'and' as const },
+                { name: 'reversedFilter', type: 'filter', logic: 'reverse' as const },
+                { name: 'invalidFilter', type: 'filter' },
+                { name: 'invalidFlatFilter', type: 'filter', logic: 'or' as const },
+            ];
+
+            expect(await validateForman(formanValue, formanSchema)).toEqual({
+                errors: [
+                    {
+                        domain: 'default',
+                        message:
+                            'Value must be one of the following: exist, notexist, text:equal, text:equal:ci, text:notequal, text:notequal:ci, text:contain, text:contain:ci, text:notcontain, text:notcontain:ci, text:startwith, text:startwith:ci, text:notstartwith, text:notstartwith:ci, text:endwith, text:endwith:ci, text:notendwith, text:notendwith:ci, text:pattern, text:pattern:ci, text:notpattern, text:notpattern:ci, number:equal, number:notequal, number:greater, number:less, number:greaterorequal, number:lessorequal, date:equal, date:notequal, date:greater, date:less, date:greaterorequal, date:lessorequal, time:equal, time:notequal, time:greater, time:less, time:greaterorequal, time:lessorequal, semver:equal, semver:notequal, semver:greater, semver:less, semver:greaterorequal, semver:lessorequal, array:contain, array:contain:ci, array:notcontain, array:notcontain:ci, array:equal, array:notequal, array:greater, array:less, array:greaterorequal, array:lessorequal, boolean:equal, boolean:notequal',
+                        path: 'invalidFilter.0.0.o',
+                    },
+                    {
+                        domain: 'default',
+                        message: 'Field is mandatory.',
+                        path: 'invalidFilter.0.1.a',
+                    },
+                    {
+                        domain: 'default',
+                        message: "Expected type 'object', got type 'array'.",
+                        path: 'invalidFlatFilter.0',
+                    },
+                ],
+                valid: false,
+            });
+        });
     });
 
     describe('Complex Nested Scenarios', () => {
