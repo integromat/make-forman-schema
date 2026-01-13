@@ -121,7 +121,7 @@ export type FormanSchemaField = {
     /** Adds an extra button to the field which opens an extra form. When the form is submitted, a specified RPC is called and the result is set as a new value of the parameter. */
     rpc?: FormanSchemaRPCButton;
     /** Definition of boolean logic to apply (filter only) */
-    logic?: 'and' | 'or' | 'reverse'
+    logic?: 'and' | 'or' | 'reverse';
 } & Record<`x-${string}`, unknown>;
 
 /**

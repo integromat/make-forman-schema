@@ -298,8 +298,7 @@ export const IML_BINARY_FILTER_OPERATORS = [
     'boolean:equal' as const,
     'boolean:notequal' as const,
 ];
-
-/**3
+/**
  * Constants for all IML filter operators
  */
 export const IML_FILTER_OPERATORS = [...IML_UNARY_FILTER_OPERATORS, ...IML_BINARY_FILTER_OPERATORS];
