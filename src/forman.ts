@@ -48,7 +48,7 @@ export interface DomainRoot {
      * @param nested The nested fields to add
      * @param tail The tail of parameters in nested selects, required to resolve RPC payloads
      */
-    addFields: (nested: FormanSchemaField[], tail?: string[]) => void;
+    addFields: (nested: (FormanSchemaField | string)[], tail?: string[]) => void;
 }
 
 /**
@@ -56,7 +56,7 @@ export interface DomainRoot {
  */
 export type FormanDomainBuffer = {
     /** Field to add */
-    field: FormanSchemaField;
+    field: FormanSchemaField | string;
     /** Tail of parameters in nested selects, required to resolve RPC payloads */
     tail?: string[];
 };
@@ -228,7 +228,15 @@ function handleCollectionType(field: FormanSchemaField, result: JSONSchema7, con
         required: [],
     });
 
-    function addField(subField: FormanSchemaField, tail?: string[]) {
+    function addField(subField: FormanSchemaField | string, tail?: string[]) {
+        if (typeof subField === 'string') {
+            const value = { $ref: appendQueryString(subField, context.domain, tail || context.tail) };
+
+            result.allOf ||= [];
+            result.allOf.push(value);
+            return;
+        }
+
         if (isVisualType(subField.type)) {
             return;
         }
@@ -275,7 +283,7 @@ function handleCollectionType(field: FormanSchemaField, result: JSONSchema7, con
         const buffer = context.roots[domainRoot]?.buffer;
 
         context.roots[domainRoot] = {
-            addFields: (nested: FormanSchemaField[], tail?: string[]) => {
+            addFields: (nested: (FormanSchemaField | string)[], tail?: string[]) => {
                 nested.forEach(subField => addField(subField, tail));
             },
         };
@@ -483,22 +491,20 @@ function handleSelectType(field: FormanSchemaField, result: JSONSchema7, context
     }
 
     if (nested && domain && domain !== context.domain) {
-        if (typeof nested === 'string' || nestedContainsStrings) {
-            throw new SchemaConversionError('Dynamic nested fields with domain change are not supported.');
-        }
+        const normalizedNested = typeof nested === 'string' ? [nested] : nested;
 
         let root = context.roots[domain];
         if (!root) {
             const buffer: FormanDomainBuffer[] = [];
             root = context.roots[domain] = {
                 buffer,
-                addFields: (nested: FormanSchemaField[], tail?: string[]) => {
+                addFields: (nested: (FormanSchemaField | string)[], tail?: string[]) => {
                     buffer.push(...nested.map(field => ({ field, tail })));
                 },
             };
         }
 
-        root.addFields(nested as FormanSchemaField[], [...context.tail, field.name!]);
+        root.addFields(normalizedNested, [...context.tail, field.name!]);
     } else if (nested) {
         Object.defineProperty(result, 'x-nested', {
             configurable: true,
