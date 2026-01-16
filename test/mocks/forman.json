@@ -86,6 +86,14 @@
     },
     {
         "help": "",
+        "name": "string",
+        "type": "string",
+        "label": "",
+        "default": "",
+        "required": false
+    },
+    {
+        "help": "",
         "name": "boolean",
         "type": "boolean",
         "label": "",
