@@ -196,7 +196,7 @@ export type FormanSchemaNested = (FormanSchemaField | string)[] | string | Forma
  */
 export type FormanSchemaExtendedNested = {
     /** Store for the nested fields */
-    store: FormanSchemaField[] | string;
+    store: (FormanSchemaField | string)[] | string;
     /** Domain for the nested fields */
     domain?: string;
 };

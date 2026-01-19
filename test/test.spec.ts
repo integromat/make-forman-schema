@@ -74,6 +74,9 @@ describe('Forman Schema', () => {
                 text: {
                     type: 'string',
                 },
+                editor: {
+                    type: 'string',
+                },
                 primitive_array: {
                     description: 'description',
                     items: {
@@ -448,6 +451,11 @@ describe('Forman Schema', () => {
                 {
                     type: 'text',
                     name: 'text',
+                    required: false,
+                },
+                {
+                    type: 'text',
+                    name: 'editor',
                     required: false,
                 },
                 {
