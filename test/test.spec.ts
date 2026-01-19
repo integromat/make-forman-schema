@@ -74,9 +74,6 @@ describe('Forman Schema', () => {
                 text: {
                     type: 'string',
                 },
-                string: {
-                    type: 'string',
-                },
                 editor: {
                     type: 'string',
                 },
@@ -454,11 +451,6 @@ describe('Forman Schema', () => {
                 {
                     type: 'text',
                     name: 'text',
-                    required: false,
-                },
-                {
-                    type: 'text',
-                    name: 'string',
                     required: false,
                 },
                 {

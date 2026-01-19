@@ -92,7 +92,6 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, JSONSchema7['type']>> = {
     collection: 'object',
     dynamicCollection: 'object',
     text: 'string',
-    string: 'string', // Officially not supported, but added for compatibility with some apps
     editor: 'string',
     number: 'number',
     boolean: 'boolean',
