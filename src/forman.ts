@@ -203,6 +203,7 @@ export function toJSONSchemaInternal(
         case 'select':
         case 'account':
         case 'hook':
+        case 'device':
         case 'keychain':
         case 'datastore':
         case 'aiagent':

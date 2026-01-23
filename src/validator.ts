@@ -72,6 +72,7 @@ export interface DomainRoot {
 const FORMAN_TYPE_MAP: Readonly<Record<string, string | undefined>> = {
     account: 'number',
     hook: 'number',
+    device: 'number',
     keychain: 'number',
     datastore: 'number',
     aiagent: 'string',

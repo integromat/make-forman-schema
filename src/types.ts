@@ -40,6 +40,7 @@ export type FormanSchemaFieldType =
     | `account:${string}`
     | `hook:${string}`
     | `keychain:${string}`
+    | `device:${string}`
     | 'banner'
     | 'markdown'
     | 'html'
