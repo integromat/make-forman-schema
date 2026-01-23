@@ -97,7 +97,7 @@ export const API_ENDPOINTS = {
     aiagent: 'api://ai-agents/v1/agents',
     datastore: 'api://data-stores',
     hook: 'api://hooks/{{kind}}',
-    device: 'api://devices',
+    device: 'api://devices/{{kind}}',
     keychain: 'api://keys/{{kind}}',
     udt: 'api://data-structures',
     scenario: 'api://scenario-list',

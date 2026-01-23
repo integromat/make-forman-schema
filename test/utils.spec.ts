@@ -187,6 +187,20 @@ describe('Utils Functions', () => {
             });
         });
 
+        it('should normalize device: prefixed types', () => {
+            const field = {
+                name: 'device',
+                type: 'device:apn',
+                required: true,
+            };
+
+            const normalized = normalizeFormanFieldType(field);
+            expect(normalized.type).toBe('device');
+            expect(normalized.options).toEqual({
+                store: 'api://devices/apn',
+            });
+        });
+
         it('should return field unchanged for non-prefixed types', () => {
             const field = {
                 name: 'text',
