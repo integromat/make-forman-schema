@@ -575,6 +575,14 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
     // This way was start with empty path always
     if (levels[0] !== '') levels.unshift('');
 
+    // Special case: root folder is valid for folder type
+    if (showRoot && value === '/' && field.type === 'folder') {
+        return {
+            valid: true,
+            errors: [],
+        };
+    }
+
     // Now there have to be at least two levels (root + one entry)
     if (levels.length < 2) {
         return {
@@ -584,7 +592,7 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
                 {
                     domain: context.domain,
                     path: context.path.join('.'),
-                    message: `Invalid path ${value} encountered.`,
+                    message: `Invalid path "${value}" encountered.`,
                 },
             ],
         };
@@ -597,6 +605,20 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
         const isLastLevel = levelIndex === levels.length - 2;
         const levelSelectedValue = levels[levelIndex + 1];
         const selectedPathValue = selectedPath.map(({ value }) => value).join('/');
+
+        if (!levelSelectedValue) {
+            return {
+                valid: false,
+                errors: [
+                    ...errors,
+                    {
+                        domain: context.domain,
+                        path: context.path.join('.'),
+                        message: `Invalid selected value of "${value}" encountered.`,
+                    },
+                ],
+            };
+        }
 
         if (typeof options === 'string') {
             try {
