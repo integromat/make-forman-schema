@@ -43,7 +43,11 @@ export interface ValidationContext {
     strict: boolean;
     /** Validate nested fields */
     validateNestedFields(fields: FormanSchemaField[], context: ValidationContext): Promise<void>;
-    /** Remote resource resolver */
+    /** Remote resource resolver
+     * @param path The remote resource path
+     * @param context The validation context
+     * @param localData Optional local data to merge with data of the context in which the resolver is called
+     */
     resolveRemote(path: string, context: ValidationContext, localData?: Record<string, unknown>): Promise<unknown>;
 }
 
@@ -518,6 +522,13 @@ async function handleFilterType(value: unknown, field: FormanSchemaField, contex
     return handleArrayType(value as unknown[], inlineSchema, context);
 }
 
+/**
+ * Handles file and folder path type validation
+ * @param value The value to validate
+ * @param field The field to convert
+ * @param context The context for the conversion
+ * @returns The validation result
+ */
 async function handlePathType(value: unknown, field: FormanSchemaField, context: ValidationContext) {
     const errors: FormanValidationResult['errors'] = [];
 

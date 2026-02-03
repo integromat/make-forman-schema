@@ -148,6 +148,9 @@ export type FormanSchemaRPCButton = {
  */
 export type FormanSchemaValue = string | number | boolean | null;
 
+/**
+ * Extended options for file and folder path selector fields
+ */
 export type FormanSchemaPathExtendedOptions = {
     /** Store for the options */
     store: FormanSchemaDirectoryOption[] | string;
@@ -161,6 +164,9 @@ export type FormanSchemaPathExtendedOptions = {
     singleLevel?: boolean;
 };
 
+/**
+ * Directory entry option for file and folder path selectors
+ */
 export type FormanSchemaDirectoryOption = {
     /** Option value */
     value: FormanSchemaValue;
