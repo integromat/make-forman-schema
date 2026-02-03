@@ -1369,7 +1369,7 @@ describe('Forman Schema Extended Validation', () => {
                     {
                         domain: 'default',
                         path: 'invalidFolder',
-                        message: `Single level path can't contain slashes.`,
+                        message: `Single level path cannot contain slashes.`,
                     },
                 ],
             });
@@ -1414,7 +1414,7 @@ describe('Forman Schema Extended Validation', () => {
                     {
                         domain: 'default',
                         path: 'invalidFolder',
-                        message: `Single level path can't contain slashes.`,
+                        message: `Single level path cannot contain slashes.`,
                     },
                 ],
             });

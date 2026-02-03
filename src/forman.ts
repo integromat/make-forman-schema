@@ -419,6 +419,13 @@ function handleSelectOrPathType(
             writable: true,
             value: optionsWrapper?.singleLevel ?? false,
         });
+        // This is needed so the resulting object is "self-contained", knowing also the name of the recursively appended parameter, not having to rely on its key.
+        Object.defineProperty(result, 'x-path-own-name', {
+            configurable: true,
+            enumerable: true,
+            writable: true,
+            value: field.name,
+        });
     }
 
     const nested = isObject<FormanSchemaExtendedOptions>(field.options)

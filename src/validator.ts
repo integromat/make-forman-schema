@@ -558,7 +558,7 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
                 {
                     domain: context.domain,
                     path: context.path.join('.'),
-                    message: `Single level path can't contain slashes.`,
+                    message: `Single level path cannot contain slashes.`,
                 },
             ],
         };
@@ -572,7 +572,7 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
     // In order to validate the full path, we need to go level-by-level in the nesting. That's the only way we get also the labels correctly.
     const levels = value.split('/');
 
-    // This way was start with empty path always
+    // This way we start with an empty path always
     if (levels[0] !== '') levels.unshift('');
 
     // Special case: root folder is valid for folder type

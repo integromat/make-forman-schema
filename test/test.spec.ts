@@ -385,6 +385,7 @@ describe('Forman Schema', () => {
                     'x-path-selector': 'file',
                     'x-path-show-root': true,
                     'x-path-single-level': false,
+                    'x-path-own-name': 'file',
                 },
                 folder: {
                     title: 'Folder',
@@ -393,6 +394,7 @@ describe('Forman Schema', () => {
                     'x-path-selector': 'folder',
                     'x-path-show-root': false,
                     'x-path-single-level': true,
+                    'x-path-own-name': 'folder',
                 },
             },
             required: ['number'],
