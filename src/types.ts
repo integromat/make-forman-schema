@@ -134,7 +134,7 @@ export type FormanSchemaRPCButton = {
     /** RPC button URL */
     url: string;
     /** RPC button parameters */
-    parameters: FormanSchemaField[];
+    parameters: FormanSchemaField[] | string;
 };
 
 /**
