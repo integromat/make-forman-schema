@@ -210,7 +210,7 @@ export function toJSONSchemaInternal(
         case 'aiagent':
         case 'file':
         case 'folder':
-            return handleSelectType(normalizedField, result, context);
+            return handleSelectOrPathType(normalizedField, result, context);
         case 'filter':
             return handleFilterType(normalizedField, result, context);
         default:
@@ -389,10 +389,37 @@ function handleFilterType(field: FormanSchemaField, result: JSONSchema7, context
  * @param context The context for the conversion
  * @returns The converted JSON Schema field
  */
-function handleSelectType(field: FormanSchemaField, result: JSONSchema7, context: ConversionContext): JSONSchema7 {
+function handleSelectOrPathType(
+    field: FormanSchemaField,
+    result: JSONSchema7,
+    context: ConversionContext,
+): JSONSchema7 {
     const optionsOrGroups = isObject<FormanSchemaExtendedOptions | FormanSchemaPathExtendedOptions>(field.options)
         ? field.options.store
         : field.options;
+
+    // Special flags for Files and Folders, as they need to be handled differently when RPCs are executed
+    if (['file', 'folder'].includes(field.type)) {
+        const optionsWrapper = isObject<FormanSchemaPathExtendedOptions>(field.options) ? field.options : undefined;
+        Object.defineProperty(result, 'x-path-selector', {
+            configurable: true,
+            enumerable: true,
+            writable: true,
+            value: field.type,
+        });
+        Object.defineProperty(result, 'x-path-show-root', {
+            configurable: true,
+            enumerable: true,
+            writable: true,
+            value: optionsWrapper?.showRoot ?? true,
+        });
+        Object.defineProperty(result, 'x-path-single-level', {
+            configurable: true,
+            enumerable: true,
+            writable: true,
+            value: optionsWrapper?.singleLevel ?? false,
+        });
+    }
 
     const nested = isObject<FormanSchemaExtendedOptions>(field.options)
         ? isObject<FormanSchemaExtendedNested>(field.options.nested)

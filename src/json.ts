@@ -87,6 +87,20 @@ export function toFormanSchema(field: JSONSchema7): FormanSchemaField {
 
             return formanSchema;
         case 'string':
+            // If the field is flagged as path selector field root, then short-circuit to it
+            const pathSelector = Object.getOwnPropertyDescriptor(field, 'x-path-selector');
+            if (pathSelector) {
+                return {
+                    type: pathSelector.value,
+                    label: noEmpty(field.title),
+                    help: noEmpty(field.description),
+                    options: {
+                        store: Object.getOwnPropertyDescriptor(field, 'x-fetch')?.value,
+                        showRoot: Object.getOwnPropertyDescriptor(field, 'x-path-show-root')?.value,
+                        singleLevel: Object.getOwnPropertyDescriptor(field, 'x-path-single-level')?.value,
+                    },
+                };
+            }
             if (field.enum) {
                 // For strings with enum, create a select type
                 return {

@@ -150,5 +150,21 @@
         "type": "filter",
         "logic": "reverse",
         "label": "Reversed Filter"
+    },
+    {
+        "name": "folder",
+        "type": "folder",
+        "label": "Folder",
+        "options": {
+            "store": "rpc://get-folders",
+            "showRoot": false,
+            "singleLevel": true
+        }
+    },
+    {
+        "name": "file",
+        "type": "file",
+        "label": "File",
+        "options": "rpc://get-files"
     }
 ]
