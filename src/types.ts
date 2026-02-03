@@ -77,8 +77,14 @@ export type FormanSchemaField = {
     required?: boolean;
     /** Default value for the field */
     default?: FormanSchemaValue;
-    /** Available options for select type fields */
-    options?: FormanSchemaOption[] | FormanSchemaOptionGroup[] | FormanSchemaExtendedOptions | string;
+    /** Available options for fields which support them */
+    options?:
+        | FormanSchemaOption[]
+        | FormanSchemaOptionGroup[]
+        | FormanSchemaDirectoryOption[]
+        | FormanSchemaPathExtendedOptions
+        | FormanSchemaExtendedOptions
+        | string;
     /** Help text or description for the field */
     help?: string;
     /** Sub-fields specification for collection or array types */
@@ -141,6 +147,28 @@ export type FormanSchemaRPCButton = {
  * Valid Forman Schema values
  */
 export type FormanSchemaValue = string | number | boolean | null;
+
+export type FormanSchemaPathExtendedOptions = {
+    /** Store for the options */
+    store: FormanSchemaDirectoryOption[] | string;
+    /** Nested fields for every option */
+    nested?: FormanSchemaNested;
+    /** When set to true, all paths start with '/' */
+    showRoot?: boolean;
+    /** Used when the directory entries have labels available, and these are different from their actual IDs */
+    ids?: boolean;
+    /** When set to true, only the entries from the root level are shown, without their children */
+    singleLevel?: boolean;
+};
+
+export type FormanSchemaDirectoryOption = {
+    /** Option value */
+    value: FormanSchemaValue;
+    /** Option label */
+    label?: string;
+    /** Set to true when the entry is a file in combined select mode */
+    file?: boolean;
+};
 
 /**
  * Option for a select field
@@ -224,6 +252,7 @@ export type FormanValidationResult = {
 export type FormanSchemaFieldState = {
     mode?: 'chose' | 'edit';
     label?: string;
+    path?: Array<string>;
     data?: Record<string, unknown>;
     nested?: Record<string, FormanSchemaFieldState>;
     items?: Record<string, FormanSchemaFieldState>[];

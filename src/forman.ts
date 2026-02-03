@@ -6,6 +6,7 @@ import type {
     FormanSchemaExtendedNested,
     FormanSchemaOption,
     FormanSchemaOptionGroup,
+    FormanSchemaPathExtendedOptions,
 } from './types';
 import {
     noEmpty,
@@ -389,7 +390,9 @@ function handleFilterType(field: FormanSchemaField, result: JSONSchema7, context
  * @returns The converted JSON Schema field
  */
 function handleSelectType(field: FormanSchemaField, result: JSONSchema7, context: ConversionContext): JSONSchema7 {
-    const optionsOrGroups = isObject<FormanSchemaExtendedOptions>(field.options) ? field.options.store : field.options;
+    const optionsOrGroups = isObject<FormanSchemaExtendedOptions | FormanSchemaPathExtendedOptions>(field.options)
+        ? field.options.store
+        : field.options;
 
     const nested = isObject<FormanSchemaExtendedOptions>(field.options)
         ? isObject<FormanSchemaExtendedNested>(field.options.nested)

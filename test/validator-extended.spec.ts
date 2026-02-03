@@ -756,7 +756,7 @@ describe('Forman Schema Extended Validation', () => {
         it('should validate file and folder types', async () => {
             const formanValue = {
                 file: 'document.pdf',
-                folder: '/path/to/folder',
+                folder: 'folder',
                 invalidFile: 123,
             };
 
@@ -764,12 +764,12 @@ describe('Forman Schema Extended Validation', () => {
                 {
                     name: 'file',
                     type: 'file',
-                    options: [{ value: 'document.pdf' }],
+                    options: [{ value: 'document.pdf', file: true }],
                 },
                 {
                     name: 'folder',
                     type: 'folder',
-                    options: [{ value: '/path/to/folder' }],
+                    options: [{ value: 'folder' }],
                 },
                 {
                     name: 'invalidFile',
@@ -1327,6 +1327,145 @@ describe('Forman Schema Extended Validation', () => {
                         message: 'Object contains field with unknown name.',
                     },
                 ],
+            });
+        });
+    });
+
+    describe('State Generation for File and Folder Inputs', () => {
+        it('should properly generate the restore path for file and folder in IDs Mode', async () => {
+            const formanValue = {
+                filePathWithIds: '/001/101/1000.txt',
+                folderPathWithIds: '/001/101',
+                filePathWithoutIds: '/001/101/1000.txt',
+                folderPathWithoutIds: '/001/101',
+                selectForControl: 'option1',
+            };
+
+            const formanSchema = [
+                {
+                    name: 'filePathWithIds',
+                    type: 'file',
+                    options: {
+                        ids: true,
+                        store: 'rpc://file-explorer-ids',
+                    },
+                },
+                {
+                    name: 'folderPathWithIds',
+                    type: 'folder',
+                    options: {
+                        ids: true,
+                        store: 'rpc://folder-explorer-ids',
+                    },
+                },
+                {
+                    name: 'filePathWithoutIds',
+                    type: 'file',
+                    options: {
+                        store: 'rpc://file-explorer-direct',
+                    },
+                },
+                {
+                    name: 'folderPathWithoutIds',
+                    type: 'folder',
+                    options: 'rpc://folder-explorer-direct',
+                },
+                {
+                    name: 'selectForControl',
+                    type: 'select',
+                    options: 'rpc://select-options',
+                },
+            ];
+
+            expect(
+                await validateForman(formanValue, formanSchema, {
+                    states: true,
+                    async resolveRemote(path, data) {
+                        const [theOnlyValue] = Object.values(data);
+                        switch (path) {
+                            case 'rpc://folder-explorer-ids':
+                            case 'rpc://file-explorer-ids':
+                            case 'rpc://file-explorer-direct':
+                            case 'rpc://folder-explorer-direct': {
+                                if (theOnlyValue === '/') {
+                                    return [
+                                        {
+                                            label: 'HARDDRIVE',
+                                            value: '001',
+                                        },
+                                        {
+                                            label: 'void.bin',
+                                            value: 'void.bin',
+                                            file: true,
+                                        },
+                                    ];
+                                } else if (theOnlyValue === '/001') {
+                                    return [
+                                        {
+                                            label: 'STORIES',
+                                            value: '101',
+                                        },
+                                        {
+                                            label: 'LEGENDS',
+                                            value: '102',
+                                        },
+                                    ];
+                                } else if (theOnlyValue === '/001/101') {
+                                    return [
+                                        {
+                                            label: 'COOL_STORY.txt',
+                                            value: '1000.txt',
+                                            file: true,
+                                        },
+                                        {
+                                            label: 'NOT_THAT_COOL_STORY.txt',
+                                            value: '2000.txt',
+                                            file: true,
+                                        },
+                                        {
+                                            label: 'NESTED',
+                                            value: '3000',
+                                        },
+                                    ];
+                                } else {
+                                    return [];
+                                }
+                            }
+                            case 'rpc://select-options': {
+                                return [
+                                    {
+                                        value: 'option1',
+                                        label: 'Option 1',
+                                    },
+                                    {
+                                        value: 'option2',
+                                        label: 'Option 2',
+                                    },
+                                ];
+                            }
+                        }
+                        throw new Error(`Unknown resource: ${path}`);
+                    },
+                }),
+            ).toEqual({
+                errors: [],
+                states: {
+                    default: {
+                        filePathWithIds: {
+                            mode: 'chose',
+                            path: ['HARDDRIVE', 'STORIES', 'COOL_STORY.txt'],
+                        },
+                        folderPathWithIds: {
+                            mode: 'chose',
+                            path: ['HARDDRIVE', 'STORIES'],
+                        },
+                        selectForControl: {
+                            label: 'Option 1',
+                            mode: 'chose',
+                        },
+                    },
+                },
+                valid: true,
             });
         });
     });
