@@ -378,6 +378,28 @@ describe('Forman Schema', () => {
                     type: 'array',
                     'x-filter': 'reverse',
                 },
+                file: {
+                    title: 'File',
+                    type: 'string',
+                    'x-fetch': 'rpc://get-files',
+                    'x-path': {
+                        type: 'file',
+                        showRoot: true,
+                        singleLevel: false,
+                        ownName: 'file',
+                    },
+                },
+                folder: {
+                    title: 'Folder',
+                    type: 'string',
+                    'x-fetch': 'rpc://get-folders',
+                    'x-path': {
+                        type: 'folder',
+                        showRoot: false,
+                        singleLevel: true,
+                        ownName: 'folder',
+                    },
+                },
             },
             required: ['number'],
             type: 'object',
@@ -515,6 +537,28 @@ describe('Forman Schema', () => {
                     name: 'reversedFilter',
                     required: false,
                     type: 'filter',
+                },
+                {
+                    label: 'Folder',
+                    name: 'folder',
+                    options: {
+                        showRoot: false,
+                        singleLevel: true,
+                        store: 'rpc://get-folders',
+                    },
+                    required: false,
+                    type: 'folder',
+                },
+                {
+                    label: 'File',
+                    name: 'file',
+                    options: {
+                        showRoot: true,
+                        singleLevel: false,
+                        store: 'rpc://get-files',
+                    },
+                    required: false,
+                    type: 'file',
                 },
             ],
         });

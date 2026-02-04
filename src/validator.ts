@@ -8,6 +8,8 @@ import type {
     FormanValidationOptions,
     FormanSchemaNested,
     FormanSchemaFieldState,
+    FormanSchemaPathExtendedOptions,
+    FormanSchemaDirectoryOption,
 } from './types';
 import {
     containsIMLExpression,
@@ -41,8 +43,12 @@ export interface ValidationContext {
     strict: boolean;
     /** Validate nested fields */
     validateNestedFields(fields: FormanSchemaField[], context: ValidationContext): Promise<void>;
-    /** Remote resource resolver */
-    resolveRemote(path: string, context: ValidationContext): Promise<unknown>;
+    /** Remote resource resolver
+     * @param path The remote resource path
+     * @param context The validation context
+     * @param localData Optional local data to merge with data of the context in which the resolver is called
+     */
+    resolveRemote(path: string, context: ValidationContext, localData?: Record<string, unknown>): Promise<unknown>;
 }
 
 /**
@@ -173,7 +179,7 @@ export async function validateFormanWithDomainsInternal(
                 validateNestedFields: () => {
                     throw new Error('Cannot validate nested fields without parent field.');
                 },
-                resolveRemote: async (path, context) => {
+                resolveRemote: async (path, context, localData) => {
                     if (!options?.resolveRemote) {
                         throw new Error('Remote resource not supported when resolver is not provided.');
                     }
@@ -184,7 +190,10 @@ export async function validateFormanWithDomainsInternal(
                         },
                         {} as Record<string, unknown>,
                     );
-                    return await options.resolveRemote(path, data);
+                    return await options.resolveRemote(path, {
+                        ...data,
+                        ...localData,
+                    });
                 },
             },
         );
@@ -297,9 +306,10 @@ async function validateFormanValue(
         case 'aiagent':
         case 'udt':
         case 'scenario':
+            return handleSelectType(value, normalizedField, context);
         case 'file':
         case 'folder':
-            return handleSelectType(value, normalizedField, context);
+            return handlePathType(value, normalizedField, context);
         case 'filter':
             return handleFilterType(value, normalizedField, context);
         default:
@@ -510,6 +520,193 @@ async function handleFilterType(value: unknown, field: FormanSchemaField, contex
               },
           };
     return handleArrayType(value as unknown[], inlineSchema, context);
+}
+
+/**
+ * Handles file and folder path type validation
+ * @param value The value to validate
+ * @param field The field to convert
+ * @param context The context for the conversion
+ * @returns The validation result
+ */
+async function handlePathType(value: unknown, field: FormanSchemaField, context: ValidationContext) {
+    const errors: FormanValidationResult['errors'] = [];
+
+    if (typeof value !== 'string') {
+        return {
+            valid: false,
+            errors: [
+                ...errors,
+                {
+                    domain: context.domain,
+                    path: context.path.join('.'),
+                    message: `Expected type 'string' for path, got type '${typeof value}'.`,
+                },
+            ],
+        };
+    }
+
+    let showRoot = true;
+    let ids = false;
+    let singleLevel = false;
+    let options: string | FormanSchemaPathExtendedOptions | FormanSchemaDirectoryOption[];
+
+    if (isObject<FormanSchemaPathExtendedOptions>(field.options)) {
+        if (field.options.showRoot !== undefined) showRoot = field.options.showRoot;
+        if (field.options.ids !== undefined) ids = field.options.ids;
+        if (field.options.singleLevel !== undefined) singleLevel = field.options.singleLevel;
+        options = field.options.store;
+    } else {
+        options = field.options as string | FormanSchemaDirectoryOption[];
+    }
+
+    // If single level AND either (not showing root and value contains slashes) OR (showing root and there's more than the root slash), it's invalid
+    if (singleLevel && ((!showRoot && value.includes('/')) || (showRoot && value.lastIndexOf('/') > 0))) {
+        return {
+            valid: false,
+            errors: [
+                ...errors,
+                {
+                    domain: context.domain,
+                    path: context.path.join('.'),
+                    message: `Single level path cannot contain slashes.`,
+                },
+            ],
+        };
+    }
+    let nested = field.nested
+        ? field.nested
+        : isObject<FormanSchemaPathExtendedOptions>(field.options)
+          ? field.options.nested
+          : undefined;
+
+    // In order to validate the full path, we need to go level-by-level in the nesting. That's the only way we get also the labels correctly.
+    const levels = value.split('/');
+
+    // This way we start with an empty path always
+    if (levels[0] !== '') levels.unshift('');
+
+    // Special case: root folder is valid for folder type
+    if (showRoot && value === '/' && field.type === 'folder') {
+        return {
+            valid: true,
+            errors: [],
+        };
+    }
+
+    // Now there have to be at least two levels (root + one entry)
+    if (levels.length < 2) {
+        return {
+            valid: false,
+            errors: [
+                ...errors,
+                {
+                    domain: context.domain,
+                    path: context.path.join('.'),
+                    message: `Invalid path "${value}" encountered.`,
+                },
+            ],
+        };
+    }
+
+    const selectedPath: FormanSchemaDirectoryOption[] = [];
+    let levelOptions: FormanSchemaDirectoryOption[] = [];
+
+    for (let levelIndex = 0; levelIndex < levels.length - 1; ++levelIndex) {
+        const isLastLevel = levelIndex === levels.length - 2;
+        const levelSelectedValue = levels[levelIndex + 1];
+        const selectedPathValue = selectedPath.map(({ value }) => value).join('/');
+
+        if (!levelSelectedValue) {
+            return {
+                valid: false,
+                errors: [
+                    ...errors,
+                    {
+                        domain: context.domain,
+                        path: context.path.join('.'),
+                        message: `Invalid selected value of "${value}" encountered.`,
+                    },
+                ],
+            };
+        }
+
+        if (typeof options === 'string') {
+            try {
+                levelOptions = (await context.resolveRemote(options, context, {
+                    [field.name!]: (showRoot && !selectedPathValue.startsWith('/') ? '/' : '') + selectedPathValue,
+                })) as FormanSchemaDirectoryOption[];
+            } catch (error) {
+                return {
+                    valid: false,
+                    errors: [
+                        ...errors,
+                        {
+                            domain: context.domain,
+                            path: context.path.join('.'),
+                            message: `Failed to resolve remote resource ${options}: ${error}`,
+                        },
+                    ],
+                };
+            }
+        } else if (isLastLevel) {
+            levelOptions = options;
+        }
+
+        const selectableOptions = levelOptions.flatMap(candidate => {
+            // In the last level, filter only files or folders, based on the field type
+            if (
+                isLastLevel &&
+                ((field.type === 'file' && !candidate.file) || (field.type === 'folder' && candidate.file))
+            ) {
+                return [];
+            }
+
+            // In non-last levels, filter out files, as we accept only folders there
+            if (!isLastLevel && candidate.file) {
+                return [];
+            }
+
+            return candidate;
+        });
+
+        const selectedOption = selectableOptions.find(candidate => candidate.value === levelSelectedValue);
+        if (!selectedOption) {
+            return {
+                valid: false,
+                errors: [
+                    ...errors,
+                    {
+                        domain: context.domain,
+                        path: context.path.join('.'),
+                        message: `Path '${levelSelectedValue}' not found in options.`,
+                    },
+                ],
+            };
+        }
+        selectedPath.push(selectedOption);
+    }
+
+    if (ids) {
+        /** Add state of the field to the domain root */
+        context.roots[context.domain]!.fieldStates.push({
+            path: context.path,
+            state: {
+                mode: 'chose',
+                path: selectedPath.map(({ label, value }) => (label ?? value) as string),
+            },
+        });
+    }
+
+    if (nested) {
+        const result = await handleNestedFields(nested, value, field, context);
+        errors.push(...result.errors);
+    }
+
+    return {
+        valid: errors.length === 0,
+        errors,
+    };
 }
 
 /**

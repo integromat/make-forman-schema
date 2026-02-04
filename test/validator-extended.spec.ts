@@ -756,7 +756,7 @@ describe('Forman Schema Extended Validation', () => {
         it('should validate file and folder types', async () => {
             const formanValue = {
                 file: 'document.pdf',
-                folder: '/path/to/folder',
+                folder: 'folder',
                 invalidFile: 123,
             };
 
@@ -764,12 +764,12 @@ describe('Forman Schema Extended Validation', () => {
                 {
                     name: 'file',
                     type: 'file',
-                    options: [{ value: 'document.pdf' }],
+                    options: [{ value: 'document.pdf', file: true }],
                 },
                 {
                     name: 'folder',
                     type: 'folder',
-                    options: [{ value: '/path/to/folder' }],
+                    options: [{ value: 'folder' }],
                 },
                 {
                     name: 'invalidFile',
@@ -1327,6 +1327,724 @@ describe('Forman Schema Extended Validation', () => {
                         message: 'Object contains field with unknown name.',
                     },
                 ],
+            });
+        });
+    });
+
+    describe('File and Folder Path Validation', () => {
+        it('should validate single-level directory with showRoot=true', async () => {
+            const formanValue = {
+                validFolder: '/folder1',
+                invalidFolder: '/folder1/subfolder',
+            };
+
+            const formanSchema = [
+                {
+                    name: 'validFolder',
+                    type: 'folder',
+                    options: {
+                        singleLevel: true,
+                        store: [
+                            { value: 'folder1' },
+                            { value: 'folder2' },
+                        ],
+                    },
+                },
+                {
+                    name: 'invalidFolder',
+                    type: 'folder',
+                    options: {
+                        singleLevel: true,
+                        store: [
+                            { value: 'folder1' },
+                            { value: 'folder2' },
+                        ],
+                    },
+                },
+            ];
+
+            expect(await validateForman(formanValue, formanSchema)).toEqual({
+                valid: false,
+                errors: [
+                    {
+                        domain: 'default',
+                        path: 'invalidFolder',
+                        message: `Single level path cannot contain slashes.`,
+                    },
+                ],
+            });
+        });
+
+        it('should validate single-level directory with showRoot=false', async () => {
+            const formanValue = {
+                validFolder: 'folder1',
+                invalidFolder: 'folder1/subfolder',
+            };
+
+            const formanSchema = [
+                {
+                    name: 'validFolder',
+                    type: 'folder',
+                    options: {
+                        singleLevel: true,
+                        showRoot: false,
+                        store: [
+                            { value: 'folder1' },
+                            { value: 'folder2' },
+                        ],
+                    },
+                },
+                {
+                    name: 'invalidFolder',
+                    type: 'folder',
+                    options: {
+                        singleLevel: true,
+                        showRoot: false,
+                        store: [
+                            { value: 'folder1' },
+                            { value: 'folder2' },
+                        ],
+                    },
+                },
+            ];
+
+            expect(await validateForman(formanValue, formanSchema)).toEqual({
+                valid: false,
+                errors: [
+                    {
+                        domain: 'default',
+                        path: 'invalidFolder',
+                        message: `Single level path cannot contain slashes.`,
+                    },
+                ],
+            });
+        });
+
+        it('should validate file vs folder filtering', async () => {
+            const formanValue = {
+                fileSelectsFolder: '/folder1',
+                folderSelectsFile: '/file.txt',
+            };
+
+            const formanSchema = [
+                {
+                    name: 'fileSelectsFolder',
+                    type: 'file',
+                    options: [
+                        { value: 'folder1' },
+                        { value: 'file.txt', file: true },
+                    ],
+                },
+                {
+                    name: 'folderSelectsFile',
+                    type: 'folder',
+                    options: [
+                        { value: 'folder1' },
+                        { value: 'file.txt', file: true },
+                    ],
+                },
+            ];
+
+            expect(await validateForman(formanValue, formanSchema)).toEqual({
+                valid: false,
+                errors: [
+                    {
+                        domain: 'default',
+                        path: 'fileSelectsFolder',
+                        message: `Path 'folder1' not found in options.`,
+                    },
+                    {
+                        domain: 'default',
+                        path: 'folderSelectsFile',
+                        message: `Path 'file.txt' not found in options.`,
+                    },
+                ],
+            });
+        });
+
+        it('should validate multi-level path with static options', async () => {
+            const formanValue = {
+                validPath: '/parent/child/file.txt',
+                invalidPath: '/parent/nonexistent.txt',
+            };
+
+            const formanSchema = [
+                {
+                    name: 'validPath',
+                    type: 'file',
+                    options: 'rpc://file-tree',
+                },
+                {
+                    name: 'invalidPath',
+                    type: 'file',
+                    options: 'rpc://file-tree',
+                },
+            ];
+
+            expect(
+                await validateForman(formanValue, formanSchema, {
+                    async resolveRemote(path, data) {
+                        const currentPath = Object.values(data)[0];
+                        if (currentPath === '/') {
+                            return [{ value: 'parent' }];
+                        } else if (currentPath === '/parent') {
+                            return [{ value: 'child' }];
+                        } else if (currentPath === '/parent/child') {
+                            return [
+                                { value: 'file.txt', file: true },
+                                { value: 'other.txt', file: true },
+                            ];
+                        }
+                        return [];
+                    },
+                }),
+            ).toEqual({
+                valid: false,
+                errors: [
+                    {
+                        domain: 'default',
+                        path: 'invalidPath',
+                        message: `Path 'nonexistent.txt' not found in options.`,
+                    },
+                ],
+            });
+        });
+
+        it('should reject non-string values for file and folder types', async () => {
+            const formanValue = {
+                numericPath: 123,
+                objectPath: { path: '/file' },
+            };
+
+            const formanSchema = [
+                {
+                    name: 'numericPath',
+                    type: 'file',
+                    options: [{ value: 'file.txt', file: true }],
+                },
+                {
+                    name: 'objectPath',
+                    type: 'folder',
+                    options: [{ value: 'folder' }],
+                },
+            ];
+
+            expect(await validateForman(formanValue, formanSchema)).toEqual({
+                valid: false,
+                errors: [
+                    {
+                        domain: 'default',
+                        path: 'numericPath',
+                        message: `Expected type 'string', got type 'number'.`,
+                    },
+                    {
+                        domain: 'default',
+                        path: 'objectPath',
+                        message: `Expected type 'string', got type 'object'.`,
+                    },
+                ],
+            });
+        });
+
+        it('should reject invalid path format', async () => {
+            const formanValue = {
+                emptyPath: '',
+                rootOnlyFilePath: '/',
+                doubleSlashPath: '/folder//file.txt',
+            };
+
+            const formanSchema = [
+                {
+                    name: 'emptyPath',
+                    type: 'file',
+                    options: [{ value: 'file.txt', file: true }],
+                },
+                {
+                    name: 'rootOnlyFilePath',
+                    type: 'file',
+                    options: [{ value: 'file.txt', file: true }],
+                },
+                {
+                    name: 'doubleSlashPath',
+                    type: 'file',
+                    options: 'rpc://file-tree',
+                },
+            ];
+
+            expect(
+                await validateForman(formanValue, formanSchema, {
+                    async resolveRemote(path, data) {
+                        const currentPath = Object.values(data)[0] as string;
+                        if (currentPath === '/') {
+                            return [{ value: 'folder' }];
+                        }
+                        return [];
+                    },
+                }),
+            ).toEqual({
+                valid: false,
+                errors: [
+                    {
+                        domain: 'default',
+                        path: 'emptyPath',
+                        message: `Invalid path "" encountered.`,
+                    },
+                    {
+                        domain: 'default',
+                        path: 'rootOnlyFilePath',
+                        message: `Invalid selected value of "/" encountered.`,
+                    },
+                    {
+                        domain: 'default',
+                        path: 'doubleSlashPath',
+                        message: `Invalid selected value of "/folder//file.txt" encountered.`,
+                    },
+                ],
+            });
+        });
+
+        it('should accept root folder path', async () => {
+            const formanValue = {
+                rootFolder: '/',
+            };
+
+            const formanSchema = [
+                {
+                    name: 'rootFolder',
+                    type: 'folder',
+                    options: [{ value: 'subfolder' }],
+                },
+            ];
+
+            expect(await validateForman(formanValue, formanSchema)).toEqual({
+                valid: true,
+                errors: [],
+            });
+        });
+
+        it('should filter out files in intermediate path levels', async () => {
+            const formanValue = {
+                pathThroughFile: '/parent/file.txt/child',
+            };
+
+            const formanSchema = [
+                {
+                    name: 'pathThroughFile',
+                    type: 'folder',
+                    options: 'rpc://file-tree',
+                },
+            ];
+
+            expect(
+                await validateForman(formanValue, formanSchema, {
+                    async resolveRemote(path, data) {
+                        const currentPath = Object.values(data)[0];
+                        if (currentPath === '/') {
+                            return [
+                                { value: 'parent' },
+                                { value: 'root-file.txt', file: true },
+                            ];
+                        } else if (currentPath === '/parent') {
+                            return [
+                                { value: 'file.txt', file: true },
+                                { value: 'subfolder' },
+                            ];
+                        }
+                        return [];
+                    },
+                }),
+            ).toEqual({
+                valid: false,
+                errors: [
+                    {
+                        domain: 'default',
+                        path: 'pathThroughFile',
+                        message: `Path 'file.txt' not found in options.`,
+                    },
+                ],
+            });
+        });
+
+        it('should handle nested fields on file type', async () => {
+            const formanValue = {
+                file: '/document.pdf',
+                encoding: 'utf-8',
+            };
+
+            const formanSchema = [
+                {
+                    name: 'file',
+                    type: 'file',
+                    options: [{ value: 'document.pdf', file: true }],
+                    nested: [
+                        {
+                            name: 'encoding',
+                            type: 'text',
+                            required: true,
+                        },
+                    ],
+                },
+            ];
+
+            expect(await validateForman(formanValue, formanSchema)).toEqual({
+                valid: true,
+                errors: [],
+            });
+        });
+
+        it('should validate nested fields on folder type', async () => {
+            const formanValue = {
+                folder: '/uploads',
+                // Missing required nested field
+            };
+
+            const formanSchema = [
+                {
+                    name: 'folder',
+                    type: 'folder',
+                    options: [{ value: 'uploads' }],
+                    nested: [
+                        {
+                            name: 'recursive',
+                            type: 'boolean',
+                            required: true,
+                        },
+                    ],
+                },
+            ];
+
+            expect(await validateForman(formanValue, formanSchema)).toEqual({
+                valid: false,
+                errors: [
+                    {
+                        domain: 'default',
+                        path: 'recursive',
+                        message: 'Field is mandatory.',
+                    },
+                ],
+            });
+        });
+
+        it('should handle remote resource resolution failure for file paths', async () => {
+            const formanValue = {
+                file: '/document.pdf',
+            };
+
+            const formanSchema = [
+                {
+                    name: 'file',
+                    type: 'file',
+                    options: 'rpc://failing-file-explorer',
+                },
+            ];
+
+            expect(
+                await validateForman(formanValue, formanSchema, {
+                    async resolveRemote() {
+                        throw new Error('Connection timeout');
+                    },
+                }),
+            ).toEqual({
+                valid: false,
+                errors: [
+                    {
+                        domain: 'default',
+                        path: 'file',
+                        message: 'Failed to resolve remote resource rpc://failing-file-explorer: Error: Connection timeout',
+                    },
+                ],
+            });
+        });
+
+        it('should validate path with showRoot=false', async () => {
+            const formanValue = {
+                validPath: 'folder/subfolder/file.txt',
+            };
+
+            const formanSchema = [
+                {
+                    name: 'validPath',
+                    type: 'file',
+                    options: {
+                        showRoot: false,
+                        store: 'rpc://file-tree-no-root',
+                    },
+                },
+            ];
+
+            expect(
+                await validateForman(formanValue, formanSchema, {
+                    async resolveRemote(path, data) {
+                        const currentPath = Object.values(data)[0] as string;
+                        if (currentPath === '') {
+                            return [{ value: 'folder' }];
+                        } else if (currentPath === 'folder') {
+                            return [{ value: 'subfolder' }];
+                        } else if (currentPath === 'folder/subfolder') {
+                            return [{ value: 'file.txt', file: true }];
+                        }
+                        return [];
+                    },
+                }),
+            ).toEqual({
+                valid: true,
+                errors: [],
+            });
+        });
+
+        it('should handle mixed file and folder options in combined mode', async () => {
+            const formanValue = {
+                selectedFile: '/folder/file.txt',
+                selectedFolder: '/folder',
+            };
+
+            const formanSchema = [
+                {
+                    name: 'selectedFile',
+                    type: 'file',
+                    options: 'rpc://combined-explorer',
+                },
+                {
+                    name: 'selectedFolder',
+                    type: 'folder',
+                    options: 'rpc://combined-explorer',
+                },
+            ];
+
+            expect(
+                await validateForman(formanValue, formanSchema, {
+                    async resolveRemote(path, data) {
+                        const currentPath = Object.values(data)[0] as string;
+                        if (currentPath === '/') {
+                            return [
+                                { value: 'folder' },
+                                { value: 'root-file.txt', file: true },
+                            ];
+                        } else if (currentPath === '/folder') {
+                            return [
+                                { value: 'subfolder' },
+                                { value: 'file.txt', file: true },
+                            ];
+                        }
+                        return [];
+                    },
+                }),
+            ).toEqual({
+                valid: true,
+                errors: [],
+            });
+        });
+
+        it('should properly validate static options for single-level paths', async () => {
+            const formanValue = {
+                validFile: '/document.pdf',
+                validFolder: '/uploads',
+                invalidFile: '/nonexistent.pdf',
+            };
+
+            const formanSchema = [
+                {
+                    name: 'validFile',
+                    type: 'file',
+                    options: [
+                        { value: 'document.pdf', file: true },
+                        { value: 'image.png', file: true },
+                    ],
+                },
+                {
+                    name: 'validFolder',
+                    type: 'folder',
+                    options: [
+                        { value: 'uploads' },
+                        { value: 'downloads' },
+                    ],
+                },
+                {
+                    name: 'invalidFile',
+                    type: 'file',
+                    options: [
+                        { value: 'document.pdf', file: true },
+                    ],
+                },
+            ];
+
+            expect(await validateForman(formanValue, formanSchema)).toEqual({
+                valid: false,
+                errors: [
+                    {
+                        domain: 'default',
+                        path: 'invalidFile',
+                        message: `Path 'nonexistent.pdf' not found in options.`,
+                    },
+                ],
+            });
+        });
+
+        it('should validate nested fields from options.nested', async () => {
+            const formanValue = {
+                folder: '/uploads',
+                maxSize: 1024,
+            };
+
+            const formanSchema = [
+                {
+                    name: 'folder',
+                    type: 'folder',
+                    options: {
+                        store: [{ value: 'uploads' }, { value: 'downloads' }],
+                        nested: [
+                            {
+                                name: 'maxSize',
+                                type: 'number',
+                                required: true,
+                            },
+                        ],
+                    },
+                },
+            ];
+
+            expect(await validateForman(formanValue, formanSchema)).toEqual({
+                valid: true,
+                errors: [],
+            });
+        });
+    });
+
+    describe('State Generation for File and Folder Inputs', () => {
+        it('should properly generate the restore path for file and folder in IDs Mode', async () => {
+            const formanValue = {
+                filePathWithIds: '/001/101/1000.txt',
+                folderPathWithIds: '/001/101',
+                filePathWithoutIds: '/001/101/1000.txt',
+                folderPathWithoutIds: '/001/101',
+                selectForControl: 'option1',
+            };
+
+            const formanSchema = [
+                {
+                    name: 'filePathWithIds',
+                    type: 'file',
+                    options: {
+                        ids: true,
+                        store: 'rpc://file-explorer-ids',
+                    },
+                },
+                {
+                    name: 'folderPathWithIds',
+                    type: 'folder',
+                    options: {
+                        ids: true,
+                        store: 'rpc://folder-explorer-ids',
+                    },
+                },
+                {
+                    name: 'filePathWithoutIds',
+                    type: 'file',
+                    options: {
+                        store: 'rpc://file-explorer-direct',
+                    },
+                },
+                {
+                    name: 'folderPathWithoutIds',
+                    type: 'folder',
+                    options: 'rpc://folder-explorer-direct',
+                },
+                {
+                    name: 'selectForControl',
+                    type: 'select',
+                    options: 'rpc://select-options',
+                },
+            ];
+
+            expect(
+                await validateForman(formanValue, formanSchema, {
+                    states: true,
+                    async resolveRemote(path, data) {
+                        const [theOnlyValue] = Object.values(data);
+                        switch (path) {
+                            case 'rpc://folder-explorer-ids':
+                            case 'rpc://file-explorer-ids':
+                            case 'rpc://file-explorer-direct':
+                            case 'rpc://folder-explorer-direct': {
+                                if (theOnlyValue === '/') {
+                                    return [
+                                        {
+                                            label: 'HARDDRIVE',
+                                            value: '001',
+                                        },
+                                        {
+                                            label: 'void.bin',
+                                            value: 'void.bin',
+                                            file: true,
+                                        },
+                                    ];
+                                } else if (theOnlyValue === '/001') {
+                                    return [
+                                        {
+                                            label: 'STORIES',
+                                            value: '101',
+                                        },
+                                        {
+                                            label: 'LEGENDS',
+                                            value: '102',
+                                        },
+                                    ];
+                                } else if (theOnlyValue === '/001/101') {
+                                    return [
+                                        {
+                                            label: 'COOL_STORY.txt',
+                                            value: '1000.txt',
+                                            file: true,
+                                        },
+                                        {
+                                            label: 'NOT_THAT_COOL_STORY.txt',
+                                            value: '2000.txt',
+                                            file: true,
+                                        },
+                                        {
+                                            label: 'NESTED',
+                                            value: '3000',
+                                        },
+                                    ];
+                                } else {
+                                    return [];
+                                }
+                            }
+                            case 'rpc://select-options': {
+                                return [
+                                    {
+                                        value: 'option1',
+                                        label: 'Option 1',
+                                    },
+                                    {
+                                        value: 'option2',
+                                        label: 'Option 2',
+                                    },
+                                ];
+                            }
+                        }
+                        throw new Error(`Unknown resource: ${path}`);
+                    },
+                }),
+            ).toEqual({
+                errors: [],
+                states: {
+                    default: {
+                        filePathWithIds: {
+                            mode: 'chose',
+                            path: ['HARDDRIVE', 'STORIES', 'COOL_STORY.txt'],
+                        },
+                        folderPathWithIds: {
+                            mode: 'chose',
+                            path: ['HARDDRIVE', 'STORIES'],
+                        },
+                        selectForControl: {
+                            label: 'Option 1',
+                            mode: 'chose',
+                        },
+                    },
+                },
+                valid: true,
             });
         });
     });

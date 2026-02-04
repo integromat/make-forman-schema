@@ -103,8 +103,12 @@ describe('Forman Schema Manifest Validation', () => {
                                     __IMTCONN__: 1,
                                     mode: 'select',
                                     from: 'drive',
+                                    spreadsheetId: '/',
                                 });
-                                return [{ value: 'spreadsheet-1' }, { value: 'spreadsheet-2' }];
+                                return [
+                                    { label: 'SPREADSHEET1', value: 'spreadsheet-1', file: true },
+                                    { label: 'SPREADSHEET2', value: 'spreadsheet-2', file: true },
+                                ];
                             case 'rpc://google-sheets@2/rpcSheet':
                                 expect(data).toEqual({
                                     __IMTCONN__: 1,
@@ -161,6 +165,10 @@ describe('Forman Schema Manifest Validation', () => {
                     valueInputOption: {
                         label: 'User entered',
                         mode: 'chose',
+                    },
+                    spreadsheetId: {
+                        mode: 'chose',
+                        path: ['SPREADSHEET1'],
                     },
                 },
             },

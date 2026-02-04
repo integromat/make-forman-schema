@@ -3,18 +3,20 @@ import { toJSONSchemaInternal } from './forman';
 import type { FormanSchemaField, FormanValidationResult, FormanValidationOptions } from './types';
 import { validateFormanWithDomainsInternal } from './validator';
 
-export { toFormanSchema } from './json';
 export type {
     FormanSchemaFieldType,
     FormanSchemaField,
     FormanSchemaValue,
     FormanSchemaOption,
+    FormanSchemaDirectoryOption,
     FormanSchemaNested,
     FormanSchemaExtendedOptions,
+    FormanSchemaPathExtendedOptions,
     FormanSchemaExtendedNested,
     FormanSchemaOptionGroup,
     FormanSchemaRPCButton,
 } from './types';
+export { toFormanSchema } from './json';
 
 /**
  * Converts a Forman Schema field to its JSON Schema equivalent.
