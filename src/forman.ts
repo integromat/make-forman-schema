@@ -595,6 +595,7 @@ function processRpcDirective(field: FormanSchemaField, result: JSONSchema7, cont
         writable: true,
         value: {
             url: appendQueryString(field.rpc.url, context.domain, context.tail),
+            label: field.rpc.label,
             inputSchema:
                 typeof field.rpc.parameters === 'string'
                     ? { $ref: field.rpc.parameters } // The context frame for the Panel RPC is not the Form Itself, so we're not propagating the Query String Tail here
