@@ -136,11 +136,11 @@ export type FormanSchemaField = {
  */
 export type FormanSchemaRPCButton = {
     /** RPC button label */
-    label: string;
+    label?: string;
     /** RPC button URL */
     url: string;
     /** RPC button parameters */
-    parameters: FormanSchemaField[];
+    parameters: FormanSchemaField[] | string;
 };
 
 /**

@@ -12,6 +12,12 @@ const JSON_PRIMITIVE_TYPE_MAP: Readonly<Record<string, FormanSchemaFieldType>> =
     boolean: 'boolean',
 } as const;
 
+type XSearchDirective = {
+    url: string;
+    label?: string;
+    inputSchema: JSONSchema7;
+};
+
 /**
  * Converts a JSON Schema field to its Forman Schema equivalent.
  * @param field The JSON Schema field to convert
@@ -122,7 +128,7 @@ export function toFormanSchema(field: JSONSchema7): FormanSchemaField {
             }
 
             // For regular strings, create a text type
-            const textField: FormanSchemaField = {
+            let textField: FormanSchemaField = {
                 type: 'text',
                 label: noEmpty(field.title),
                 help: noEmpty(field.description),
@@ -136,10 +142,13 @@ export function toFormanSchema(field: JSONSchema7): FormanSchemaField {
                 if (field.enum) textField.validate.enum = field.enum;
             }
 
+            if ('x-search' in field) {
+                textField = handleSearchDirective(textField, field['x-search'] as XSearchDirective);
+            }
             return textField;
         default:
             // For primitive types, use the type mapping
-            const primitiveField: FormanSchemaField = {
+            let primitiveField: FormanSchemaField = {
                 type: (JSON_PRIMITIVE_TYPE_MAP[field.type as keyof typeof JSON_PRIMITIVE_TYPE_MAP] ||
                     'any') as FormanSchemaFieldType,
                 label: noEmpty(field.title),
@@ -154,6 +163,21 @@ export function toFormanSchema(field: JSONSchema7): FormanSchemaField {
                 if (field.maximum !== undefined) primitiveField.validate.max = field.maximum;
             }
 
+            if ('x-search' in field) {
+                primitiveField = handleSearchDirective(primitiveField, field['x-search'] as XSearchDirective);
+            }
             return primitiveField;
     }
+}
+
+function handleSearchDirective(formanField: FormanSchemaField, directive: XSearchDirective): FormanSchemaField {
+    formanField.rpc = {
+        url: directive.url,
+        label: directive.label,
+        parameters:
+            typeof directive.inputSchema.$ref === 'string'
+                ? directive.inputSchema.$ref
+                : (toFormanSchema(directive.inputSchema).spec as FormanSchemaField[]),
+    };
+    return formanField;
 }

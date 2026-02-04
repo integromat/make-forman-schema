@@ -214,7 +214,7 @@ export function toJSONSchemaInternal(
         case 'filter':
             return handleFilterType(normalizedField, result, context);
         default:
-            return handlePrimitiveType(normalizedField, result);
+            return handlePrimitiveType(normalizedField, result, context);
     }
 }
 
@@ -565,6 +565,7 @@ function handleSelectOrPathType(
         });
     }
 
+    if (field.rpc) result = processRpcDirective(field, result, context);
     return result;
 }
 
@@ -572,9 +573,10 @@ function handleSelectOrPathType(
  * Handles primitive type conversion
  * @param field The field to convert
  * @param result The prepared JSON Schema field
+ * @param context The context for the conversion
  * @returns The converted JSON Schema field
  */
-function handlePrimitiveType(field: FormanSchemaField, result: JSONSchema7): JSONSchema7 {
+function handlePrimitiveType(field: FormanSchemaField, result: JSONSchema7, context: ConversionContext): JSONSchema7 {
     if (field.default !== '' && field.default != null) {
         result.default = field.default;
     }
@@ -595,6 +597,34 @@ function handlePrimitiveType(field: FormanSchemaField, result: JSONSchema7): JSO
             result.enum = field.validate.enum;
         }
     }
+
+    if (field.rpc) result = processRpcDirective(field, result, context);
+    return result;
+}
+
+/**
+ * Processes the RPC directive for a field
+ * @param field The field with the RPC directive
+ * @param result The prepared JSON Schema field
+ * @param context The context for the conversion
+ * @returns The converted JSON Schema field with RPC information
+ */
+function processRpcDirective(field: FormanSchemaField, result: JSONSchema7, context: ConversionContext): JSONSchema7 {
+    if (!field.rpc) return result;
+
+    Object.defineProperty(result, 'x-search', {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        value: {
+            url: appendQueryString(field.rpc.url, context.domain, context.tail),
+            label: field.rpc.label,
+            inputSchema:
+                typeof field.rpc.parameters === 'string'
+                    ? { $ref: field.rpc.parameters } // The context frame for the Panel RPC is not the form itself, so we're not propagating the Query String Tail here
+                    : toJSONSchemaInternal({ type: 'collection', spec: field.rpc.parameters }, context),
+        },
+    });
 
     return result;
 }
