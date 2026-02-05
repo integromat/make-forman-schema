@@ -4,7 +4,10 @@
     "description": "Forman Schema Tools",
     "license": "MIT",
     "author": "Make",
-    "repository": "github:integromat/forman-schema",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/integromat/make-forman-schema.git"
+    },
     "homepage": "https://www.make.com",
     "type": "module",
     "main": "./dist/index.js",
