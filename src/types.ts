@@ -200,7 +200,7 @@ export type FormanSchemaOptionGroup = {
 };
 
 /**
- * Helper type representing what can represent the options store for a select field (either an array of options or option groups)
+ * Helper type for store of select, where options can be either plain options, or groups
  */
 export type FormanSchemaSelectOptionsStore = (FormanSchemaOption | FormanSchemaOptionGroup)[];
 
