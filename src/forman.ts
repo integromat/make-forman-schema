@@ -436,14 +436,16 @@ function handleSelectOrPathType(
             value: appendQueryString(optionsOrGroups, context.domain, context.tail),
         });
     } else {
-        const options: FormanSchemaOption[] = optionsOrGroups?.some(isOptionGroup)
-            ? (optionsOrGroups as FormanSchemaOptionGroup[]).flatMap(group =>
-                  group.options.map(option => ({
-                      ...option,
-                      label: `${group.label}: ${option.label || option.value}`,
-                  })),
-              )
-            : (optionsOrGroups as FormanSchemaOption[]) || [];
+        const options = optionsOrGroups?.flatMap(optionOrGroup => {
+            // Selects can be partially grouped, unwrap the groups, and append the rest.
+            if (isOptionGroup(optionOrGroup)) {
+                return optionOrGroup.options.map(option => ({
+                    ...option,
+                    label: `${optionOrGroup.label}: ${option.label || option.value}`,
+                }));
+            }
+            return optionOrGroup as FormanSchemaOption;
+        });
 
         if (
             options?.some(option => {

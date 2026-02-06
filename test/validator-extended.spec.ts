@@ -916,6 +916,105 @@ describe('Forman Schema Extended Validation', () => {
                 ],
             });
         });
+
+        it('should handle partially-grouped select options', async () => {
+            const formanValue = {
+                select: 'alpha',
+                groupedSelect: 'alpha',
+                partiallyGroupedSelect: 'alpha',
+                wronglyPartiallyGroupedSelect: 'beta',
+            };
+
+            const formanSchema = [
+                {
+                    name: 'select',
+                    type: 'select',
+                    label: 'Normal Select',
+                    options: [
+                        { label: 'Alpha', value: 'alpha' },
+                        { label: 'Bravo', value: 'bravo' },
+                    ],
+                },
+                {
+                    name: 'groupedSelect',
+                    type: 'select',
+                    label: 'Grouped Select',
+                    grouped: true,
+                    options: [
+                        {
+                            label: 'Phonetic',
+                            options: [
+                                { label: 'Alpha', value: 'alpha' },
+                                { label: 'Bravo', value: 'bravo' },
+                            ],
+                        },
+                        {
+                            label: 'Greek',
+                            options: [
+                                { label: 'Alpha', value: 'alpha' },
+                                { label: 'Beta', value: 'beta' },
+                            ],
+                        },
+                    ],
+                },
+                {
+                    name: 'partiallyGroupedSelect',
+                    type: 'select',
+                    label: 'Partially Grouped Select',
+                    grouped: true,
+                    options: [
+                        { label: 'Alpha', value: 'alpha' },
+                        { label: 'Bravo', value: 'bravo' },
+                        {
+                            label: 'Greek',
+                            options: [
+                                {
+                                    label: 'Alpha',
+                                    value: 'alpha',
+                                },
+                                {
+                                    label: 'Beta',
+                                    value: 'beta',
+                                },
+                            ],
+                        },
+                    ],
+                },
+                {
+                    name: 'wronglyPartiallyGroupedSelect',
+                    type: 'select',
+                    label: 'Wrongly Partially Grouped Select',
+                    options: [
+                        { label: 'Alpha', value: 'alpha' },
+                        { label: 'Bravo', value: 'bravo' },
+                        {
+                            label: 'Greek',
+                            options: [
+                                {
+                                    label: 'Alpha',
+                                    value: 'alpha',
+                                },
+                                {
+                                    label: 'Beta',
+                                    value: 'beta',
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ];
+
+            expect(await validateForman(formanValue, formanSchema)).toEqual({
+                valid: false,
+                errors: [
+                    {
+                        domain: 'default',
+                        message: "Value 'beta' not found in options.",
+                        path: 'wronglyPartiallyGroupedSelect',
+                    },
+                ],
+            });
+        });
     });
 
     describe('Collection Type Edge Cases', () => {
@@ -1344,10 +1443,7 @@ describe('Forman Schema Extended Validation', () => {
                     type: 'folder',
                     options: {
                         singleLevel: true,
-                        store: [
-                            { value: 'folder1' },
-                            { value: 'folder2' },
-                        ],
+                        store: [{ value: 'folder1' }, { value: 'folder2' }],
                     },
                 },
                 {
@@ -1355,10 +1451,7 @@ describe('Forman Schema Extended Validation', () => {
                     type: 'folder',
                     options: {
                         singleLevel: true,
-                        store: [
-                            { value: 'folder1' },
-                            { value: 'folder2' },
-                        ],
+                        store: [{ value: 'folder1' }, { value: 'folder2' }],
                     },
                 },
             ];
@@ -1388,10 +1481,7 @@ describe('Forman Schema Extended Validation', () => {
                     options: {
                         singleLevel: true,
                         showRoot: false,
-                        store: [
-                            { value: 'folder1' },
-                            { value: 'folder2' },
-                        ],
+                        store: [{ value: 'folder1' }, { value: 'folder2' }],
                     },
                 },
                 {
@@ -1400,10 +1490,7 @@ describe('Forman Schema Extended Validation', () => {
                     options: {
                         singleLevel: true,
                         showRoot: false,
-                        store: [
-                            { value: 'folder1' },
-                            { value: 'folder2' },
-                        ],
+                        store: [{ value: 'folder1' }, { value: 'folder2' }],
                     },
                 },
             ];
@@ -1430,18 +1517,12 @@ describe('Forman Schema Extended Validation', () => {
                 {
                     name: 'fileSelectsFolder',
                     type: 'file',
-                    options: [
-                        { value: 'folder1' },
-                        { value: 'file.txt', file: true },
-                    ],
+                    options: [{ value: 'folder1' }, { value: 'file.txt', file: true }],
                 },
                 {
                     name: 'folderSelectsFile',
                     type: 'folder',
-                    options: [
-                        { value: 'folder1' },
-                        { value: 'file.txt', file: true },
-                    ],
+                    options: [{ value: 'folder1' }, { value: 'file.txt', file: true }],
                 },
             ];
 
@@ -1640,15 +1721,9 @@ describe('Forman Schema Extended Validation', () => {
                     async resolveRemote(path, data) {
                         const currentPath = Object.values(data)[0];
                         if (currentPath === '/') {
-                            return [
-                                { value: 'parent' },
-                                { value: 'root-file.txt', file: true },
-                            ];
+                            return [{ value: 'parent' }, { value: 'root-file.txt', file: true }];
                         } else if (currentPath === '/parent') {
-                            return [
-                                { value: 'file.txt', file: true },
-                                { value: 'subfolder' },
-                            ];
+                            return [{ value: 'file.txt', file: true }, { value: 'subfolder' }];
                         }
                         return [];
                     },
@@ -1750,7 +1825,8 @@ describe('Forman Schema Extended Validation', () => {
                     {
                         domain: 'default',
                         path: 'file',
-                        message: 'Failed to resolve remote resource rpc://failing-file-explorer: Error: Connection timeout',
+                        message:
+                            'Failed to resolve remote resource rpc://failing-file-explorer: Error: Connection timeout',
                     },
                 ],
             });
@@ -1816,15 +1892,9 @@ describe('Forman Schema Extended Validation', () => {
                     async resolveRemote(path, data) {
                         const currentPath = Object.values(data)[0] as string;
                         if (currentPath === '/') {
-                            return [
-                                { value: 'folder' },
-                                { value: 'root-file.txt', file: true },
-                            ];
+                            return [{ value: 'folder' }, { value: 'root-file.txt', file: true }];
                         } else if (currentPath === '/folder') {
-                            return [
-                                { value: 'subfolder' },
-                                { value: 'file.txt', file: true },
-                            ];
+                            return [{ value: 'subfolder' }, { value: 'file.txt', file: true }];
                         }
                         return [];
                     },
@@ -1854,17 +1924,12 @@ describe('Forman Schema Extended Validation', () => {
                 {
                     name: 'validFolder',
                     type: 'folder',
-                    options: [
-                        { value: 'uploads' },
-                        { value: 'downloads' },
-                    ],
+                    options: [{ value: 'uploads' }, { value: 'downloads' }],
                 },
                 {
                     name: 'invalidFile',
                     type: 'file',
-                    options: [
-                        { value: 'document.pdf', file: true },
-                    ],
+                    options: [{ value: 'document.pdf', file: true }],
                 },
             ];
 
