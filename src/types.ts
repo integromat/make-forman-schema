@@ -79,8 +79,7 @@ export type FormanSchemaField = {
     default?: FormanSchemaValue;
     /** Available options for fields which support them */
     options?:
-        | FormanSchemaOption[]
-        | FormanSchemaOptionGroup[]
+        | (FormanSchemaOption | FormanSchemaOptionGroup)[]
         | FormanSchemaDirectoryOption[]
         | FormanSchemaPathExtendedOptions
         | FormanSchemaExtendedOptions
@@ -199,6 +198,11 @@ export type FormanSchemaOptionGroup = {
     /** Group options */
     options: FormanSchemaOption[];
 };
+
+/**
+ * Helper type representing what can represent the options store for a select field (either an array of options or option groups)
+ */
+export type FormanSchemaSelectOptionsStore = (FormanSchemaOption | FormanSchemaOptionGroup)[];
 
 /**
  * Extended options for a select field

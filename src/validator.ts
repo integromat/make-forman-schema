@@ -10,6 +10,7 @@ import type {
     FormanSchemaFieldState,
     FormanSchemaPathExtendedOptions,
     FormanSchemaDirectoryOption,
+    FormanSchemaSelectOptionsStore,
 } from './types';
 import {
     containsIMLExpression,
@@ -20,6 +21,7 @@ import {
     isVisualType,
     isReferenceType,
     IML_FILTER_OPERATORS,
+    findValueInSelectOptions,
 } from './utils';
 
 /**
@@ -766,11 +768,11 @@ async function handleSelectType(
         }
 
         for (const singleValue of value) {
-            const found = field.grouped
-                ? (optionsOrGroups as FormanSchemaOptionGroup[]).some(group =>
-                      group.options.some(option => option.value === singleValue),
-                  )
-                : (optionsOrGroups as FormanSchemaOption[]).some(option => option.value === singleValue);
+            const found = findValueInSelectOptions(
+                field,
+                singleValue,
+                optionsOrGroups as FormanSchemaSelectOptionsStore,
+            );
             if (!found) {
                 errors.push({
                     domain: context.domain,
@@ -798,11 +800,7 @@ async function handleSelectType(
             }
         }
     } else {
-        const item = field.grouped
-            ? (optionsOrGroups as FormanSchemaOptionGroup[])
-                  .find(group => group.options.some(option => option.value === value))
-                  ?.options.find(option => option.value === value)
-            : (optionsOrGroups as FormanSchemaOption[]).find(option => option.value === value);
+        const item = findValueInSelectOptions(field, value, optionsOrGroups as FormanSchemaSelectOptionsStore);
 
         if (!item) {
             return {

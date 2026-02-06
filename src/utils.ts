@@ -5,6 +5,7 @@ import {
     FormanSchemaFieldType,
     FormanSchemaOption,
     FormanSchemaOptionGroup,
+    FormanSchemaSelectOptionsStore,
 } from './types';
 
 /**
@@ -128,6 +129,30 @@ export function normalizeFormanFieldType(field: FormanSchemaField): FormanSchema
             store,
         },
     };
+}
+
+/**
+ * Finds an option in the provided options and groups based on the given value.
+ * Handles also the case of partially grouped selects, where some options can be on the top-level and some can be inside groups.
+ * @param field The field for which to find the option
+ * @param value The value to find in the options
+ * @param optionsAndGroups The options and groups to search through
+ */
+export function findValueInSelectOptions(
+    field: FormanSchemaField,
+    value: unknown,
+    optionsAndGroups?: FormanSchemaSelectOptionsStore,
+): FormanSchemaOption | undefined {
+    if (!optionsAndGroups) return undefined;
+    if (field.grouped) {
+        const found = optionsAndGroups
+            .flatMap(group => ('options' in group ? group.options : []))
+            .find(option => option.value === value);
+        if (found) return found;
+    }
+    // The thing is, that Forman supports "partially-grouped" selects, so in case value is not found in the groups, it can still be sitting on the top-level.
+    const found = optionsAndGroups.find(option => 'value' in option && option.value === value);
+    return found as FormanSchemaOption | undefined; // If there was a value, then it has to be an option, because option groups don't have values
 }
 
 /**
