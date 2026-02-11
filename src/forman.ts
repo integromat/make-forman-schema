@@ -96,6 +96,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, JSONSchema7['type']>> = {
     editor: 'string',
     number: 'number',
     boolean: 'boolean',
+    checkbox: 'boolean',
     date: 'string',
     json: 'string',
     buffer: 'string',

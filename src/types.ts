@@ -15,6 +15,7 @@ export type FormanSchemaFieldType =
     | 'text'
     | 'number'
     | 'boolean'
+    | 'checkbox'
     | 'date'
     | 'json'
     | 'buffer'

@@ -25,6 +25,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                 url: 'https://example.com',
                 uuid: '123e4567-e89b-12d3-a456-426614174000',
                 any: 'any-value',
+                checkbox: true,
             };
 
             const formanSchema = [
@@ -48,6 +49,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                 { name: 'url', type: 'url' },
                 { name: 'uuid', type: 'uuid' },
                 { name: 'any', type: 'any' },
+                { name: 'checkbox', type: 'checkbox' },
             ];
 
             expect(await validateForman(formanValue, formanSchema)).toEqual({
@@ -672,6 +674,109 @@ describe('Forman Schema Comprehensive Coverage', () => {
                 valid: true,
                 errors: [],
             });
+        });
+    });
+
+    describe('Checkbox Type', () => {
+        it('should validate checkbox with true value', async () => {
+            const result = await validateForman(
+                { enabled: true },
+                [{ name: 'enabled', type: 'checkbox' }],
+            );
+            expect(result).toEqual({ valid: true, errors: [] });
+        });
+
+        it('should validate checkbox with false value', async () => {
+            const result = await validateForman(
+                { disabled: false },
+                [{ name: 'disabled', type: 'checkbox' }],
+            );
+            expect(result).toEqual({ valid: true, errors: [] });
+        });
+
+        it('should reject non-boolean values for checkbox', async () => {
+            const result = await validateForman(
+                { enabled: 'true' },
+                [{ name: 'enabled', type: 'checkbox' }],
+            );
+            expect(result).toEqual({
+                valid: false,
+                errors: [{
+                    domain: 'default',
+                    path: 'enabled',
+                    message: "Expected type 'boolean', got type 'string'.",
+                }],
+            });
+        });
+
+        it('should reject number values for checkbox', async () => {
+            const result = await validateForman(
+                { enabled: 1 },
+                [{ name: 'enabled', type: 'checkbox' }],
+            );
+            expect(result).toEqual({
+                valid: false,
+                errors: [{
+                    domain: 'default',
+                    path: 'enabled',
+                    message: "Expected type 'boolean', got type 'number'.",
+                }],
+            });
+        });
+
+        it('should reject null for required checkbox', async () => {
+            const result = await validateForman(
+                { enabled: null },
+                [{ name: 'enabled', type: 'checkbox', required: true }],
+            );
+            expect(result).toEqual({
+                valid: false,
+                errors: [{
+                    domain: 'default',
+                    path: 'enabled',
+                    message: 'Field is mandatory.',
+                }],
+            });
+        });
+
+        it('should allow null for optional checkbox', async () => {
+            const result = await validateForman(
+                { enabled: null },
+                [{ name: 'enabled', type: 'checkbox' }],
+            );
+            expect(result).toEqual({ valid: true, errors: [] });
+        });
+
+        it('should support default value for checkbox', async () => {
+            const result = await validateForman(
+                {},
+                [{ name: 'enabled', type: 'checkbox', default: true }],
+            );
+            expect(result).toEqual({ valid: true, errors: [] });
+        });
+
+        it('should validate checkbox in nested objects', async () => {
+            const result = await validateForman(
+                { settings: { notifications: true } },
+                [{
+                    name: 'settings',
+                    type: 'collection',
+                    spec: [{ name: 'notifications', type: 'checkbox' }],
+                }],
+            );
+            expect(result).toEqual({ valid: true, errors: [] });
+        });
+
+        it('should validate checkbox in arrays', async () => {
+            const result = await validateForman(
+                { items: [{ active: true }, { active: false }] },
+                [{
+                    name: 'items',
+                    type: 'array',
+                    spec: { type: 'collection', spec: [{ name: 'active', type: 'checkbox' }] },
+                }],
+            );
+            expect(result).toEqual({ valid: true, errors: [] });
         });
     });
 });

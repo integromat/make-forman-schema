@@ -563,4 +563,128 @@ describe('Forman Schema', () => {
             ],
         });
     });
+
+    describe('Checkbox Type Conversion', () => {
+        it('should convert Forman checkbox to JSON Schema boolean', () => {
+            const formanSchema: FormanSchemaField = {
+                name: 'enabled',
+                type: 'checkbox',
+            };
+            const jsonSchema = toJSONSchema(formanSchema);
+            expect(jsonSchema).toEqual({
+                type: 'boolean',
+            });
+        });
+
+        it('should preserve default value in checkbox conversion', () => {
+            const formanSchema: FormanSchemaField = {
+                name: 'enabled',
+                type: 'checkbox',
+                default: true,
+            };
+            const jsonSchema = toJSONSchema(formanSchema);
+            expect(jsonSchema).toEqual({
+                type: 'boolean',
+                default: true,
+            });
+        });
+
+        it('should convert JSON Schema boolean to Forman boolean (not checkbox)', () => {
+            const jsonSchema: JSONSchema7 = {
+                type: 'object',
+                properties: {
+                    enabled: { type: 'boolean' },
+                },
+            };
+            const formanSchema = toFormanSchema(jsonSchema);
+            expect(formanSchema.spec).toEqual([
+                {
+                    name: 'enabled',
+                    type: 'boolean',
+                    required: false,
+                },
+            ]);
+        });
+
+        it('should handle checkbox roundtrip (checkbox -> JSON -> boolean)', () => {
+            // Forman checkbox -> JSON Schema
+            const originalForman: FormanSchemaField = {
+                name: 'settings',
+                type: 'collection',
+                spec: [{ name: 'enabled', type: 'checkbox', default: true }],
+            };
+            const jsonSchema = toJSONSchema(originalForman);
+
+            // JSON Schema -> Forman (becomes boolean, not checkbox)
+            const convertedForman = toFormanSchema(jsonSchema);
+
+            // UI type is lost in roundtrip, becomes boolean with preserved default
+            expect(convertedForman.spec).toEqual([
+                {
+                    name: 'enabled',
+                    type: 'boolean',
+                    required: false,
+                    default: true,
+                },
+            ]);
+        });
+
+        it('should convert checkbox with label and help text', () => {
+            const formanSchema: FormanSchemaField = {
+                name: 'notifications',
+                type: 'checkbox',
+                label: 'Enable Notifications',
+                help: 'Toggle to receive notifications',
+            };
+            const jsonSchema = toJSONSchema(formanSchema);
+            expect(jsonSchema).toEqual({
+                type: 'boolean',
+                title: 'Enable Notifications',
+                description: 'Toggle to receive notifications',
+            });
+        });
+
+        it('should convert checkbox in nested collection', () => {
+            const formanSchema: FormanSchemaField = {
+                name: 'settings',
+                type: 'collection',
+                spec: [
+                    { name: 'darkMode', type: 'checkbox' },
+                    { name: 'notifications', type: 'checkbox', default: false },
+                ],
+            };
+            const jsonSchema = toJSONSchema(formanSchema);
+            expect(jsonSchema).toEqual({
+                type: 'object',
+                properties: {
+                    darkMode: { type: 'boolean' },
+                    notifications: { type: 'boolean', default: false },
+                },
+                required: [],
+            });
+        });
+
+        it('should convert checkbox in array', () => {
+            const formanSchema: FormanSchemaField = {
+                name: 'items',
+                type: 'array',
+                spec: {
+                    name: 'item',
+                    type: 'collection',
+                    spec: [{ name: 'active', type: 'checkbox' }],
+                },
+            };
+            const jsonSchema = toJSONSchema(formanSchema);
+            expect(jsonSchema).toEqual({
+                type: 'array',
+                items: {
+                    type: 'object',
+                    properties: {
+                        active: { type: 'boolean' },
+                    },
+                    required: [],
+                },
+            });
+        });
+    });
 });
