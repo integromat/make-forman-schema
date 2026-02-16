@@ -643,22 +643,26 @@ function handleNestedWithDomain(
     }
 
     // Same domain: process inline
-    return processNestedDirective(field, result, context);
+    return processNestedDirective(field, nested, domain, result, context);
 }
 
 /**
  * Processes nested directives by adding an x-nested property to the JSON Schema, handling both string and array formats
  * @param field The field with the nested directive
+ * @param nested The nested fields (already extracted)
+ * @param domain The target domain (already extracted)
  * @param result The JSON Schema result to modify
  * @param context The conversion context
  * @returns The modified JSON Schema with nested information
  */
 function processNestedDirective(
     field: FormanSchemaField,
+    nested: (FormanSchemaField | string)[] | string | undefined,
+    domain: string | undefined,
     result: JSONSchema7,
     context: ConversionContext,
 ): JSONSchema7 {
-    const { nested, domain } = extractNestedAndDomain(field);
+    if (!nested) return result;
 
     const nestedContainsStrings = Array.isArray(nested) && nested.some(item => typeof item === 'string');
 
