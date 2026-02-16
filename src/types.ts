@@ -224,6 +224,8 @@ export type FormanSchemaExtendedOptions = {
               label: string;
               nested?: FormanSchemaNested;
           };
+    /** Definition of field operators, applicable on Filter fields. */
+    operators?: FormanSchemaSelectOptionsStore;
 };
 
 /**
