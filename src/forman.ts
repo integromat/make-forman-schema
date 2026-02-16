@@ -5,9 +5,7 @@ import type {
     FormanSchemaExtendedOptions,
     FormanSchemaExtendedNested,
     FormanSchemaOption,
-    FormanSchemaOptionGroup,
     FormanSchemaPathExtendedOptions,
-    FormanSchemaSelectOptionsStore,
 } from './types';
 import {
     noEmpty,

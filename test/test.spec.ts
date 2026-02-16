@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from '@jest/globals';
-import { type FormanSchemaField, toFormanSchema, toJSONSchema, validateForman } from '../src/index.js';
+import { type FormanSchemaField, toFormanSchema, toJSONSchema } from '../src/index.js';
 import type { JSONSchema7 } from 'json-schema';
 
 describe('Forman Schema', () => {
