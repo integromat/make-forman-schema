@@ -128,4 +128,95 @@ describe('Nested', () => {
             });
         });
     });
+
+    describe('extended nested format on primitives', () => {
+        describe('same-domain extended nested', () => {
+            const formanSchema: FormanSchemaField[] = [
+                {
+                    name: 'textWithExtendedNested',
+                    type: 'text',
+                    label: 'Text Field',
+                    nested: {
+                        store: [
+                            { name: 'nestedField', type: 'number', label: 'Nested Field' },
+                        ],
+                    },
+                },
+            ];
+
+            it('should unwrap store property and process nested fields inline', () => {
+                const jsonSchema = toJSONSchema({
+                    type: 'collection',
+                    spec: formanSchema,
+                });
+
+                const textField = jsonSchema.properties?.textWithExtendedNested as Record<string, unknown>;
+                expect(textField).toBeDefined();
+                expect(textField['x-nested']).toEqual({
+                    description: undefined,
+                    properties: {
+                        nestedField: {
+                            description: undefined,
+                            title: 'Nested Field',
+                            type: 'number',
+                        },
+                    },
+                    required: [],
+                    title: undefined,
+                    type: 'object',
+                });
+            });
+        });
+
+        describe('cross-domain extended nested', () => {
+            const formanSchema: FormanSchemaField[] = [
+                {
+                    name: 'parameters',
+                    type: 'collection',
+                    spec: [
+                        {
+                            name: 'textWithCrossDomainNested',
+                            type: 'text',
+                            label: 'Text Field',
+                            nested: {
+                                store: [
+                                    { name: 'expectField1', type: 'text', label: 'Expect Field 1' },
+                                    { name: 'expectField2', type: 'number', label: 'Expect Field 2' },
+                                ],
+                                domain: 'expect',
+                            },
+                        },
+                    ],
+                },
+                {
+                    name: 'mapper',
+                    type: 'collection',
+                    spec: [],
+                    'x-domain-root': 'expect',
+                },
+            ];
+
+            it('should route nested fields to correct domain root', () => {
+                const jsonSchema = toJSONSchema({ type: 'collection', spec: formanSchema });
+
+                // Verify textWithCrossDomainNested has no local x-nested
+                const parametersField = jsonSchema.properties?.parameters as Record<string, unknown>;
+                const textField = (parametersField?.properties as Record<string, unknown>)
+                    ?.textWithCrossDomainNested as Record<string, unknown>;
+                expect(textField['x-nested']).toBeUndefined();
+
+                // Verify mapper (domain root) contains the nested fields
+                const mapperField = jsonSchema.properties?.mapper as Record<string, unknown>;
+                const mapperProperties = mapperField?.properties as Record<string, unknown>;
+                expect(mapperProperties?.expectField1).toEqual({
+                    title: 'Expect Field 1',
+                    type: 'string',
+                });
+                expect(mapperProperties?.expectField2).toEqual({
+                    title: 'Expect Field 2',
+                    type: 'number',
+                });
+            });
+        });
+    });
 });
