@@ -11,8 +11,8 @@ describe('Nested', () => {
                 label: 'Nested Text',
                 nested: [
                     {
-                        name: 'kuk',
-                        label: 'Kuk',
+                        name: 'nestedNumber',
+                        label: 'Nested Number',
                         type: 'number',
                         required: true,
                     },
@@ -62,12 +62,12 @@ describe('Nested', () => {
                         type: 'string',
                         'x-nested': {
                             properties: {
-                                kuk: {
-                                    title: 'Kuk',
+                                nestedNumber: {
+                                    title: 'Nested Number',
                                     type: 'number',
                                 },
                             },
-                            required: ['kuk'],
+                            required: ['nestedNumber'],
                             type: 'object',
                         },
                     },
@@ -81,7 +81,7 @@ describe('Nested', () => {
             const result = await validateForman(
                 {
                     nestedText: 'Hello',
-                    kuk: 1,
+                    nestedNumber: 1,
                     nestedBoolean: true,
                     nestedBooleanField: 'I am here',
                     nestedSelect: 'option1',
