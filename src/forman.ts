@@ -5,7 +5,6 @@ import type {
     FormanSchemaExtendedOptions,
     FormanSchemaExtendedNested,
     FormanSchemaOption,
-    FormanSchemaOptionGroup,
     FormanSchemaPathExtendedOptions,
 } from './types';
 import {
@@ -343,34 +342,104 @@ function handleArrayType(field: FormanSchemaField, result: JSONSchema7, context:
  * @returns The converted JSON Schema field
  */
 function handleFilterType(field: FormanSchemaField, result: JSONSchema7, context: ConversionContext): JSONSchema7 {
-    const filterItems: JSONSchema7Definition = {
+    const operandOptions = isObject<FormanSchemaExtendedOptions>(field.options) ? field.options.store : field.options;
+    const operandSchema: JSONSchema7 = {
+        title: 'Operand A',
+        description: 'The first operand of the filter.',
+    };
+    if (Array.isArray(operandOptions)) {
+        // Custom Options are an array, so we can compose static enum
+        operandSchema.type = 'string';
+        operandSchema.oneOf = operandOptions.flatMap(optionOrGroup => {
+            if (isOptionGroup(optionOrGroup)) {
+                return optionOrGroup.options.map(option => ({
+                    title: `${optionOrGroup.label}: ${option.label || option.value}`,
+                    const: option.value,
+                }));
+            }
+            return {
+                title: optionOrGroup.label || String(optionOrGroup.value),
+                const: optionOrGroup.value,
+            };
+        });
+    } else if (typeof operandOptions === 'string') {
+        // Custom Options are string, meaning we go to RPC.
+        operandSchema.type = 'string';
+        Object.defineProperty(operandSchema, 'x-fetch', {
+            configurable: true,
+            enumerable: true,
+            writable: true,
+            value: appendQueryString(operandOptions, context.domain, context.tail),
+        });
+    } else {
+        // Otherwise, fallback to default.
+        operandSchema.type = IML_FILTER_ENTRY_TYPES;
+    }
+
+    const operatorOptions = isObject<FormanSchemaExtendedOptions>(field.options) ? field.options.operators : undefined;
+    const operatorSchema: JSONSchema7 = {
+        title: 'Operator',
+        description: 'The operator of the filter.',
+    };
+    if (Array.isArray(operatorOptions)) {
+        // Custom Operators are defined as grouped array, use them
+        operatorSchema.type = 'string';
+        operatorSchema.oneOf = operatorOptions.flatMap(optionOrGroup => {
+            if (isOptionGroup(optionOrGroup)) {
+                return optionOrGroup.options.map(option => ({
+                    title: `${optionOrGroup.label}: ${option.label || option.value}`,
+                    const: option.value,
+                }));
+            }
+            return {
+                title: optionOrGroup.label || String(optionOrGroup.value),
+                const: optionOrGroup.value,
+            };
+        });
+    } else {
+        // Fallback to default binary operators
+        operatorSchema.enum = IML_BINARY_FILTER_OPERATORS;
+    }
+
+    const filterDefinition: JSONSchema7Definition = {
         oneOf: [
             {
                 type: 'object',
                 properties: {
-                    a: { type: IML_FILTER_ENTRY_TYPES },
-                    o: { enum: IML_UNARY_FILTER_OPERATORS },
-                },
-                required: ['a', 'o'],
-            },
-            {
-                type: 'object',
-                properties: {
-                    a: { type: IML_FILTER_ENTRY_TYPES },
-                    b: { type: IML_FILTER_ENTRY_TYPES },
-                    o: { enum: IML_BINARY_FILTER_OPERATORS },
+                    a: operandSchema,
+                    o: operatorSchema,
+                    b: {
+                        title: 'Operand B',
+                        description: 'The second operand of the filter.',
+                        type: IML_FILTER_ENTRY_TYPES,
+                    },
                 },
                 required: ['a', 'b', 'o'],
             },
         ],
     };
+    // Edge-case handling for filters without custom operators, where we need to inject also the hardcoded unary operator definition
+    if (!operatorOptions) {
+        filterDefinition.oneOf?.push({
+            type: 'object',
+            properties: {
+                a: operandSchema,
+                o: {
+                    ...operatorSchema,
+                    enum: IML_UNARY_FILTER_OPERATORS,
+                },
+            },
+            required: ['a', 'o'],
+        });
+    }
+
     const logic = field.logic ?? 'default';
 
     result.items = ['and', 'or'].includes(logic)
-        ? filterItems
+        ? filterDefinition
         : {
               type: 'array',
-              items: filterItems,
+              items: filterDefinition,
           };
     // Store this to the JSON Schema to allow safe conversion back to the Forman Schema
     Object.defineProperty(result, 'x-filter', {

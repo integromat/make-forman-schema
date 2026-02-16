@@ -19,6 +19,10 @@ describe('Forman Schema', () => {
 
         expect(jsonSchema).toEqual({
             properties: {
+                any: {
+                    description: 'description',
+                    title: 'Any',
+                },
                 array_of_arrays: {
                     description: 'description',
                     items: {
@@ -62,36 +66,19 @@ describe('Forman Schema', () => {
                     title: 'Dynamic Collection',
                     type: 'object',
                 },
-                json: {
-                    description: 'description',
-                    type: 'string',
-                },
-                number: {
-                    default: 15,
-                    description: 'required + default',
-                    type: 'number',
-                },
-                text: {
-                    type: 'string',
-                },
                 editor: {
                     type: 'string',
                 },
-                primitive_array: {
-                    description: 'description',
-                    items: {
-                        type: 'string',
-                    },
-                    type: 'array',
-                },
-                select: {
-                    title: 'Select',
-                    enum: ['option 1', 'option 2'],
+                file: {
+                    title: 'File',
                     type: 'string',
-                },
-                any: {
-                    title: 'Any',
-                    description: 'description',
+                    'x-fetch': 'rpc://get-files',
+                    'x-path': {
+                        ownName: 'file',
+                        showRoot: true,
+                        singleLevel: false,
+                        type: 'file',
+                    },
                 },
                 filter: {
                     items: {
@@ -100,24 +87,17 @@ describe('Forman Schema', () => {
                                 {
                                     properties: {
                                         a: {
-                                            type: ['null', 'boolean', 'number', 'string'],
-                                        },
-                                        o: {
-                                            enum: ['exist', 'notexist'],
-                                        },
-                                    },
-                                    required: ['a', 'o'],
-                                    type: 'object',
-                                },
-                                {
-                                    properties: {
-                                        a: {
+                                            description: 'The first operand of the filter.',
+                                            title: 'Operand A',
                                             type: ['null', 'boolean', 'number', 'string'],
                                         },
                                         b: {
+                                            description: 'The second operand of the filter.',
+                                            title: 'Operand B',
                                             type: ['null', 'boolean', 'number', 'string'],
                                         },
                                         o: {
+                                            description: 'The operator of the filter.',
                                             enum: [
                                                 'text:equal',
                                                 'text:equal:ci',
@@ -176,9 +156,26 @@ describe('Forman Schema', () => {
                                                 'boolean:equal',
                                                 'boolean:notequal',
                                             ],
+                                            title: 'Operator',
                                         },
                                     },
                                     required: ['a', 'b', 'o'],
+                                    type: 'object',
+                                },
+                                {
+                                    properties: {
+                                        a: {
+                                            description: 'The first operand of the filter.',
+                                            title: 'Operand A',
+                                            type: ['null', 'boolean', 'number', 'string'],
+                                        },
+                                        o: {
+                                            description: 'The operator of the filter.',
+                                            enum: ['exist', 'notexist'],
+                                            title: 'Operator',
+                                        },
+                                    },
+                                    required: ['a', 'o'],
                                     type: 'object',
                                 },
                             ],
@@ -195,24 +192,17 @@ describe('Forman Schema', () => {
                             {
                                 properties: {
                                     a: {
-                                        type: ['null', 'boolean', 'number', 'string'],
-                                    },
-                                    o: {
-                                        enum: ['exist', 'notexist'],
-                                    },
-                                },
-                                required: ['a', 'o'],
-                                type: 'object',
-                            },
-                            {
-                                properties: {
-                                    a: {
+                                        description: 'The first operand of the filter.',
+                                        title: 'Operand A',
                                         type: ['null', 'boolean', 'number', 'string'],
                                     },
                                     b: {
+                                        description: 'The second operand of the filter.',
+                                        title: 'Operand B',
                                         type: ['null', 'boolean', 'number', 'string'],
                                     },
                                     o: {
+                                        description: 'The operator of the filter.',
                                         enum: [
                                             'text:equal',
                                             'text:equal:ci',
@@ -271,9 +261,26 @@ describe('Forman Schema', () => {
                                             'boolean:equal',
                                             'boolean:notequal',
                                         ],
+                                        title: 'Operator',
                                     },
                                 },
                                 required: ['a', 'b', 'o'],
+                                type: 'object',
+                            },
+                            {
+                                properties: {
+                                    a: {
+                                        description: 'The first operand of the filter.',
+                                        title: 'Operand A',
+                                        type: ['null', 'boolean', 'number', 'string'],
+                                    },
+                                    o: {
+                                        description: 'The operator of the filter.',
+                                        enum: ['exist', 'notexist'],
+                                        title: 'Operator',
+                                    },
+                                },
+                                required: ['a', 'o'],
                                 type: 'object',
                             },
                         ],
@@ -282,6 +289,33 @@ describe('Forman Schema', () => {
                     type: 'array',
                     'x-filter': 'and',
                 },
+                folder: {
+                    title: 'Folder',
+                    type: 'string',
+                    'x-fetch': 'rpc://get-folders',
+                    'x-path': {
+                        ownName: 'folder',
+                        showRoot: false,
+                        singleLevel: true,
+                        type: 'folder',
+                    },
+                },
+                json: {
+                    description: 'description',
+                    type: 'string',
+                },
+                number: {
+                    default: 15,
+                    description: 'required + default',
+                    type: 'number',
+                },
+                primitive_array: {
+                    description: 'description',
+                    items: {
+                        type: 'string',
+                    },
+                    type: 'array',
+                },
                 reversedFilter: {
                     items: {
                         items: {
@@ -289,24 +323,17 @@ describe('Forman Schema', () => {
                                 {
                                     properties: {
                                         a: {
-                                            type: ['null', 'boolean', 'number', 'string'],
-                                        },
-                                        o: {
-                                            enum: ['exist', 'notexist'],
-                                        },
-                                    },
-                                    required: ['a', 'o'],
-                                    type: 'object',
-                                },
-                                {
-                                    properties: {
-                                        a: {
+                                            description: 'The first operand of the filter.',
+                                            title: 'Operand A',
                                             type: ['null', 'boolean', 'number', 'string'],
                                         },
                                         b: {
+                                            description: 'The second operand of the filter.',
+                                            title: 'Operand B',
                                             type: ['null', 'boolean', 'number', 'string'],
                                         },
                                         o: {
+                                            description: 'The operator of the filter.',
                                             enum: [
                                                 'text:equal',
                                                 'text:equal:ci',
@@ -365,9 +392,26 @@ describe('Forman Schema', () => {
                                                 'boolean:equal',
                                                 'boolean:notequal',
                                             ],
+                                            title: 'Operator',
                                         },
                                     },
                                     required: ['a', 'b', 'o'],
+                                    type: 'object',
+                                },
+                                {
+                                    properties: {
+                                        a: {
+                                            description: 'The first operand of the filter.',
+                                            title: 'Operand A',
+                                            type: ['null', 'boolean', 'number', 'string'],
+                                        },
+                                        o: {
+                                            description: 'The operator of the filter.',
+                                            enum: ['exist', 'notexist'],
+                                            title: 'Operator',
+                                        },
+                                    },
+                                    required: ['a', 'o'],
                                     type: 'object',
                                 },
                             ],
@@ -378,27 +422,13 @@ describe('Forman Schema', () => {
                     type: 'array',
                     'x-filter': 'reverse',
                 },
-                file: {
-                    title: 'File',
+                select: {
+                    enum: ['option 1', 'option 2'],
+                    title: 'Select',
                     type: 'string',
-                    'x-fetch': 'rpc://get-files',
-                    'x-path': {
-                        type: 'file',
-                        showRoot: true,
-                        singleLevel: false,
-                        ownName: 'file',
-                    },
                 },
-                folder: {
-                    title: 'Folder',
+                text: {
                     type: 'string',
-                    'x-fetch': 'rpc://get-folders',
-                    'x-path': {
-                        type: 'folder',
-                        showRoot: false,
-                        singleLevel: true,
-                        ownName: 'folder',
-                    },
                 },
             },
             required: ['number'],

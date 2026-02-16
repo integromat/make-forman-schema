@@ -485,25 +485,44 @@ async function handleArrayType(
  * @returns Validation result
  */
 async function handleFilterType(value: unknown, field: FormanSchemaField, context: ValidationContext) {
+    const operandOptions = isObject<FormanSchemaExtendedOptions>(field.options) ? field.options.store : field.options;
+    const operandSpec = {
+        name: 'a',
+        type: 'any',
+        required: true,
+    } as FormanSchemaField;
+    if (Array.isArray(operandOptions)) {
+        // Options are defined as array, turn the spec into a select instead.
+        operandSpec.type = 'select';
+        operandSpec.options = operandOptions;
+    }
+
+    const operatorOptions = isObject<FormanSchemaExtendedOptions>(field.options) ? field.options.operators : undefined;
+    const operatorSpec: FormanSchemaField = {
+        name: 'o',
+        type: 'any',
+        required: true,
+    };
+    if (Array.isArray(operatorOptions)) {
+        operatorSpec.type = 'select';
+        operatorSpec.grouped = true;
+        operatorSpec.options = operatorOptions;
+    } else {
+        operatorSpec.type = 'text';
+        operatorSpec.validate = {
+            enum: IML_FILTER_OPERATORS,
+        };
+    }
+
     // The filter is technically just an array or arrays, or an array. Craft the inline definition and pass to array validator instead.
     const filterEntry: FormanSchemaField = {
         type: 'collection',
         spec: [
-            {
-                name: 'a',
-                type: 'any',
-                required: true,
-            },
+            operandSpec,
+            operatorSpec,
             {
                 name: 'b',
                 type: 'any',
-            },
-            {
-                name: 'o',
-                type: 'text',
-                validate: {
-                    enum: IML_FILTER_OPERATORS,
-                },
             },
         ],
     };
