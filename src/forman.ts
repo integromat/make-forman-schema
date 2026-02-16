@@ -484,19 +484,7 @@ function handleSelectOrPathType(
         });
     }
 
-    const nested = isObject<FormanSchemaExtendedOptions>(field.options)
-        ? isObject<FormanSchemaExtendedNested>(field.options.nested)
-            ? field.options.nested.store
-            : field.options.nested
-        : undefined;
-
-    const nestedContainsStrings = Array.isArray(nested) && nested.some(item => typeof item === 'string');
-
-    const domain = isObject<FormanSchemaExtendedOptions>(field.options)
-        ? isObject<FormanSchemaExtendedNested>(field.options.nested) && field.options.nested.domain
-            ? field.options.nested.domain
-            : undefined
-        : undefined;
+    const { nested, domain } = extractNestedAndDomain(field);
 
     if (typeof optionsOrGroups === 'string') {
         Object.defineProperty(result, 'x-fetch', {
@@ -587,55 +575,7 @@ function handleSelectOrPathType(
         }
     }
 
-    if (nested && domain && domain !== context.domain) {
-        const normalizedNested = typeof nested === 'string' ? [nested] : nested;
-
-        let root = context.roots[domain];
-        if (!root) {
-            const buffer: FormanDomainBuffer[] = [];
-            root = context.roots[domain] = {
-                buffer,
-                addFields: (nested: (FormanSchemaField | string)[], tail?: string[]) => {
-                    buffer.push(...nested.map(field => ({ field, tail })));
-                },
-            };
-        }
-
-        root.addFields(normalizedNested, [...context.tail, field.name!]);
-    } else if (nested) {
-        Object.defineProperty(result, 'x-nested', {
-            configurable: true,
-            enumerable: true,
-            writable: true,
-            value:
-                typeof nested === 'string'
-                    ? { $ref: appendQueryString(nested, context.domain, [...context.tail, field.name!]) }
-                    : nestedContainsStrings
-                      ? {
-                            type: 'object',
-                            allOf: nested.map(item =>
-                                typeof item === 'string'
-                                    ? { $ref: appendQueryString(item, context.domain, [...context.tail, field.name!]) }
-                                    : toJSONSchemaInternal(
-                                          { type: 'collection', spec: [item] },
-                                          {
-                                              ...context,
-                                              domain: domain || context.domain,
-                                              tail: [...context.tail, field.name!],
-                                          },
-                                      ),
-                            ),
-                        }
-                      : toJSONSchemaInternal(
-                            { type: 'collection', spec: nested as FormanSchemaField[] },
-                            {
-                                ...context,
-                                domain: domain || context.domain,
-                                tail: [...context.tail, field.name!],
-                            },
-                        ),
-        });
-    }
+    result = handleNestedWithDomain(field, nested, domain, result, context);
 
     if (field.rpc) result = processRpcDirective(field, result, context);
     return result;
@@ -671,6 +611,12 @@ function handlePrimitiveType(field: FormanSchemaField, result: JSONSchema7, cont
     }
 
     if (field.rpc) result = processRpcDirective(field, result, context);
+
+    if (field.nested) {
+        const { nested, domain } = extractNestedAndDomain(field);
+        result = handleNestedWithDomain(field, nested, domain, result, context);
+    }
+
     return result;
 }
 
@@ -696,6 +642,131 @@ function processRpcDirective(field: FormanSchemaField, result: JSONSchema7, cont
                     ? { $ref: field.rpc.parameters } // The context frame for the Panel RPC is not the form itself, so we're not propagating the Query String Tail here
                     : toJSONSchemaInternal({ type: 'collection', spec: field.rpc.parameters }, context),
         },
+    });
+
+    return result;
+}
+
+/**
+ * Extracts nested fields and domain from a field, unwrapping extended nested format
+ * @param field The field to extract from
+ * @returns Object containing nested fields and optional domain
+ */
+function extractNestedAndDomain(field: FormanSchemaField): {
+    nested: (FormanSchemaField | string)[] | string | undefined;
+    domain: string | undefined;
+} {
+    const nested = isObject<FormanSchemaExtendedOptions>(field.options)
+        ? isObject<FormanSchemaExtendedNested>(field.options.nested)
+            ? field.options.nested.store
+            : field.options.nested
+        : isObject<FormanSchemaExtendedNested>(field.nested)
+          ? field.nested.store
+          : field.nested;
+
+    const domain = isObject<FormanSchemaExtendedOptions>(field.options)
+        ? isObject<FormanSchemaExtendedNested>(field.options.nested) && field.options.nested.domain
+            ? field.options.nested.domain
+            : undefined
+        : isObject<FormanSchemaExtendedNested>(field.nested) && field.nested.domain
+          ? field.nested.domain
+          : undefined;
+
+    return { nested, domain };
+}
+
+/**
+ * Handles cross-domain nested fields by buffering them or processing inline
+ * @param field The field with nested directive
+ * @param nested The nested fields (already extracted)
+ * @param domain The target domain (already extracted)
+ * @param result The JSON Schema result to potentially modify
+ * @param context The conversion context
+ * @returns Modified result if inline processing, otherwise original result
+ */
+function handleNestedWithDomain(
+    field: FormanSchemaField,
+    nested: (FormanSchemaField | string)[] | string | undefined,
+    domain: string | undefined,
+    result: JSONSchema7,
+    context: ConversionContext,
+): JSONSchema7 {
+    if (!nested) return result;
+
+    if (domain && domain !== context.domain) {
+        // Cross-domain: buffer the nested fields
+        const normalizedNested = typeof nested === 'string' ? [nested] : nested;
+
+        let root = context.roots[domain];
+        if (!root) {
+            const buffer: FormanDomainBuffer[] = [];
+            root = context.roots[domain] = {
+                buffer,
+                addFields: (nested: (FormanSchemaField | string)[], tail?: string[]) => {
+                    buffer.push(...nested.map(field => ({ field, tail })));
+                },
+            };
+        }
+
+        root.addFields(normalizedNested, [...context.tail, field.name!]);
+        return result;
+    }
+
+    // Same domain: process inline
+    return processNestedDirective(field, nested, domain, result, context);
+}
+
+/**
+ * Processes nested directives by adding an x-nested property to the JSON Schema, handling both string and array formats
+ * @param field The field with the nested directive
+ * @param nested The nested fields (already extracted)
+ * @param domain The target domain (already extracted)
+ * @param result The JSON Schema result to modify
+ * @param context The conversion context
+ * @returns The modified JSON Schema with nested information
+ */
+function processNestedDirective(
+    field: FormanSchemaField,
+    nested: (FormanSchemaField | string)[] | string | undefined,
+    domain: string | undefined,
+    result: JSONSchema7,
+    context: ConversionContext,
+): JSONSchema7 {
+    if (!nested) return result;
+
+    const nestedContainsStrings = Array.isArray(nested) && nested.some(item => typeof item === 'string');
+
+    Object.defineProperty(result, 'x-nested', {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        value:
+            typeof nested === 'string'
+                ? { $ref: appendQueryString(nested, context.domain, [...context.tail, field.name!]) }
+                : nestedContainsStrings
+                  ? {
+                        type: 'object',
+                        allOf: nested.map(item =>
+                            typeof item === 'string'
+                                ? { $ref: appendQueryString(item, context.domain, [...context.tail, field.name!]) }
+                                : toJSONSchemaInternal(
+                                      { type: 'collection', spec: [item] },
+                                      {
+                                          ...context,
+                                          domain: domain || context.domain,
+                                          tail: [...context.tail, field.name!],
+                                      },
+                                  ),
+                        ),
+                    }
+                  : toJSONSchemaInternal(
+                        { type: 'collection', spec: nested as FormanSchemaField[] },
+                        {
+                            ...context,
+                            domain: domain || context.domain,
+                            tail: [...context.tail, field.name!],
+                        },
+                    ),
     });
 
     return result;
