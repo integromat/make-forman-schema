@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { toFormanSchema, toJSONSchema } from '../../src';
+import { toFormanSchema, toJSONSchema, validateForman, FormanSchemaField } from '../../src';
 import { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 
 describe('RPC', () => {
@@ -254,5 +254,22 @@ describe('RPC', () => {
             ],
             type: 'collection',
         });
+    });
+
+    it('should handle RPC returning a single object instead of array for select options', async () => {
+        const schema: FormanSchemaField[] = [
+            {
+                name: 'mySelect',
+                type: 'select',
+                label: 'My Select',
+                options: 'rpc://RpcSingleOption',
+            },
+        ];
+        const result = await validateForman({ mySelect: 'a' }, schema, {
+            resolveRemote(): Promise<unknown> {
+                return Promise.resolve({ value: 'a', label: 'Option A' });
+            },
+        });
+        expect(result.valid).toBe(true);
     });
 });
