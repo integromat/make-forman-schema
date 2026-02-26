@@ -1,0 +1,336 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`udttype composite Forman -> JSON Schema should convert schema with udttype field (snapshot) 1`] = `
+{
+  "$defs": {
+    "udtspec": {
+      "description": undefined,
+      "properties": {
+        "help": {
+          "description": undefined,
+          "title": "Description",
+          "type": "string",
+        },
+        "label": {
+          "description": "Display name for better readability.",
+          "title": "Label",
+          "type": "string",
+        },
+        "name": {
+          "description": undefined,
+          "title": "Name",
+          "type": "string",
+        },
+        "type": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/udttype",
+            },
+          ],
+          "default": "text",
+          "description": undefined,
+          "title": "Type",
+          "x-composite": "udttype",
+        },
+      },
+      "required": [
+        "name",
+        "type",
+      ],
+      "title": undefined,
+      "type": "object",
+      "x-composite": "udtspec",
+    },
+    "udttype": {
+      "oneOf": [
+        {
+          "const": "array",
+          "title": "Array",
+        },
+        {
+          "const": "collection",
+          "title": "Collection",
+        },
+        {
+          "const": "date",
+          "title": "Date",
+        },
+        {
+          "const": "text",
+          "title": "Text",
+        },
+        {
+          "const": "number",
+          "title": "Number",
+        },
+        {
+          "const": "boolean",
+          "title": "Boolean",
+        },
+        {
+          "const": "buffer",
+          "title": "Binary Data",
+        },
+      ],
+      "type": "string",
+      "x-composite": "udttype",
+    },
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "array",
+          },
+        },
+      },
+      "then": {
+        "description": undefined,
+        "properties": {
+          "required": {
+            "default": false,
+            "description": undefined,
+            "title": "Required",
+            "type": "boolean",
+          },
+          "spec": {
+            "description": undefined,
+            "properties": {
+              "type": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/udttype",
+                  },
+                ],
+                "default": "text",
+                "description": undefined,
+                "title": "Type",
+                "x-composite": "udttype",
+              },
+            },
+            "required": [
+              "type",
+            ],
+            "title": "Array Item Specification",
+            "type": "object",
+          },
+        },
+        "required": [
+          "required",
+        ],
+        "title": undefined,
+        "type": "object",
+      },
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "collection",
+          },
+        },
+      },
+      "then": {
+        "description": undefined,
+        "properties": {
+          "required": {
+            "default": false,
+            "description": undefined,
+            "title": "Required",
+            "type": "boolean",
+          },
+          "sequence": {
+            "description": undefined,
+            "title": "Preserve the order of object keys",
+            "type": "boolean",
+          },
+          "spec": {
+            "description": undefined,
+            "items": {
+              "$ref": "#/$defs/udtspec",
+            },
+            "title": "Specification",
+            "type": "array",
+            "x-composite": "udtspec",
+          },
+        },
+        "required": [
+          "required",
+        ],
+        "title": undefined,
+        "type": "object",
+      },
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "date",
+          },
+        },
+      },
+      "then": {
+        "description": undefined,
+        "properties": {
+          "required": {
+            "default": false,
+            "description": undefined,
+            "title": "Required",
+            "type": "boolean",
+          },
+        },
+        "required": [
+          "required",
+        ],
+        "title": undefined,
+        "type": "object",
+      },
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "text",
+          },
+        },
+      },
+      "then": {
+        "description": undefined,
+        "properties": {
+          "default": {
+            "description": undefined,
+            "title": "Default value",
+            "type": "string",
+          },
+          "multiline": {
+            "default": false,
+            "description": undefined,
+            "title": "Multi-line",
+            "type": "boolean",
+          },
+          "required": {
+            "default": false,
+            "description": undefined,
+            "title": "Required",
+            "type": "boolean",
+          },
+        },
+        "required": [
+          "required",
+          "multiline",
+        ],
+        "title": undefined,
+        "type": "object",
+      },
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "number",
+          },
+        },
+      },
+      "then": {
+        "description": undefined,
+        "properties": {
+          "default": {
+            "description": undefined,
+            "title": "Default value",
+            "type": "number",
+          },
+          "required": {
+            "default": false,
+            "description": undefined,
+            "title": "Required",
+            "type": "boolean",
+          },
+        },
+        "required": [
+          "required",
+        ],
+        "title": undefined,
+        "type": "object",
+      },
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "boolean",
+          },
+        },
+      },
+      "then": {
+        "description": undefined,
+        "properties": {
+          "default": {
+            "description": undefined,
+            "title": "Default value",
+            "type": "boolean",
+          },
+          "required": {
+            "default": false,
+            "description": undefined,
+            "title": "Required",
+            "type": "boolean",
+          },
+        },
+        "required": [
+          "required",
+        ],
+        "title": undefined,
+        "type": "object",
+      },
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "buffer",
+          },
+        },
+      },
+      "then": {
+        "description": undefined,
+        "properties": {
+          "codepage": {
+            "description": "Possible values: \`binary\`, \`utf8\`. Leave empty if you're not sure.",
+            "title": "Codepage",
+            "type": "string",
+          },
+          "required": {
+            "default": false,
+            "description": undefined,
+            "title": "Required",
+            "type": "boolean",
+          },
+        },
+        "required": [
+          "required",
+        ],
+        "title": undefined,
+        "type": "object",
+      },
+    },
+  ],
+  "description": undefined,
+  "properties": {
+    "type": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/udttype",
+        },
+      ],
+      "default": "text",
+      "description": undefined,
+      "title": "Type",
+      "x-composite": "udttype",
+    },
+  },
+  "required": [],
+  "title": undefined,
+  "type": "object",
+}
+`;
