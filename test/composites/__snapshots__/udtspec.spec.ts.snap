@@ -2,7 +2,7 @@
 
 exports[`udtspec composite Validation should convert schema with multiple udtspec fields 1`] = `
 {
-  "$defs": {
+  "definitions": {
     "udtspec": {
       "allOf": [
         {
@@ -28,7 +28,7 @@ exports[`udtspec composite Validation should convert schema with multiple udtspe
                   "type": {
                     "allOf": [
                       {
-                        "$ref": "#/$defs/udttype",
+                        "$ref": "#/definitions/udttype",
                       },
                     ],
                     "default": "text",
@@ -76,7 +76,7 @@ exports[`udtspec composite Validation should convert schema with multiple udtspe
               "spec": {
                 "description": undefined,
                 "items": {
-                  "$ref": "#/$defs/udtspec",
+                  "$ref": "#/definitions/udtspec",
                 },
                 "title": "Specification",
                 "type": "array",
@@ -263,7 +263,7 @@ exports[`udtspec composite Validation should convert schema with multiple udtspe
         "type": {
           "allOf": [
             {
-              "$ref": "#/$defs/udttype",
+              "$ref": "#/definitions/udttype",
             },
           ],
           "default": "text",
@@ -320,7 +320,7 @@ exports[`udtspec composite Validation should convert schema with multiple udtspe
     "spec1": {
       "description": undefined,
       "items": {
-        "$ref": "#/$defs/udtspec",
+        "$ref": "#/definitions/udtspec",
       },
       "title": "Specification",
       "type": "array",
@@ -329,7 +329,7 @@ exports[`udtspec composite Validation should convert schema with multiple udtspe
     "spec2": {
       "description": undefined,
       "items": {
-        "$ref": "#/$defs/udtspec",
+        "$ref": "#/definitions/udtspec",
       },
       "title": "Something Else that is also a spec",
       "type": "array",

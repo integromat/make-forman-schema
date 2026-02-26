@@ -27,12 +27,12 @@ export function toJSONSchema(field: FormanSchemaField): JSONSchema7 {
     const context = createDefaultContext();
     const result = toJSONSchemaInternal(field, context);
 
-    if (Object.keys(context.defs ?? {}).length > 0) {
-        Object.defineProperty(result, '$defs', {
+    if (Object.keys(context.definitions ?? {}).length > 0) {
+        Object.defineProperty(result, 'definitions', {
             configurable: true,
             enumerable: true,
             writable: true,
-            value: context.defs,
+            value: context.definitions,
         });
     }
 

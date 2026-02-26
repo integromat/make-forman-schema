@@ -2,80 +2,6 @@
 
 exports[`udttype composite Forman -> JSON Schema should convert schema with udttype field (snapshot) 1`] = `
 {
-  "$defs": {
-    "udtspec": {
-      "description": undefined,
-      "properties": {
-        "help": {
-          "description": undefined,
-          "title": "Description",
-          "type": "string",
-        },
-        "label": {
-          "description": "Display name for better readability.",
-          "title": "Label",
-          "type": "string",
-        },
-        "name": {
-          "description": undefined,
-          "title": "Name",
-          "type": "string",
-        },
-        "type": {
-          "allOf": [
-            {
-              "$ref": "#/$defs/udttype",
-            },
-          ],
-          "default": "text",
-          "description": undefined,
-          "title": "Type",
-          "x-composite": "udttype",
-        },
-      },
-      "required": [
-        "name",
-        "type",
-      ],
-      "title": undefined,
-      "type": "object",
-      "x-composite": "udtspec",
-    },
-    "udttype": {
-      "oneOf": [
-        {
-          "const": "array",
-          "title": "Array",
-        },
-        {
-          "const": "collection",
-          "title": "Collection",
-        },
-        {
-          "const": "date",
-          "title": "Date",
-        },
-        {
-          "const": "text",
-          "title": "Text",
-        },
-        {
-          "const": "number",
-          "title": "Number",
-        },
-        {
-          "const": "boolean",
-          "title": "Boolean",
-        },
-        {
-          "const": "buffer",
-          "title": "Binary Data",
-        },
-      ],
-      "type": "string",
-      "x-composite": "udttype",
-    },
-  },
   "allOf": [
     {
       "if": {
@@ -100,7 +26,7 @@ exports[`udttype composite Forman -> JSON Schema should convert schema with udtt
               "type": {
                 "allOf": [
                   {
-                    "$ref": "#/$defs/udttype",
+                    "$ref": "#/definitions/udttype",
                   },
                 ],
                 "default": "text",
@@ -148,7 +74,7 @@ exports[`udttype composite Forman -> JSON Schema should convert schema with udtt
           "spec": {
             "description": undefined,
             "items": {
-              "$ref": "#/$defs/udtspec",
+              "$ref": "#/definitions/udtspec",
             },
             "title": "Specification",
             "type": "array",
@@ -315,12 +241,86 @@ exports[`udttype composite Forman -> JSON Schema should convert schema with udtt
       },
     },
   ],
+  "definitions": {
+    "udtspec": {
+      "description": undefined,
+      "properties": {
+        "help": {
+          "description": undefined,
+          "title": "Description",
+          "type": "string",
+        },
+        "label": {
+          "description": "Display name for better readability.",
+          "title": "Label",
+          "type": "string",
+        },
+        "name": {
+          "description": undefined,
+          "title": "Name",
+          "type": "string",
+        },
+        "type": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/udttype",
+            },
+          ],
+          "default": "text",
+          "description": undefined,
+          "title": "Type",
+          "x-composite": "udttype",
+        },
+      },
+      "required": [
+        "name",
+        "type",
+      ],
+      "title": undefined,
+      "type": "object",
+      "x-composite": "udtspec",
+    },
+    "udttype": {
+      "oneOf": [
+        {
+          "const": "array",
+          "title": "Array",
+        },
+        {
+          "const": "collection",
+          "title": "Collection",
+        },
+        {
+          "const": "date",
+          "title": "Date",
+        },
+        {
+          "const": "text",
+          "title": "Text",
+        },
+        {
+          "const": "number",
+          "title": "Number",
+        },
+        {
+          "const": "boolean",
+          "title": "Boolean",
+        },
+        {
+          "const": "buffer",
+          "title": "Binary Data",
+        },
+      ],
+      "type": "string",
+      "x-composite": "udttype",
+    },
+  },
   "description": undefined,
   "properties": {
     "type": {
       "allOf": [
         {
-          "$ref": "#/$defs/udttype",
+          "$ref": "#/definitions/udttype",
         },
       ],
       "default": "text",

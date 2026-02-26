@@ -29,10 +29,10 @@ describe('udttype composite', () => {
 
             // Should use allOf wrapper with $ref
             expect(typeField.allOf).toBeDefined();
-            expect((typeField.allOf![0] as JSONSchema7).$ref).toBe('#/$defs/udttype');
+            expect((typeField.allOf![0] as JSONSchema7).$ref).toBe('#/definitions/udttype');
 
             // The inner fragment in $defs should have type + oneOf but no title
-            const udttypeDef = result['$defs']!['udttype'] as JSONSchema7;
+            const udttypeDef = result['definitions']!['udttype'] as JSONSchema7;
             expect(udttypeDef.type).toBe('string');
             expect(udttypeDef.title).toBeUndefined();
             expect(udttypeDef.oneOf).toBeDefined();
@@ -93,9 +93,9 @@ describe('udttype composite', () => {
             const result = toJSONSchema(field);
 
             // $defs should contain the udttype definition
-            expect(result['$defs']).toBeDefined();
-            expect(result['$defs']!['udttype']).toBeDefined();
-            expect(Object.getOwnPropertyDescriptor(result['$defs']!['udttype'], 'x-composite')?.value).toBe('udttype');
+            expect(result['definitions']).toBeDefined();
+            expect(result['definitions']!['udttype']).toBeDefined();
+            expect(Object.getOwnPropertyDescriptor(result['definitions']!['udttype'], 'x-composite')?.value).toBe('udttype');
         });
 
         it('should use $ref for recursive udttype references', () => {
@@ -126,7 +126,7 @@ describe('udttype composite', () => {
             // Somewhere in the nested structure there should be a $ref to udttype
             const json = JSON.stringify(arrayConditional);
             expect(json).toContain('$ref');
-            expect(json).toContain('#/$defs/udttype');
+            expect(json).toContain('#/definitions/udttype');
         });
 
         it('should convert a single udttype field in a minimal collection', () => {
@@ -139,8 +139,8 @@ describe('udttype composite', () => {
             const xField = result.properties!['x'] as JSONSchema7;
             expect(xField.allOf).toBeDefined();
             expect(xField.title).toBe('Type');
-            expect(result['$defs']).toBeDefined();
-            expect(result['$defs']!['udttype']).toBeDefined();
+            expect(result['definitions']).toBeDefined();
+            expect(result['definitions']!['udttype']).toBeDefined();
         });
 
         it('should not emit default when field has no default', () => {
@@ -322,7 +322,7 @@ describe('udttype composite', () => {
             // Should complete without hanging
             const result = toJSONSchema(field);
             expect(result).toBeDefined();
-            expect(result['$defs']).toBeDefined();
+            expect(result['definitions']).toBeDefined();
         });
     });
 });

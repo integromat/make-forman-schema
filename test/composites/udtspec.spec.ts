@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import { type FormanSchemaField, toFormanSchema, toJSONSchema, validateForman } from '../../src';
-import { JSONSchema7 } from 'json-schema';
+import type { JSONSchema7 } from 'json-schema';
 
 describe('udtspec composite', () => {
     describe('Forman -> JSON Schema', () => {
@@ -26,10 +26,10 @@ describe('udtspec composite', () => {
 
             // Items should be a $ref now (inner fragment is in $defs)
             const items = specField.items as JSONSchema7;
-            expect(items.$ref).toBe('#/$defs/udtspec');
+            expect(items.$ref).toBe('#/definitions/udtspec');
 
             // The inner fragment should be in $defs without title/description
-            const udtspecDef = result['$defs']!['udtspec'] as JSONSchema7;
+            const udtspecDef = result['definitions']!['udtspec'] as JSONSchema7;
             expect(udtspecDef.type).toBe('object');
             expect(udtspecDef.title).toBeUndefined();
             expect(udtspecDef.properties).toBeDefined();
@@ -42,10 +42,10 @@ describe('udtspec composite', () => {
             const typeField = udtspecDef.properties!['type'] as JSONSchema7;
             expect(Object.getOwnPropertyDescriptor(typeField, 'x-composite')?.value).toBe('udttype');
             expect(typeField.allOf).toBeDefined();
-            expect((typeField.allOf![0] as JSONSchema7).$ref).toBe('#/$defs/udttype');
+            expect((typeField.allOf![0] as JSONSchema7).$ref).toBe('#/definitions/udttype');
 
             // udttype $defs should have no title/description (inner fragment only)
-            const udttypeDef = result['$defs']!['udttype'] as JSONSchema7;
+            const udttypeDef = result['definitions']!['udttype'] as JSONSchema7;
             expect(udttypeDef.type).toBe('string');
             expect(udttypeDef.title).toBeUndefined();
             expect(udttypeDef.description).toBeUndefined();
@@ -57,9 +57,9 @@ describe('udtspec composite', () => {
             const result = toJSONSchema({ name: 'x', type: 'udtspec' });
 
             expect(result.type).toBe('array');
-            expect(result['$defs']).toBeDefined();
-            expect(result['$defs']!['udtspec']).toBeDefined();
-            expect(result['$defs']!['udttype']).toBeDefined();
+            expect(result['definitions']).toBeDefined();
+            expect(result['definitions']!['udtspec']).toBeDefined();
+            expect(result['definitions']!['udttype']).toBeDefined();
         });
 
         it('should produce $defs with both udtspec and udttype', () => {
@@ -77,9 +77,9 @@ describe('udtspec composite', () => {
 
             const result = toJSONSchema(field);
 
-            expect(result['$defs']).toBeDefined();
-            expect(result['$defs']!['udtspec']).toBeDefined();
-            expect(result['$defs']!['udttype']).toBeDefined();
+            expect(result['definitions']).toBeDefined();
+            expect(result['definitions']!['udtspec']).toBeDefined();
+            expect(result['definitions']!['udttype']).toBeDefined();
         });
     });
 
@@ -252,14 +252,14 @@ describe('udtspec composite', () => {
 
             expect(spec1.type).toBe('array');
             expect(spec1.title).toBe('Specification');
-            expect((spec1.items as JSONSchema7).$ref).toBe('#/$defs/udtspec');
+            expect((spec1.items as JSONSchema7).$ref).toBe('#/definitions/udtspec');
 
             expect(spec2.type).toBe('array');
             expect(spec2.title).toBe('Something Else that is also a spec');
-            expect((spec2.items as JSONSchema7).$ref).toBe('#/$defs/udtspec');
+            expect((spec2.items as JSONSchema7).$ref).toBe('#/definitions/udtspec');
 
             // $defs.udtspec should have no title (inner fragment only)
-            const udtspecDef = result['$defs']!['udtspec'] as JSONSchema7;
+            const udtspecDef = result['definitions']!['udtspec'] as JSONSchema7;
             expect(udtspecDef.title).toBeUndefined();
             expect(udtspecDef.type).toBe('object');
 

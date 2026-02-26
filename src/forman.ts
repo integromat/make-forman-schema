@@ -38,8 +38,8 @@ export interface ConversionContext {
      * @param nested The nested fields to add
      */
     addConditionalFields: (name: string, value: FormanSchemaValue, nested: JSONSchema7 | string) => void;
-    /** Collected $defs for recursive composite types */
-    defs?: Record<string, JSONSchema7>;
+    /** Collected definitions for recursive composite types */
+    definitions?: Record<string, JSONSchema7>;
 }
 
 /**
@@ -173,7 +173,7 @@ export function createDefaultContext(): ConversionContext {
         tail: [],
         path: [],
         roots: {},
-        defs: {},
+        definitions: {},
         addConditionalFields: () => {
             throw new SchemaConversionError('Cannot serialize nested fields without parent field.');
         },
@@ -205,11 +205,11 @@ export function toJSONSchemaInternal(field: FormanSchemaField, context: Conversi
     const handler = compositeHandlers[normalizedField.type];
     if (handler) {
         const type = normalizedField.type;
-        const ref = `#/$defs/${type}`;
+        const ref = `#/definitions/${type}`;
 
-        if (!context.defs?.[type]) {
-            if (context.defs) {
-                context.defs[type] = {} as JSONSchema7;
+        if (!context.definitions?.[type]) {
+            if (context.definitions) {
+                context.definitions[type] = {} as JSONSchema7;
             }
 
             const expandField = { ...normalizedField };
@@ -225,8 +225,8 @@ export function toJSONSchemaInternal(field: FormanSchemaField, context: Conversi
                 value: type,
             });
 
-            if (context.defs) {
-                context.defs[type] = inner;
+            if (context.definitions) {
+                context.definitions[type] = inner;
             }
         }
 
