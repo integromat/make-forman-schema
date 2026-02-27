@@ -17,6 +17,8 @@ import {
     IML_BINARY_FILTER_OPERATORS,
     IML_FILTER_ENTRY_TYPES,
 } from './utils';
+import { udttypeExpand, udttypeExtractInner, udttypeWrapRef } from './composites/udttype';
+import { udtspecExpand, udtspecExtractInner, udtspecWrapRef } from './composites/udtspec';
 
 /**
  * Context for schema conversion operations
@@ -36,6 +38,8 @@ export interface ConversionContext {
      * @param nested The nested fields to add
      */
     addConditionalFields: (name: string, value: FormanSchemaValue, nested: JSONSchema7 | string) => void;
+    /** Collected definitions for recursive composite types */
+    definitions?: Record<string, JSONSchema7>;
 }
 
 /**
@@ -114,6 +118,8 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, JSONSchema7['type']>> = {
     pkey: 'string',
     port: 'number',
     select: 'string',
+    udttype: 'string',
+    udtspec: 'array',
     time: 'string',
     timestamp: 'string',
     timezone: 'string',
@@ -161,17 +167,27 @@ function appendQueryString(path: string, domain: string, tail: string[]): string
  * @param options Conversion options
  * @returns A new conversion context
  */
-function createDefaultContext(): ConversionContext {
+export function createDefaultContext(): ConversionContext {
     return {
         domain: 'default',
         tail: [],
         path: [],
         roots: {},
+        definitions: {},
         addConditionalFields: () => {
             throw new SchemaConversionError('Cannot serialize nested fields without parent field.');
         },
     };
 }
+
+const compositeHandlers: Record<string, {
+    expand: (field: FormanSchemaField) => FormanSchemaField;
+    extractInner: (schema: JSONSchema7) => JSONSchema7;
+    wrapRef: (ref: string, field: FormanSchemaField) => JSONSchema7;
+}> = {
+    udtspec: { expand: udtspecExpand, extractInner: udtspecExtractInner, wrapRef: udtspecWrapRef },
+    udttype: { expand: udttypeExpand, extractInner: udttypeExtractInner, wrapRef: udttypeWrapRef },
+};
 
 /**
  * Converts a Forman Schema field to its JSON Schema equivalent.
@@ -179,15 +195,48 @@ function createDefaultContext(): ConversionContext {
  * @param context The context for the conversion
  * @returns The equivalent JSON Schema field
  */
-export function toJSONSchemaInternal(
-    field: FormanSchemaField,
-    context: ConversionContext = createDefaultContext(),
-): JSONSchema7 {
+export function toJSONSchemaInternal(field: FormanSchemaField, context: ConversionContext): JSONSchema7 {
     // Validate the field
     validateFormanField(field);
 
     // Normalize field type (handle prefixed types)
     const normalizedField = normalizeFormanFieldType(field);
+
+    const handler = compositeHandlers[normalizedField.type];
+    if (handler) {
+        const type = normalizedField.type;
+        const ref = `#/definitions/${type}`;
+
+        if (!context.definitions?.[type]) {
+            if (context.definitions) {
+                context.definitions[type] = {} as JSONSchema7;
+            }
+
+            const expandField = { ...normalizedField };
+            delete expandField.label;
+            delete expandField.help;
+
+            const expanded = handler.expand(expandField);
+            const expandedResult = toJSONSchemaInternal(expanded, context);
+
+            const inner = handler.extractInner(expandedResult);
+            Object.defineProperty(inner, 'x-composite', {
+                configurable: true, enumerable: true, writable: true,
+                value: type,
+            });
+
+            if (context.definitions) {
+                context.definitions[type] = inner;
+            }
+        }
+
+        const wrapper = handler.wrapRef(ref, normalizedField);
+        Object.defineProperty(wrapper, 'x-composite', {
+            configurable: true, enumerable: true, writable: true,
+            value: type,
+        });
+        return wrapper;
+    }
 
     const result: JSONSchema7 = {
         type: FORMAN_TYPE_MAP[normalizedField.type],

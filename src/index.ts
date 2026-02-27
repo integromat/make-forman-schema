@@ -1,5 +1,5 @@
 import type { JSONSchema7 } from 'json-schema';
-import { toJSONSchemaInternal } from './forman';
+import { toJSONSchemaInternal, createDefaultContext } from './forman';
 import type { FormanSchemaField, FormanValidationResult, FormanValidationOptions } from './types';
 import { validateFormanWithDomainsInternal } from './validator';
 
@@ -24,7 +24,19 @@ export { toFormanSchema } from './json';
  * @returns The equivalent JSON Schema field
  */
 export function toJSONSchema(field: FormanSchemaField): JSONSchema7 {
-    return toJSONSchemaInternal(field);
+    const context = createDefaultContext();
+    const result = toJSONSchemaInternal(field, context);
+
+    if (Object.keys(context.definitions ?? {}).length > 0) {
+        Object.defineProperty(result, 'definitions', {
+            configurable: true,
+            enumerable: true,
+            writable: true,
+            value: context.definitions,
+        });
+    }
+
+    return result;
 }
 
 /**

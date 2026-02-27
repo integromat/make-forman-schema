@@ -1,6 +1,8 @@
 import type { JSONSchema7 } from 'json-schema';
 import { noEmpty, isObject } from './utils';
 import type { FormanSchemaField, FormanSchemaFieldType, FormanSchemaValue } from './types';
+import { udttypeCollapse } from './composites/udttype';
+import { udtspecCollapse } from './composites/udtspec';
 
 /**
  * Maps JSON Schema primitive types to Forman Schema types.
@@ -24,6 +26,10 @@ type XSearchDirective = {
  * @returns The equivalent Forman Schema field
  */
 export function toFormanSchema(field: JSONSchema7): FormanSchemaField {
+    const compositeType = Object.getOwnPropertyDescriptor(field, 'x-composite')?.value;
+    if (compositeType === 'udttype') return udttypeCollapse(field);
+    if (compositeType === 'udtspec') return udtspecCollapse(field);
+
     switch (field.type) {
         case 'object':
             // When there are no defined properties in the spec, assume the collection is dynamic.

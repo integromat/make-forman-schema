@@ -23,6 +23,8 @@ import {
     IML_FILTER_OPERATORS,
     findValueInSelectOptions,
 } from './utils';
+import { udttypeExpand } from './composites/udttype';
+import { udtspecExpand } from './composites/udtspec';
 
 /**
  * Context for schema validation operations
@@ -109,6 +111,8 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, string | undefined>> = {
     pkey: 'string',
     port: 'number',
     select: undefined,
+    udttype: 'string',
+    udtspec: 'array',
     time: 'string',
     timestamp: 'string',
     timezone: 'string',
@@ -293,6 +297,14 @@ async function validateFormanValue(
             valid: true,
             errors: [],
         };
+    }
+
+    if (normalizedField.type === 'udttype') {
+        return validateFormanValue(value, udttypeExpand({ ...normalizedField }), context);
+    }
+
+    if (normalizedField.type === 'udtspec') {
+        return validateFormanValue(value, udtspecExpand({ ...normalizedField }), context);
     }
 
     switch (normalizedField.type) {
