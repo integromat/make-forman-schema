@@ -272,4 +272,58 @@ describe('RPC', () => {
         });
         expect(result.valid).toBe(true);
     });
+
+    it('should reject RPC returning null for select options', async () => {
+        const schema: FormanSchemaField[] = [
+            {
+                name: 'mySelect',
+                type: 'select',
+                label: 'My Select',
+                options: 'rpc://RpcNull',
+            },
+        ];
+        const result = await validateForman({ mySelect: 'a' }, schema, {
+            resolveRemote(): Promise<unknown> {
+                return Promise.resolve(null);
+            },
+        });
+        expect(result.valid).toBe(false);
+        expect(result.errors[0]?.message).toContain('returned no data');
+    });
+
+    it('should reject RPC returning undefined for select options', async () => {
+        const schema: FormanSchemaField[] = [
+            {
+                name: 'mySelect',
+                type: 'select',
+                label: 'My Select',
+                options: 'rpc://RpcUndefined',
+            },
+        ];
+        const result = await validateForman({ mySelect: 'a' }, schema, {
+            resolveRemote(): Promise<unknown> {
+                return Promise.resolve(undefined);
+            },
+        });
+        expect(result.valid).toBe(false);
+        expect(result.errors[0]?.message).toContain('returned no data');
+    });
+
+    it('should reject RPC returning a primitive string for select options', async () => {
+        const schema: FormanSchemaField[] = [
+            {
+                name: 'mySelect',
+                type: 'select',
+                label: 'My Select',
+                options: 'rpc://RpcPrimitive',
+            },
+        ];
+        const result = await validateForman({ mySelect: 'a' }, schema, {
+            resolveRemote(): Promise<unknown> {
+                return Promise.resolve('some string');
+            },
+        });
+        expect(result.valid).toBe(false);
+        expect(result.errors[0]?.message).toContain('returned no data');
+    });
 });

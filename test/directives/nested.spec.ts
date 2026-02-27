@@ -239,5 +239,34 @@ describe('Nested', () => {
             const invalid = await validateForman({ myField: 'hello' }, schema, { resolveRemote });
             expect(invalid.valid).toBe(false);
         });
+
+        it('should handle RPC returning null for nested fields', async () => {
+            const schema: FormanSchemaField[] = [
+                {
+                    name: 'myField',
+                    type: 'text',
+                    label: 'My Field',
+                    nested: 'rpc://RpcNull',
+                },
+            ];
+            const resolveRemote = (): Promise<unknown> => Promise.resolve(null);
+            const result = await validateForman({ myField: 'hello' }, schema, { resolveRemote });
+            expect(result.valid).toBe(true);
+        });
+
+        it('should handle RPC returning a primitive for nested fields', async () => {
+            const schema: FormanSchemaField[] = [
+                {
+                    name: 'myField',
+                    type: 'text',
+                    label: 'My Field',
+                    nested: 'rpc://RpcPrimitive',
+                },
+            ];
+            const resolveRemote = (): Promise<unknown> => Promise.resolve('some string');
+            const result = await validateForman({ myField: 'hello' }, schema, { resolveRemote });
+            expect(result.valid).toBe(true);
+        });
+
     });
 });

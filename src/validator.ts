@@ -755,6 +755,16 @@ async function handleSelectType(
     if (typeof optionsOrGroups === 'string') {
         try {
             const resolved = await context.resolveRemote(optionsOrGroups, context);
+            if (resolved == null || typeof resolved !== 'object') {
+                return {
+                    valid: false,
+                    errors: [...errors, {
+                        domain: context.domain,
+                        path: context.path.join('.'),
+                        message: `Remote resource ${optionsOrGroups} returned no data.`,
+                    }],
+                };
+            }
             optionsOrGroups = (Array.isArray(resolved) ? resolved : [resolved]) as
                 | FormanSchemaOption[]
                 | FormanSchemaOptionGroup[];
