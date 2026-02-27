@@ -754,7 +754,18 @@ async function handleSelectType(
 
     if (typeof optionsOrGroups === 'string') {
         try {
-            optionsOrGroups = (await context.resolveRemote(optionsOrGroups, context)) as
+            const resolved = await context.resolveRemote(optionsOrGroups, context);
+            if (resolved == null || typeof resolved !== 'object') {
+                return {
+                    valid: false,
+                    errors: [...errors, {
+                        domain: context.domain,
+                        path: context.path.join('.'),
+                        message: `Remote resource ${optionsOrGroups} returned no data.`,
+                    }],
+                };
+            }
+            optionsOrGroups = (Array.isArray(resolved) ? resolved : [resolved]) as
                 | FormanSchemaOption[]
                 | FormanSchemaOptionGroup[];
         } catch (error) {
@@ -893,7 +904,12 @@ async function handleNestedFields(
         for (const item of store) {
             if (typeof item === 'string') {
                 try {
-                    resolvedStore.push(...((await context.resolveRemote(item, context)) as FormanSchemaField[]));
+                    const resolved = await context.resolveRemote(item, context);
+                    if (Array.isArray(resolved)) {
+                        resolvedStore.push(...resolved);
+                    } else if (resolved && typeof resolved === 'object') {
+                        resolvedStore.push(resolved as FormanSchemaField);
+                    }
                 } catch (error) {
                     return {
                         valid: false,
