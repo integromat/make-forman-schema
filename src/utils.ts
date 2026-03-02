@@ -188,11 +188,17 @@ export function stringToPath(str: string): Array<string | number> {
         if (str[i] === '[') {
             // numeric index
             const end = str.indexOf(']', i);
+            if (end === -1) {
+                throw new Error(`Invalid path: missing closing bracket in "${str}"`);
+            }
             path.push(Number(str.slice(i + 1, end)));
             i = end + 1;
         } else if (str[i] === '`') {
             // backtick-escaped key
             const end = str.indexOf('`', i + 1);
+            if (end === -1) {
+                throw new Error(`Invalid path: missing closing backtick in "${str}"`);
+            }
             path.push(str.slice(i + 1, end));
             i = end + 1;
         } else {

@@ -512,7 +512,7 @@ describe('Utils Functions', () => {
         });
 
         it('should handle empty input array', () => {
-            const input: Array<{ domain: string; path: string[]; state: any }> = [];
+            const input: Array<{ domain: string; path: (string | number)[]; state: any }> = [];
 
             const result = buildRestoreStructure(input);
 

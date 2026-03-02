@@ -209,7 +209,8 @@ export async function validateFormanWithDomainsInternal(
         );
         errors.push(...result.errors);
 
-        // Append the additional restore data, if provided
+        // Append the additional restore data, if provided.
+        // Extras only apply when states are enabled, because they contribute field-level state (labels, modes, etc.).
         const restoreExtras = options?.states && domains[domain]?.restoreExtras;
         if (restoreExtras) {
             // To reduce compute, prepare all field states of the domain into a searchable map first
