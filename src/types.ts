@@ -267,6 +267,7 @@ export type FormanSchemaFieldState = {
     label?: string;
     path?: Array<string>;
     data?: Record<string, unknown>;
+    extra?: Record<string, unknown>;
     nested?: Record<string, FormanSchemaFieldState>;
     items?: Record<string, FormanSchemaFieldState>[];
 };

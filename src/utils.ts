@@ -156,6 +156,73 @@ export function findValueInSelectOptions(
 }
 
 /**
+ * Converts a path array to a string representation, joining elements with dots and using brackets for numeric indices.
+ * @param path
+ */
+export function pathToString(path: Array<string | number>): string {
+    let result = '';
+    for (const key of path) {
+        if (typeof key === 'number') {
+            result += `[${key}]`;
+        } else {
+            if (result.length > 0) {
+                result += '.';
+            }
+            if (key.includes('`')) {
+                throw new Error(`Invalid path key: backticks are not allowed in key "${key}"`);
+            }
+            result += key.includes('.') ? `\`${key}\`` : key;
+        }
+    }
+    return result;
+}
+
+/**
+ * Converts a string representation back to a path array. Inverse of pathToString.
+ * @param str The string to parse
+ */
+export function stringToPath(str: string): Array<string | number> {
+    const path: Array<string | number> = [];
+    let i = 0;
+    while (i < str.length) {
+        if (str[i] === '.') {
+            i++; // skip dot separator
+            if (i >= str.length) break;
+        }
+        if (str[i] === '[') {
+            // numeric index
+            const end = str.indexOf(']', i);
+            if (end === -1) {
+                throw new Error(`Invalid path: missing closing bracket in "${str}"`);
+            }
+            const num = Number(str.slice(i + 1, end));
+            if (!Number.isInteger(num) || num < 0) {
+                throw new Error(`Invalid path: non-numeric or negative index in "${str}"`);
+            }
+            path.push(num);
+            i = end + 1;
+        } else if (str[i] === '`') {
+            // backtick-escaped key
+            const end = str.indexOf('`', i + 1);
+            if (end === -1) {
+                throw new Error(`Invalid path: missing closing backtick in "${str}"`);
+            }
+            path.push(str.slice(i + 1, end));
+            i = end + 1;
+        } else {
+            // regular key — read until next '.', '[', or end
+            let end = i;
+            while (end < str.length && str[end] !== '.' && str[end] !== '[') {
+                end++;
+            }
+            path.push(str.slice(i, end));
+            i = end;
+        }
+    }
+    return path;
+}
+
+/**
  * Transforms a flat array of domain/path/state items into a nested object structure.
  * Intermediate path levels are placed in a 'nested' property.
  * @param items Array of items with domain, path, and state properties

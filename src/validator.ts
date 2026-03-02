@@ -22,6 +22,8 @@ import {
     isReferenceType,
     IML_FILTER_OPERATORS,
     findValueInSelectOptions,
+    pathToString,
+    stringToPath,
 } from './utils';
 import { udttypeExpand } from './composites/udttype';
 import { udtspecExpand } from './composites/udtspec';
@@ -134,6 +136,7 @@ export async function validateFormanWithDomainsInternal(
         {
             values: Record<string, unknown>;
             schema?: FormanSchemaField[];
+            restoreExtras?: Record<string, Record<string, unknown>>;
         }
     >,
     options?: FormanValidationOptions,
@@ -205,6 +208,32 @@ export async function validateFormanWithDomainsInternal(
             },
         );
         errors.push(...result.errors);
+
+        // Append the additional restore data, if provided.
+        // Extras only apply when states are enabled, because they contribute field-level state (labels, modes, etc.).
+        const restoreExtras = options?.states && domains[domain]?.restoreExtras;
+        if (restoreExtras) {
+            // To reduce compute, prepare all field states of the domain into a searchable map first
+            const fieldStateMap = new Map<string, DomainRoot['fieldStates'][number]['state']>(
+                roots[domain]!.fieldStates.map(({ path, state }) => {
+                    return [pathToString(path), state];
+                }),
+            );
+            // For each field from the extra map...
+            for (const [fieldPath, extra] of Object.entries(restoreExtras)) {
+                const state = fieldStateMap.get(fieldPath);
+                if (state) {
+                    // If the state has existed, add the extra value.
+                    state.extra = extra;
+                } else {
+                    // Else we need to create a new state just with the extra value.
+                    roots[domain]!.fieldStates.push({
+                        path: stringToPath(fieldPath),
+                        state: { extra },
+                    });
+                }
+            }
+        }
     }
 
     return {
@@ -770,11 +799,14 @@ async function handleSelectType(
             if (resolved == null || typeof resolved !== 'object') {
                 return {
                     valid: false,
-                    errors: [...errors, {
-                        domain: context.domain,
-                        path: context.path.join('.'),
-                        message: `Remote resource ${optionsOrGroups} returned no data.`,
-                    }],
+                    errors: [
+                        ...errors,
+                        {
+                            domain: context.domain,
+                            path: context.path.join('.'),
+                            message: `Remote resource ${optionsOrGroups} returned no data.`,
+                        },
+                    ],
                 };
             }
             optionsOrGroups = (Array.isArray(resolved) ? resolved : [resolved]) as

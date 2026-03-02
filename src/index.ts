@@ -46,7 +46,15 @@ export function toJSONSchema(field: FormanSchemaField): JSONSchema7 {
  * @returns The validation result
  */
 export function validateFormanWithDomains(
-    domains: Record<string, { values: Record<string, unknown>; schema: FormanSchemaField[] }>,
+    domains: Record<
+        string,
+        {
+            values: Record<string, unknown>;
+            schema: FormanSchemaField[];
+            /** Extra values injected into restore states, keyed by string path (dot notation, `[index]`, backtick-escaping). */
+            restoreExtras?: Record<string, Record<string, unknown>>;
+        }
+    >,
     options?: FormanValidationOptions,
 ): Promise<FormanValidationResult> {
     return validateFormanWithDomainsInternal(domains, options);
@@ -57,12 +65,16 @@ export function validateFormanWithDomains(
  * @param values The values to validate
  * @param schema The schema to validate against
  * @param options The validation options
+ * @param restoreExtras Values to be injected into restore objects of particular fields.
+ *   Keyed by string path using dot notation for nested keys, `[index]` for array indices,
+ *   and backtick-escaping for keys containing dots (e.g. `"a.b[0].c"`, `` "`dotted.key`.child" ``).
  * @returns The validation result
  */
 export function validateForman(
     values: Record<string, unknown>,
     schema: FormanSchemaField[],
     options?: FormanValidationOptions,
+    restoreExtras?: Record<string, Record<string, unknown>>,
 ): Promise<FormanValidationResult> {
-    return validateFormanWithDomains({ default: { values, schema } }, options);
+    return validateFormanWithDomains({ default: { values, schema, restoreExtras } }, options);
 }

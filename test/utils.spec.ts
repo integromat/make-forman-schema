@@ -7,6 +7,8 @@ import {
     isPrimitiveIMLExpression,
     normalizeFormanFieldType,
     buildRestoreStructure,
+    pathToString,
+    stringToPath,
     API_ENDPOINTS,
     FORMAN_VISUAL_TYPES,
 } from '../src/utils.js';
@@ -283,6 +285,106 @@ describe('Utils Functions', () => {
         });
     });
 
+    describe('pathToString', () => {
+        it('should convert simple string keys', () => {
+            expect(pathToString(['a', 'b', 'c'])).toBe('a.b.c');
+        });
+
+        it('should handle numeric indices with brackets', () => {
+            expect(pathToString(['a', 0, 'b'])).toBe('a[0].b');
+        });
+
+        it('should handle leading numeric index', () => {
+            expect(pathToString([0, 'a'])).toBe('[0].a');
+        });
+
+        it('should handle consecutive numeric indices', () => {
+            expect(pathToString(['a', 0, 1, 'b'])).toBe('a[0][1].b');
+        });
+
+        it('should handle trailing numeric index', () => {
+            expect(pathToString(['a', 'b', 0])).toBe('a.b[0]');
+        });
+
+        it('should escape keys containing dots with backticks', () => {
+            expect(pathToString(['foo.bar', 'b'])).toBe('`foo.bar`.b');
+        });
+
+        it('should handle single string key', () => {
+            expect(pathToString(['a'])).toBe('a');
+        });
+
+        it('should handle single numeric index', () => {
+            expect(pathToString([0])).toBe('[0]');
+        });
+
+        it('should return empty string for empty path', () => {
+            expect(pathToString([])).toBe('');
+        });
+
+        it('should handle mixed complex path', () => {
+            expect(pathToString(['root', 'nested.key', 0, 'leaf'])).toBe('root.`nested.key`[0].leaf');
+        });
+    });
+
+    describe('stringToPath', () => {
+        it('should parse simple dot-separated keys', () => {
+            expect(stringToPath('a.b.c')).toEqual(['a', 'b', 'c']);
+        });
+
+        it('should parse numeric indices in brackets', () => {
+            expect(stringToPath('a[0].b')).toEqual(['a', 0, 'b']);
+        });
+
+        it('should parse leading numeric index', () => {
+            expect(stringToPath('[0].a')).toEqual([0, 'a']);
+        });
+
+        it('should parse consecutive numeric indices', () => {
+            expect(stringToPath('a[0][1].b')).toEqual(['a', 0, 1, 'b']);
+        });
+
+        it('should parse trailing numeric index', () => {
+            expect(stringToPath('a.b[0]')).toEqual(['a', 'b', 0]);
+        });
+
+        it('should parse backtick-escaped keys containing dots', () => {
+            expect(stringToPath('`foo.bar`.b')).toEqual(['foo.bar', 'b']);
+        });
+
+        it('should parse single string key', () => {
+            expect(stringToPath('a')).toEqual(['a']);
+        });
+
+        it('should parse single numeric index', () => {
+            expect(stringToPath('[0]')).toEqual([0]);
+        });
+
+        it('should return empty array for empty string', () => {
+            expect(stringToPath('')).toEqual([]);
+        });
+
+        it('should parse mixed complex path', () => {
+            expect(stringToPath('root.`nested.key`[0].leaf')).toEqual(['root', 'nested.key', 0, 'leaf']);
+        });
+    });
+
+    describe('pathToString and stringToPath roundtrip', () => {
+        const cases: Array<[Array<string | number>, string]> = [
+            [['a', 'b', 'c'], 'a.b.c'],
+            [['a', 0, 'b'], 'a[0].b'],
+            [[0, 'a'], '[0].a'],
+            [['a', 0, 1, 'b'], 'a[0][1].b'],
+            [['foo.bar', 'b'], '`foo.bar`.b'],
+            [['root', 'nested.key', 0, 'leaf'], 'root.`nested.key`[0].leaf'],
+        ];
+
+        it.each(cases)('pathToString(%j) -> stringToPath -> original', (path, str) => {
+            expect(pathToString(path)).toBe(str);
+            expect(stringToPath(str)).toEqual(path);
+        });
+    });
+
     describe('buildRestoreStructure', () => {
         it('should handle single-level paths', () => {
             const input = [{ domain: 'expect', path: ['field'], state: { label: 'asdf' } }];
@@ -410,7 +512,7 @@ describe('Utils Functions', () => {
         });
 
         it('should handle empty input array', () => {
-            const input: Array<{ domain: string; path: string[]; state: any }> = [];
+            const input: Array<{ domain: string; path: (string | number)[]; state: any }> = [];
 
             const result = buildRestoreStructure(input);
 
