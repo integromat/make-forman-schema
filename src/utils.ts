@@ -168,6 +168,9 @@ export function pathToString(path: Array<string | number>): string {
             if (result.length > 0) {
                 result += '.';
             }
+            if (key.includes('`')) {
+                throw new Error(`Invalid path key: backticks are not allowed in key "${key}"`);
+            }
             result += key.includes('.') ? `\`${key}\`` : key;
         }
     }
@@ -184,6 +187,7 @@ export function stringToPath(str: string): Array<string | number> {
     while (i < str.length) {
         if (str[i] === '.') {
             i++; // skip dot separator
+            if (i >= str.length) break;
         }
         if (str[i] === '[') {
             // numeric index
@@ -191,7 +195,11 @@ export function stringToPath(str: string): Array<string | number> {
             if (end === -1) {
                 throw new Error(`Invalid path: missing closing bracket in "${str}"`);
             }
-            path.push(Number(str.slice(i + 1, end)));
+            const num = Number(str.slice(i + 1, end));
+            if (!Number.isInteger(num) || num < 0) {
+                throw new Error(`Invalid path: non-numeric or negative index in "${str}"`);
+            }
+            path.push(num);
             i = end + 1;
         } else if (str[i] === '`') {
             // backtick-escaped key
