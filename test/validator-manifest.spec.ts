@@ -89,6 +89,16 @@ describe('Forman Schema Manifest Validation', () => {
                             includesHeaders: true,
                         },
                         schema: googleSheetsAddRowMock.expect,
+                        restoreExtras: {
+                            sheetId: {
+                                aiHelp: 'This is some extra help.',
+                                aiInstruction: 'This is some extra instruction.',
+                            },
+                            spreadsheetId: {
+                                aiHelp: 'This is some extra help for spreadsheet.',
+                                aiInstruction: 'This is some extra instruction for spreadsheet.',
+                            },
+                        },
                     },
                 },
                 {
@@ -169,6 +179,16 @@ describe('Forman Schema Manifest Validation', () => {
                     spreadsheetId: {
                         mode: 'chose',
                         path: ['SPREADSHEET1'],
+                        extra: {
+                            aiHelp: 'This is some extra help for spreadsheet.',
+                            aiInstruction: 'This is some extra instruction for spreadsheet.',
+                        },
+                    },
+                    sheetId: {
+                        extra: {
+                            aiHelp: 'This is some extra help.',
+                            aiInstruction: 'This is some extra instruction.',
+                        },
                     },
                 },
             },
