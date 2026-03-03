@@ -185,11 +185,14 @@ export function createDefaultContext(): ConversionContext {
     };
 }
 
-const compositeHandlers: Record<string, {
-    expand: (field: FormanSchemaField) => FormanSchemaField;
-    extractInner: (schema: JSONSchema7) => JSONSchema7;
-    wrapRef: (ref: string, field: FormanSchemaField) => JSONSchema7;
-}> = {
+const compositeHandlers: Record<
+    string,
+    {
+        expand: (field: FormanSchemaField) => FormanSchemaField;
+        extractInner: (schema: JSONSchema7) => JSONSchema7;
+        wrapRef: (ref: string, field: FormanSchemaField) => JSONSchema7;
+    }
+> = {
     udtspec: { expand: udtspecExpand, extractInner: udtspecExtractInner, wrapRef: udtspecWrapRef },
     udttype: { expand: udttypeExpand, extractInner: udttypeExtractInner, wrapRef: udttypeWrapRef },
 };
@@ -226,7 +229,9 @@ export function toJSONSchemaInternal(field: FormanSchemaField, context: Conversi
 
             const inner = handler.extractInner(expandedResult);
             Object.defineProperty(inner, 'x-composite', {
-                configurable: true, enumerable: true, writable: true,
+                configurable: true,
+                enumerable: true,
+                writable: true,
                 value: type,
             });
 
@@ -237,7 +242,9 @@ export function toJSONSchemaInternal(field: FormanSchemaField, context: Conversi
 
         const wrapper = handler.wrapRef(ref, normalizedField);
         Object.defineProperty(wrapper, 'x-composite', {
-            configurable: true, enumerable: true, writable: true,
+            configurable: true,
+            enumerable: true,
+            writable: true,
             value: type,
         });
         return wrapper;
