@@ -154,7 +154,12 @@ function validateFormanField(field: FormanSchemaField): void {
 function appendQueryString(path: string, domain: string, tail: string[]): string {
     if (path.startsWith('api://')) return path;
 
-    const queryString = tail.map(part => `${encodeURIComponent(part)}={{${part}}}`).join('&');
+    // Whatever is in the query string, takes the priority (same as in Forman). We append tail parameters which are not overridden in query.
+    const existingParams = new Set(new URL(path).searchParams.keys());
+    const queryString = tail
+        .filter(part => !existingParams.has(part))
+        .map(part => `${encodeURIComponent(part)}={{${part}}}`)
+        .join('&');
 
     if (!queryString) return path;
 
@@ -180,11 +185,14 @@ export function createDefaultContext(): ConversionContext {
     };
 }
 
-const compositeHandlers: Record<string, {
-    expand: (field: FormanSchemaField) => FormanSchemaField;
-    extractInner: (schema: JSONSchema7) => JSONSchema7;
-    wrapRef: (ref: string, field: FormanSchemaField) => JSONSchema7;
-}> = {
+const compositeHandlers: Record<
+    string,
+    {
+        expand: (field: FormanSchemaField) => FormanSchemaField;
+        extractInner: (schema: JSONSchema7) => JSONSchema7;
+        wrapRef: (ref: string, field: FormanSchemaField) => JSONSchema7;
+    }
+> = {
     udtspec: { expand: udtspecExpand, extractInner: udtspecExtractInner, wrapRef: udtspecWrapRef },
     udttype: { expand: udttypeExpand, extractInner: udttypeExtractInner, wrapRef: udttypeWrapRef },
 };
@@ -221,7 +229,9 @@ export function toJSONSchemaInternal(field: FormanSchemaField, context: Conversi
 
             const inner = handler.extractInner(expandedResult);
             Object.defineProperty(inner, 'x-composite', {
-                configurable: true, enumerable: true, writable: true,
+                configurable: true,
+                enumerable: true,
+                writable: true,
                 value: type,
             });
 
@@ -232,7 +242,9 @@ export function toJSONSchemaInternal(field: FormanSchemaField, context: Conversi
 
         const wrapper = handler.wrapRef(ref, normalizedField);
         Object.defineProperty(wrapper, 'x-composite', {
-            configurable: true, enumerable: true, writable: true,
+            configurable: true,
+            enumerable: true,
+            writable: true,
             value: type,
         });
         return wrapper;
