@@ -154,7 +154,12 @@ function validateFormanField(field: FormanSchemaField): void {
 function appendQueryString(path: string, domain: string, tail: string[]): string {
     if (path.startsWith('api://')) return path;
 
-    const queryString = tail.map(part => `${encodeURIComponent(part)}={{${part}}}`).join('&');
+    // Whatever is in the query string, takes the priority (same as in Forman). We append tail parameters which are not overridden in query.
+    const existingParams = new Set(new URL(path).searchParams.keys());
+    const queryString = tail
+        .filter(part => !existingParams.has(part))
+        .map(part => `${encodeURIComponent(part)}={{${part}}}`)
+        .join('&');
 
     if (!queryString) return path;
 
