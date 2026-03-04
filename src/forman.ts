@@ -4,6 +4,7 @@ import type {
     FormanSchemaValue,
     FormanSchemaExtendedOptions,
     FormanSchemaExtendedNested,
+    FormanSchemaNested,
     FormanSchemaOption,
     FormanSchemaPathExtendedOptions,
 } from './types';
@@ -555,7 +556,7 @@ function handleSelectOrPathType(
             value: appendQueryString(optionsOrGroups, context.domain, context.tail),
         });
     } else {
-        const options = optionsOrGroups?.flatMap(optionOrGroup => {
+        let options = optionsOrGroups?.flatMap(optionOrGroup => {
             // Selects can be partially grouped, unwrap the groups, and append the rest.
             if (isOptionGroup(optionOrGroup)) {
                 return optionOrGroup.options.map(option => ({
@@ -565,6 +566,19 @@ function handleSelectOrPathType(
             }
             return optionOrGroup as FormanSchemaOption;
         });
+
+        // For non-required selects with placeholder.nested, inject placeholder as an artificial null-value option.
+        // null is used (not undefined) because it's a valid JSON Schema const value and FormanSchemaValue.
+        if (!field.required && isObject<FormanSchemaExtendedOptions>(field.options)) {
+            const placeholder = field.options.placeholder;
+            if (isObject<{ label: string; nested?: FormanSchemaNested }>(placeholder) && placeholder.nested) {
+                (options ||= []).push({
+                    value: null as unknown as string,
+                    label: placeholder.label,
+                    nested: placeholder.nested,
+                });
+            }
+        }
 
         if (
             options?.some(option => {
