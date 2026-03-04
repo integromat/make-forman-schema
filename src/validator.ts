@@ -20,6 +20,7 @@ import {
     normalizeFormanFieldType,
     isVisualType,
     isReferenceType,
+    isEditableType,
     IML_FILTER_OPERATORS,
     findValueInSelectOptions,
     pathToString,
@@ -322,6 +323,14 @@ async function validateFormanValue(
                 ],
             };
         }
+
+        if (isEditableType(normalizedField.type)) {
+            context.roots[context.domain]!.fieldStates.push({
+                path: [...context.path],
+                state: { mode: 'edit' },
+            });
+        }
+
         return {
             valid: true,
             errors: [],
