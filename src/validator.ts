@@ -297,7 +297,7 @@ async function validateFormanValue(
 
     if (value == null) {
         // When a select field has placeholder.nested, null means "no selection" and we need to validate the nested fields
-        if (hasPlaceholderNested(normalizedField)) {
+        if (normalizedField.type === 'select' && hasPlaceholderNested(normalizedField)) {
             return handleSelectType(value, normalizedField, context);
         }
         return {

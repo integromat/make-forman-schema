@@ -37,7 +37,7 @@ describe('Placeholder Nested', () => {
                 type: 'object',
                 properties: {
                     aggregator: {
-                        type: 'string',
+                        type: ['string', 'null'],
                         title: 'Aggregator',
                         oneOf: expect.arrayContaining([
                             { title: 'Sum', const: 'sum' },

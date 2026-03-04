@@ -1,4 +1,4 @@
-import type { JSONSchema7, JSONSchema7Definition } from 'json-schema';
+import type { JSONSchema7, JSONSchema7Definition, JSONSchema7TypeName } from 'json-schema';
 import type {
     FormanSchemaField,
     FormanSchemaValue,
@@ -573,10 +573,11 @@ function handleSelectOrPathType(
             const placeholder = field.options.placeholder;
             if (isObject<{ label: string; nested?: FormanSchemaNested }>(placeholder) && placeholder.nested) {
                 (options ||= []).push({
-                    value: null as unknown as string,
+                    value: null,
                     label: placeholder.label,
                     nested: placeholder.nested,
                 });
+                result.type = [result.type as JSONSchema7TypeName, 'null'];
             }
         }
 
