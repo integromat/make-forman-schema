@@ -137,9 +137,7 @@ describe('Nested', () => {
                     type: 'text',
                     label: 'Text Field',
                     nested: {
-                        store: [
-                            { name: 'nestedField', type: 'number', label: 'Nested Field' },
-                        ],
+                        store: [{ name: 'nestedField', type: 'number', label: 'Nested Field' }],
                     },
                 },
             ];
@@ -267,6 +265,87 @@ describe('Nested', () => {
             const result = await validateForman({ myField: 'hello' }, schema, { resolveRemote });
             expect(result.valid).toBe(true);
         });
+    });
 
+    describe('select with boolean store and RPC nested', () => {
+        const formanSchema: FormanSchemaField[] = [
+            {
+                name: 'booleanSelect',
+                type: 'select',
+                label: 'Boolean Select',
+                options: {
+                    store: [
+                        { value: true, label: 'TRUE' },
+                        { value: false, label: 'FALSE' },
+                    ],
+                    nested: 'rpc://renderFields',
+                },
+            },
+            {
+                name: 'mergedSelect',
+                type: 'select',
+                label: 'Merged Select',
+                options: {
+                    store: [
+                        { value: true, label: 'TRUE' },
+                        { value: false, label: 'FALSE' },
+                    ],
+                    nested: 'rpc://renderFields?mergedSelect=false',
+                },
+            },
+        ];
+
+        it('should convert to JSON schema', () => {
+            const jsonSchema = toJSONSchema({
+                type: 'collection',
+                spec: formanSchema,
+            });
+            expect(jsonSchema).toEqual({
+                type: 'object',
+                properties: {
+                    booleanSelect: {
+                        title: 'Boolean Select',
+                        type: 'string',
+                        oneOf: [
+                            { title: 'TRUE', const: true },
+                            { title: 'FALSE', const: false },
+                        ],
+                        'x-nested': {
+                            $ref: 'rpc://renderFields?booleanSelect={{booleanSelect}}',
+                        },
+                    },
+                    mergedSelect: {
+                        title: 'Merged Select',
+                        type: 'string',
+                        oneOf: [
+                            { title: 'TRUE', const: true },
+                            { title: 'FALSE', const: false },
+                        ],
+                        'x-nested': {
+                            $ref: 'rpc://renderFields?mergedSelect=false',
+                        },
+                    },
+                },
+                required: [],
+                allOf: [
+                    {
+                        if: { properties: { booleanSelect: { const: true } } },
+                        then: { $ref: 'rpc://renderFields?booleanSelect={{booleanSelect}}' },
+                    },
+                    {
+                        if: { properties: { booleanSelect: { const: false } } },
+                        then: { $ref: 'rpc://renderFields?booleanSelect={{booleanSelect}}' },
+                    },
+                    {
+                        if: { properties: { mergedSelect: { const: true } } },
+                        then: { $ref: 'rpc://renderFields?mergedSelect=false' },
+                    },
+                    {
+                        if: { properties: { mergedSelect: { const: false } } },
+                        then: { $ref: 'rpc://renderFields?mergedSelect=false' },
+                    },
+                ],
+            });
+        });
     });
 });
