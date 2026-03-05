@@ -569,7 +569,7 @@ function handleSelectOrPathType(
 
         // For non-required selects with placeholder.nested, inject placeholder as an artificial null-value option.
         // null is used (not undefined) because it's a valid JSON Schema const value and FormanSchemaValue.
-        if (!field.required && isObject<FormanSchemaExtendedOptions>(field.options)) {
+        if (field.type === 'select' && !field.required && isObject<FormanSchemaExtendedOptions>(field.options)) {
             const placeholder = field.options.placeholder;
             if (isObject<{ label: string; nested?: FormanSchemaNested }>(placeholder) && placeholder.nested) {
                 (options ||= []).push({
