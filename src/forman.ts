@@ -1,9 +1,10 @@
-import type { JSONSchema7, JSONSchema7Definition } from 'json-schema';
+import type { JSONSchema7, JSONSchema7Definition, JSONSchema7TypeName } from 'json-schema';
 import type {
     FormanSchemaField,
     FormanSchemaValue,
     FormanSchemaExtendedOptions,
     FormanSchemaExtendedNested,
+    FormanSchemaNested,
     FormanSchemaOption,
     FormanSchemaPathExtendedOptions,
 } from './types';
@@ -555,7 +556,7 @@ function handleSelectOrPathType(
             value: appendQueryString(optionsOrGroups, context.domain, context.tail),
         });
     } else {
-        const options = optionsOrGroups?.flatMap(optionOrGroup => {
+        let options = optionsOrGroups?.flatMap(optionOrGroup => {
             // Selects can be partially grouped, unwrap the groups, and append the rest.
             if (isOptionGroup(optionOrGroup)) {
                 return optionOrGroup.options.map(option => ({
@@ -565,6 +566,20 @@ function handleSelectOrPathType(
             }
             return optionOrGroup as FormanSchemaOption;
         });
+
+        // For non-required selects with placeholder.nested, inject placeholder as an artificial null-value option.
+        // null is used (not undefined) because it's a valid JSON Schema const value and FormanSchemaValue.
+        if (field.type === 'select' && !field.required && isObject<FormanSchemaExtendedOptions>(field.options)) {
+            const placeholder = field.options.placeholder;
+            if (isObject<{ label: string; nested?: FormanSchemaNested }>(placeholder) && placeholder.nested) {
+                (options ||= []).push({
+                    value: null,
+                    label: placeholder.label,
+                    nested: placeholder.nested,
+                });
+                result.type = [result.type as JSONSchema7TypeName, 'null'];
+            }
+        }
 
         if (
             options?.some(option => {

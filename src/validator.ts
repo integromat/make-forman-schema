@@ -80,6 +80,15 @@ export interface DomainRoot {
 }
 
 /**
+ * Checks if a field is a select-like type with placeholder.nested
+ */
+function hasPlaceholderNested(field: FormanSchemaField): boolean {
+    if (!isObject<FormanSchemaExtendedOptions>(field.options)) return false;
+    const placeholder = field.options.placeholder;
+    return isObject<{ nested?: FormanSchemaNested }>(placeholder) && placeholder.nested != null;
+}
+
+/**
  * Maps Forman Schema types to JS values.
  */
 const FORMAN_TYPE_MAP: Readonly<Record<string, string | undefined>> = {
@@ -287,6 +296,10 @@ async function validateFormanValue(
     }
 
     if (value == null) {
+        // When a select field has placeholder.nested, null means "no selection" and we need to validate the nested fields
+        if (normalizedField.type === 'select' && hasPlaceholderNested(normalizedField)) {
+            return handleSelectType(value, normalizedField, context);
+        }
         return {
             valid: true,
             errors: [],
@@ -883,6 +896,24 @@ async function handleSelectType(
                 });
             }
         }
+    } else if (value == null && hasPlaceholderNested(field)) {
+        // Null value with placeholder.nested: treat as valid "no selection" and use placeholder's nested
+        const placeholder = (field.options as FormanSchemaExtendedOptions).placeholder as {
+            label: string;
+            nested?: FormanSchemaNested;
+        };
+
+        if (placeholder.label) {
+            context.roots[context.domain]!.fieldStates.push({
+                path: context.path,
+                state: {
+                    mode: 'chose',
+                    label: placeholder.label,
+                },
+            });
+        }
+
+        if (placeholder.nested) nested = placeholder.nested;
     } else {
         const item = findValueInSelectOptions(field, value, optionsOrGroups as FormanSchemaSelectOptionsStore);
 
