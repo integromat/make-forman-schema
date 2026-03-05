@@ -88,6 +88,14 @@ function hasPlaceholderNested(field: FormanSchemaField): boolean {
     return isObject<{ nested?: FormanSchemaNested }>(placeholder) && placeholder.nested != null;
 }
 
+function extractNestedFromField(
+    field: FormanSchemaField,
+): FormanSchemaNested | FormanSchemaExtendedNested | undefined {
+    if (field.nested) return field.nested;
+    if (isObject<FormanSchemaExtendedOptions>(field.options) && field.options.nested) return field.options.nested;
+    return undefined;
+}
+
 /**
  * Maps Forman Schema types to JS values.
  */
@@ -342,6 +350,11 @@ async function validateFormanValue(
                 path: [...context.path],
                 state: { mode: 'edit' },
             });
+        }
+
+        const nested = extractNestedFromField(normalizedField);
+        if (nested) {
+            return handleNestedFields(nested, value, normalizedField, context);
         }
 
         return {
@@ -809,11 +822,7 @@ async function handleSelectType(
     const errors: FormanValidationResult['errors'] = [];
 
     let optionsOrGroups = isObject<FormanSchemaExtendedOptions>(field.options) ? field.options.store : field.options;
-    let nested = field.nested
-        ? field.nested
-        : isObject<FormanSchemaExtendedOptions>(field.options)
-          ? field.options.nested
-          : undefined;
+    let nested = extractNestedFromField(field);
 
     if (typeof optionsOrGroups === 'string') {
         try {
@@ -1102,8 +1111,9 @@ async function handlePrimitiveType(
         }
     }
 
-    if (field.nested) {
-        const result = await handleNestedFields(field.nested, value, field, context);
+    const nested = extractNestedFromField(field);
+    if (nested) {
+        const result = await handleNestedFields(nested, value, field, context);
         errors.push(...result.errors);
     }
 

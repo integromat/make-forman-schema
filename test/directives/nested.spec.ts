@@ -267,6 +267,108 @@ describe('Nested', () => {
         });
     });
 
+    describe('IML expression with nested fields', () => {
+        const resolveRemote = (path: string): Promise<unknown> => {
+            if (path === 'rpc://renderFields') {
+                return Promise.resolve([
+                    {
+                        name: 'dynamicallyRenderedField',
+                        type: 'text',
+                        label: 'Dynamic Field',
+                        required: true,
+                    },
+                ]);
+            }
+            return Promise.resolve([]);
+        };
+
+        it('should expand nested fields on text field with IML value', async () => {
+            const schema: FormanSchemaField[] = [
+                {
+                    name: 'input',
+                    type: 'text',
+                    label: 'Input',
+                    nested: 'rpc://renderFields',
+                },
+            ];
+
+            const result = await validateForman(
+                { input: '{{2.value}}', dynamicallyRenderedField: 'aaa' },
+                schema,
+                { resolveRemote },
+            );
+            expect(result.valid).toBe(true);
+            expect(result.errors).toEqual([]);
+        });
+
+        it('should report missing required nested field with IML value', async () => {
+            const schema: FormanSchemaField[] = [
+                {
+                    name: 'input',
+                    type: 'text',
+                    label: 'Input',
+                    nested: 'rpc://renderFields',
+                },
+            ];
+
+            const result = await validateForman(
+                { input: '{{2.value}}' },
+                schema,
+                { resolveRemote },
+            );
+            expect(result.valid).toBe(false);
+            expect(result.errors).toEqual([
+                expect.objectContaining({ message: 'Field is mandatory.' }),
+            ]);
+        });
+
+        it('should expand nested fields on select field with IML value', async () => {
+            const schema: FormanSchemaField[] = [
+                {
+                    name: 'mySelect',
+                    type: 'select',
+                    label: 'My Select',
+                    options: {
+                        store: [
+                            { value: 'a', label: 'A' },
+                            { value: 'b', label: 'B' },
+                        ],
+                        nested: 'rpc://renderFields',
+                    },
+                },
+            ];
+
+            const result = await validateForman(
+                { mySelect: '{{2.value}}', dynamicallyRenderedField: 'aaa' },
+                schema,
+                { resolveRemote },
+            );
+            expect(result.valid).toBe(true);
+            expect(result.errors).toEqual([]);
+        });
+
+        it('should flag unknown field alongside IML + nested', async () => {
+            const schema: FormanSchemaField[] = [
+                {
+                    name: 'input',
+                    type: 'text',
+                    label: 'Input',
+                    nested: 'rpc://renderFields',
+                },
+            ];
+
+            const result = await validateForman(
+                { input: '{{2.value}}', dynamicallyRenderedField: 'aaa', unknownField: 'bad' },
+                schema,
+                { resolveRemote, strict: true },
+            );
+            expect(result.valid).toBe(false);
+            expect(result.errors).toEqual([
+                expect.objectContaining({ message: expect.stringContaining('Unknown field') }),
+            ]);
+        });
+    });
+
     describe('select with boolean store and RPC nested', () => {
         const formanSchema: FormanSchemaField[] = [
             {
