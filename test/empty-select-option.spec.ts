@@ -80,7 +80,7 @@ describe('Empty string option for non-required selects', () => {
             expect(colorField.description).toBeUndefined();
         });
 
-        it('should not preserve existing description when present', () => {
+        it('should preserve existing description when present', () => {
             const formanSchema: FormanSchemaField = {
                 type: 'collection',
                 spec: [

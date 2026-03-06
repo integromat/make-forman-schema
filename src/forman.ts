@@ -1,7 +1,4 @@
 import type { JSONSchema7, JSONSchema7Definition, JSONSchema7TypeName } from 'json-schema';
-
-/** Description applied to non-required select-like fields that accept an empty value. */
-export const EMPTY_OPTION_DESCRIPTION = 'Optional field, can be left empty.';
 import type {
     FormanSchemaField,
     FormanSchemaValue,
@@ -23,6 +20,9 @@ import {
 } from './utils';
 import { udttypeExpand, udttypeExtractInner, udttypeWrapRef } from './composites/udttype';
 import { udtspecExpand, udtspecExtractInner, udtspecWrapRef } from './composites/udtspec';
+
+/** Description applied to non-required select-like fields that accept an empty value. */
+export const EMPTY_OPTION_DESCRIPTION = 'Optional field, can be left empty.';
 
 /**
  * Context for schema conversion operations
@@ -659,7 +659,9 @@ function handleSelectOrPathType(
         } else if (result.oneOf && !result.oneOf.some((entry): entry is JSONSchema7 => isObject(entry) && entry.const === '')) {
             result.oneOf = [{ title: 'Empty', const: '' }, ...result.oneOf];
         }
-        result.default = '';
+        if (result.default === undefined) {
+            result.default = '';
+        }
         if (!result.description) {
             result.description = EMPTY_OPTION_DESCRIPTION;
         }
