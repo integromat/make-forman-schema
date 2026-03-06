@@ -88,6 +88,9 @@ function hasPlaceholderNested(field: FormanSchemaField): boolean {
     return isObject<{ nested?: FormanSchemaNested }>(placeholder) && placeholder.nested != null;
 }
 
+/**
+ * Extracts the nested definition from `field.nested` or `field.options.nested`.
+ */
 function extractNestedFromField(
     field: FormanSchemaField,
 ): FormanSchemaNested | FormanSchemaExtendedNested | undefined {
