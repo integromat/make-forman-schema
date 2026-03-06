@@ -1,6 +1,7 @@
 import type { JSONSchema7 } from 'json-schema';
 import { noEmpty, isObject } from './utils';
 import type { FormanSchemaField, FormanSchemaFieldType, FormanSchemaValue } from './types';
+import { EMPTY_OPTION_DESCRIPTION } from './forman';
 import { udttypeCollapse } from './composites/udttype';
 import { udtspecCollapse } from './composites/udtspec';
 
@@ -102,10 +103,11 @@ export function toFormanSchema(field: JSONSchema7): FormanSchemaField {
             // If the field is flagged as path selector field root, then short-circuit to it
             const pathInfo = Object.getOwnPropertyDescriptor(field, 'x-path');
             if (pathInfo) {
+                const help = field.description === EMPTY_OPTION_DESCRIPTION ? undefined : noEmpty(field.description);
                 return {
                     type: pathInfo.value.type,
                     label: noEmpty(field.title),
-                    help: noEmpty(field.description),
+                    help,
                     options: {
                         store: Object.getOwnPropertyDescriptor(field, 'x-fetch')?.value,
                         showRoot: pathInfo.value.showRoot,
@@ -115,20 +117,24 @@ export function toFormanSchema(field: JSONSchema7): FormanSchemaField {
             }
             if (field.enum) {
                 // For strings with enum, create a select type
+                const help = field.description === EMPTY_OPTION_DESCRIPTION ? undefined : noEmpty(field.description);
                 return {
                     type: 'select',
                     label: noEmpty(field.title),
-                    help: noEmpty(field.description),
-                    options: field.enum.map(value => ({ value: value as FormanSchemaValue })),
+                    help,
+                    options: field.enum
+                        .filter(value => value !== '')
+                        .map(value => ({ value: value as FormanSchemaValue })),
                 };
             } else if (field.oneOf) {
-                // For strings with enum, create a select type
+                // For strings with oneOf, create a select type
+                const help = field.description === EMPTY_OPTION_DESCRIPTION ? undefined : noEmpty(field.description);
                 return {
                     type: 'select',
                     label: noEmpty(field.title),
-                    help: noEmpty(field.description),
+                    help,
                     options: field.oneOf
-                        .filter(value => value)
+                        .filter(value => value && (value as JSONSchema7).const !== '')
                         .map(value => ({ value: (value as JSONSchema7).const as FormanSchemaValue })),
                 };
             }

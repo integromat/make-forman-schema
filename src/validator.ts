@@ -303,8 +303,8 @@ async function validateFormanValue(
         };
     }
 
-    if (value == null) {
-        // When a select field has placeholder.nested, null means "no selection" and we need to validate the nested fields
+    if (value == null || value === '') {
+        // When a select field has placeholder.nested, null/'' means "no selection" and we need to validate the nested fields
         if (normalizedField.type === 'select' && hasPlaceholderNested(normalizedField)) {
             return handleSelectType(value, normalizedField, context);
         }
@@ -905,8 +905,8 @@ async function handleSelectType(
                 });
             }
         }
-    } else if (value == null && hasPlaceholderNested(field)) {
-        // Null value with placeholder.nested: treat as valid "no selection" and use placeholder's nested
+    } else if ((value == null || value === '') && hasPlaceholderNested(field)) {
+        // Null/empty value with placeholder.nested: treat as valid "no selection" and use placeholder's nested
         const placeholder = (field.options as FormanSchemaExtendedOptions).placeholder as {
             label: string;
             nested?: FormanSchemaNested;

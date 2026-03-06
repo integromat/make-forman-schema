@@ -1665,11 +1665,7 @@ describe('Forman Schema Extended Validation', () => {
             ).toEqual({
                 valid: false,
                 errors: [
-                    {
-                        domain: 'default',
-                        path: 'emptyPath',
-                        message: `Invalid path "" encountered.`,
-                    },
+                    // emptyPath: '' is valid for non-required file fields (means "no selection")
                     {
                         domain: 'default',
                         path: 'rootOnlyFilePath',

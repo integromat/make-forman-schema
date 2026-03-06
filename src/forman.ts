@@ -1,4 +1,7 @@
 import type { JSONSchema7, JSONSchema7Definition, JSONSchema7TypeName } from 'json-schema';
+
+/** Description applied to non-required select-like fields that accept an empty value. */
+export const EMPTY_OPTION_DESCRIPTION = 'Optional field, can be left empty.';
 import type {
     FormanSchemaField,
     FormanSchemaValue,
@@ -567,17 +570,15 @@ function handleSelectOrPathType(
             return optionOrGroup as FormanSchemaOption;
         });
 
-        // For non-required selects with placeholder.nested, inject placeholder as an artificial null-value option.
-        // null is used (not undefined) because it's a valid JSON Schema const value and FormanSchemaValue.
+        // For non-required selects with placeholder.nested, inject placeholder as an artificial empty-string option.
         if (field.type === 'select' && !field.required && isObject<FormanSchemaExtendedOptions>(field.options)) {
             const placeholder = field.options.placeholder;
             if (isObject<{ label: string; nested?: FormanSchemaNested }>(placeholder) && placeholder.nested) {
                 (options ||= []).push({
-                    value: null,
+                    value: '',
                     label: placeholder.label,
                     nested: placeholder.nested,
                 });
-                result.type = [result.type as JSONSchema7TypeName, 'null'];
             }
         }
 
@@ -648,6 +649,19 @@ function handleSelectOrPathType(
             });
         } else {
             result.enum = (options || []).map(option => option.value);
+        }
+    }
+
+    // For non-required select-like fields, prepend '' as a valid "no selection" option and set default.
+    if (!field.required) {
+        if (result.enum && !result.enum.includes('')) {
+            result.enum = ['', ...result.enum];
+        } else if (result.oneOf && !result.oneOf.some((entry): entry is JSONSchema7 => isObject(entry) && entry.const === '')) {
+            result.oneOf = [{ title: 'Empty', const: '' }, ...result.oneOf];
+        }
+        result.default = '';
+        if (!result.description) {
+            result.description = EMPTY_OPTION_DESCRIPTION;
         }
     }
 
