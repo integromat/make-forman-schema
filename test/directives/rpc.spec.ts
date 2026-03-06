@@ -82,6 +82,8 @@ describe('RPC', () => {
                             select: {
                                 title: 'Select',
                                 type: 'string',
+                                default: '',
+                                description: 'Optional field, can be left empty.',
                                 'x-fetch': 'rpc://searchEntries?parent={{parent}}',
                                 'x-search': {
                                     inputSchema: {
@@ -134,7 +136,13 @@ describe('RPC', () => {
             ],
             properties: {
                 parent: {
+                    default: '',
+                    description: 'Optional field, can be left empty.',
                     oneOf: [
+                        {
+                            const: '',
+                            title: 'Empty',
+                        },
                         {
                             const: 'show',
                             title: 'Show',

@@ -72,6 +72,8 @@ describe('Forman Schema', () => {
                 file: {
                     title: 'File',
                     type: 'string',
+                    default: '',
+                    description: 'Optional field, can be left empty.',
                     'x-fetch': 'rpc://get-files',
                     'x-path': {
                         ownName: 'file',
@@ -292,6 +294,8 @@ describe('Forman Schema', () => {
                 folder: {
                     title: 'Folder',
                     type: 'string',
+                    default: '',
+                    description: 'Optional field, can be left empty.',
                     'x-fetch': 'rpc://get-folders',
                     'x-path': {
                         ownName: 'folder',
@@ -423,9 +427,11 @@ describe('Forman Schema', () => {
                     'x-filter': 'reverse',
                 },
                 select: {
-                    enum: ['option 1', 'option 2'],
+                    enum: ['', 'option 1', 'option 2'],
                     title: 'Select',
                     type: 'string',
+                    default: '',
+                    description: 'Optional field, can be left empty.',
                 },
                 text: {
                     type: 'string',
