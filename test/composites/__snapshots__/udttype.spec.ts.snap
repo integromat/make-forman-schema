@@ -281,7 +281,12 @@ exports[`udttype composite Forman -> JSON Schema should convert schema with udtt
       "x-composite": "udtspec",
     },
     "udttype": {
+      "default": "",
       "oneOf": [
+        {
+          "const": "",
+          "title": "Empty",
+        },
         {
           "const": "array",
           "title": "Array",

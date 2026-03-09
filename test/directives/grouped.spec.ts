@@ -88,7 +88,13 @@ describe('Grouped', () => {
         expect(jsonSchema).toEqual({
             properties: {
                 groupedSelect: {
+                    default: '',
+                    description: 'Optional field, can be left empty.',
                     oneOf: [
+                        {
+                            const: '',
+                            title: 'Empty',
+                        },
                         {
                             const: 'alpha',
                             title: 'Phonetic: Alpha',
@@ -110,7 +116,13 @@ describe('Grouped', () => {
                     type: 'string',
                 },
                 partiallyGroupedSelect: {
+                    default: '',
+                    description: 'Optional field, can be left empty.',
                     oneOf: [
+                        {
+                            const: '',
+                            title: 'Empty',
+                        },
                         {
                             const: 'alpha',
                             title: 'Alpha',
@@ -132,7 +144,13 @@ describe('Grouped', () => {
                     type: 'string',
                 },
                 select: {
+                    default: '',
+                    description: 'Optional field, can be left empty.',
                     oneOf: [
+                        {
+                            const: '',
+                            title: 'Empty',
+                        },
                         {
                             const: 'alpha',
                             title: 'Alpha',
@@ -146,7 +164,13 @@ describe('Grouped', () => {
                     type: 'string',
                 },
                 wronglyPartiallyGroupedSelect: {
+                    default: '',
+                    description: 'Optional field, can be left empty.',
                     oneOf: [
+                        {
+                            const: '',
+                            title: 'Empty',
+                        },
                         {
                             const: 'alpha',
                             title: 'Alpha',

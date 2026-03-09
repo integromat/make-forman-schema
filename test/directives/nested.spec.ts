@@ -52,6 +52,8 @@ describe('Nested', () => {
                     nestedSelect: {
                         title: 'Nested Select',
                         type: 'string',
+                        default: '',
+                        description: 'Optional field, can be left empty.',
                         'x-fetch': 'rpc://dropdownExplorer',
                         'x-nested': {
                             $ref: 'rpc://renderFields?nestedSelect={{nestedSelect}}',
@@ -408,7 +410,10 @@ describe('Nested', () => {
                     booleanSelect: {
                         title: 'Boolean Select',
                         type: 'string',
+                        default: '',
+                        description: 'Optional field, can be left empty.',
                         oneOf: [
+                            { title: 'Empty', const: '' },
                             { title: 'TRUE', const: true },
                             { title: 'FALSE', const: false },
                         ],
@@ -419,7 +424,10 @@ describe('Nested', () => {
                     mergedSelect: {
                         title: 'Merged Select',
                         type: 'string',
+                        default: '',
+                        description: 'Optional field, can be left empty.',
                         oneOf: [
+                            { title: 'Empty', const: '' },
                             { title: 'TRUE', const: true },
                             { title: 'FALSE', const: false },
                         ],

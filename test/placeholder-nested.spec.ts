@@ -26,7 +26,7 @@ describe('Placeholder Nested', () => {
     };
 
     describe('Schema Generation', () => {
-        it('should produce allOf with if/then for null value when field is not required', () => {
+        it('should produce allOf with if/then for empty string value when field is not required', () => {
             const formanSchema = {
                 type: 'collection',
                 spec: [selectWithPlaceholderNested],
@@ -37,12 +37,13 @@ describe('Placeholder Nested', () => {
                 type: 'object',
                 properties: {
                     aggregator: {
-                        type: ['string', 'null'],
+                        type: 'string',
                         title: 'Aggregator',
+                        default: '',
                         oneOf: expect.arrayContaining([
                             { title: 'Sum', const: 'sum' },
                             { title: 'Average', const: 'avg' },
-                            { title: 'Select an aggregator...', const: null },
+                            { title: 'Select an aggregator...', const: '' },
                         ]),
                     },
                 },
@@ -51,7 +52,7 @@ describe('Placeholder Nested', () => {
                     {
                         if: {
                             properties: {
-                                aggregator: { const: null },
+                                aggregator: { const: '' },
                             },
                         },
                         then: expect.objectContaining({
@@ -103,6 +104,15 @@ describe('Placeholder Nested', () => {
     describe('Validation', () => {
         const formanSchema = [selectWithPlaceholderNested];
 
+        it('should accept empty string value and validate placeholder nested fields', async () => {
+            const result = await validateForman(
+                { aggregator: '', defaultField: 'hello' },
+                formanSchema,
+            );
+            expect(result.valid).toBe(true);
+            expect(result.errors).toEqual([]);
+        });
+
         it('should accept null value and validate placeholder nested fields', async () => {
             const result = await validateForman(
                 { aggregator: null, defaultField: 'hello' },
@@ -112,9 +122,9 @@ describe('Placeholder Nested', () => {
             expect(result.errors).toEqual([]);
         });
 
-        it('should reject null value when placeholder nested required field is missing', async () => {
+        it('should reject empty string value when placeholder nested required field is missing', async () => {
             const result = await validateForman(
-                { aggregator: null },
+                { aggregator: '' },
                 formanSchema,
             );
             expect(result.valid).toBe(false);
@@ -144,9 +154,9 @@ describe('Placeholder Nested', () => {
             expect(result.errors[0]!.message).toContain('not found in options');
         });
 
-        it('should add field state with placeholder label when value is null', async () => {
+        it('should add field state with placeholder label when value is empty string', async () => {
             const result = await validateForman(
-                { aggregator: null, defaultField: 'test' },
+                { aggregator: '', defaultField: 'test' },
                 formanSchema,
                 { states: true },
             );
