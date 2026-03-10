@@ -1050,7 +1050,9 @@ async function handleNestedFields(
             errors.push({
                 domain: context.domain,
                 path: context.path.join('.'),
-                message: `Unable to process nested fields: Domain '${domain}' not found.`,
+                message: resolvedDomain !== domain
+                    ? `Unable to process nested fields: Resolved domain '${resolvedDomain}' (from alias '${domain}') not found.`
+                    : `Unable to process nested fields: Domain '${domain}' not found.`,
             });
         } else {
             const result = await context.roots[resolvedDomain].validateFields(store as FormanSchemaField[], context);

@@ -169,6 +169,36 @@ describe('Cross-domain validation', () => {
         );
     });
 
+    it('should mention both alias and resolved domain when alias points to non-existent domain', async () => {
+        const result = await validateFormanWithDomains(
+            {
+                default: {
+                    values: { host: 'localhost' },
+                    schema: [
+                        {
+                            name: 'host',
+                            type: 'text',
+                            nested: {
+                                store: [{ name: 'port', type: 'number' }],
+                                domain: 'myAlias',
+                            },
+                        },
+                    ],
+                },
+            },
+            { strict: true, domainAliases: { myAlias: 'ghost' } },
+        );
+
+        expect(result.valid).toBe(false);
+        expect(result.errors).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    message: expect.stringContaining("Resolved domain 'ghost' (from alias 'myAlias') not found"),
+                }),
+            ]),
+        );
+    });
+
     it('should handle the user scenario: parameters alias + cross-domain strict', async () => {
         // Reproduces the exact bug: schema says domain:"parameters" but caller uses key "default"
         const result = await validateFormanWithDomains(
