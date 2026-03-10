@@ -36,10 +36,11 @@ describe('udttype composite', () => {
             expect(udttypeDef.type).toBe('string');
             expect(udttypeDef.title).toBeUndefined();
             expect(udttypeDef.oneOf).toBeDefined();
-            expect(udttypeDef.oneOf!.length).toBe(7);
+            expect(udttypeDef.oneOf!.length).toBe(8);
+            expect(udttypeDef.default).toBe('');
 
             const optionValues = udttypeDef.oneOf!.map(o => (o as JSONSchema7).const);
-            expect(optionValues).toEqual(['array', 'collection', 'date', 'text', 'number', 'boolean', 'buffer']);
+            expect(optionValues).toEqual(['', 'array', 'collection', 'date', 'text', 'number', 'boolean', 'buffer']);
         });
 
         it('should produce conditional nested fields via allOf on parent', () => {
