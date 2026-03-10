@@ -205,4 +205,67 @@ describe('Cross-domain validation', () => {
         expect(result.valid).toBe(true);
         expect(result.errors).toEqual([]);
     });
+
+    it('should handle bidirectional cross-domain jumps (exact IO spec reproduction)', async () => {
+        const result = await validateFormanWithDomains(
+            {
+                expect: {
+                    values: { crossDomainParametersToExpect: 'xxx', expectOnly: 'bravo' },
+                    schema: [
+                        {
+                            name: 'expectOnly',
+                            type: 'select',
+                            label: 'Expect Only',
+                            options: {
+                                store: [
+                                    { label: 'Alpha', value: 'alpha' },
+                                    { label: 'Bravo', value: 'bravo' },
+                                ],
+                                nested: {
+                                    store: [
+                                        {
+                                            name: 'crossDomainExpectToParameters',
+                                            type: 'text',
+                                            label: 'Cross Domain Expect to Parameters',
+                                        },
+                                    ],
+                                    domain: 'parameters',
+                                },
+                            },
+                        },
+                    ],
+                },
+                parameters: {
+                    values: { parametersOnly: 'alpha', crossDomainExpectToParameters: 'yyy' },
+                    schema: [
+                        {
+                            name: 'parametersOnly',
+                            type: 'select',
+                            label: 'Parameters Only',
+                            options: {
+                                store: [
+                                    { label: 'Alpha', value: 'alpha' },
+                                    { label: 'Bravo', value: 'bravo' },
+                                ],
+                                nested: {
+                                    store: [
+                                        {
+                                            name: 'crossDomainParametersToExpect',
+                                            type: 'text',
+                                            label: 'Cross Domain Parameters to Expect',
+                                        },
+                                    ],
+                                    domain: 'expect',
+                                },
+                            },
+                        },
+                    ],
+                },
+            },
+            { strict: true },
+        );
+
+        expect(result.errors).toEqual([]);
+        expect(result.valid).toBe(true);
+    });
 });
