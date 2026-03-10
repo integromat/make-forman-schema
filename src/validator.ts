@@ -48,6 +48,8 @@ export interface ValidationContext {
     path: (string | number)[];
     /** Unknown fields are not allowed when strict is true */
     strict: boolean;
+    /** Maps domain names used in nested.domain to actual domain keys */
+    domainAliases: Record<string, string>;
     /** Validate nested fields */
     validateNestedFields(fields: FormanSchemaField[], context: ValidationContext): Promise<void>;
     /** Remote resource resolver
@@ -207,6 +209,7 @@ export async function validateFormanWithDomainsInternal(
                 path: [],
                 tail: [],
                 strict: options?.strict === true,
+                domainAliases: options?.domainAliases ?? {},
                 validateNestedFields: () => {
                     throw new Error('Cannot validate nested fields without parent field.');
                 },
@@ -252,6 +255,21 @@ export async function validateFormanWithDomainsInternal(
                         path: stringToPath(fieldPath),
                         state: { extra },
                     });
+                }
+            }
+        }
+    }
+
+    // Deferred root-level strict check: runs after all domains have been processed,
+    // so cross-domain nested fields have already registered in seenFields.
+    if (options?.strict) {
+        for (const domain of Object.keys(domains)) {
+            if (!domains[domain]) continue;
+            const root = roots[domain]!;
+            for (const key of Object.keys(domains[domain].values)) {
+                if (!root.seenFields.has(key)) {
+                    root.seenFields.add(key);
+                    errors.push({ domain, path: '', message: `Unknown field '${key}'.` });
                 }
             }
         }
@@ -486,7 +504,7 @@ async function handleCollectionType(
         }
     }
 
-    if (context.strict) {
+    if (context.strict && context.path.length > 0) {
         for (const key of Object.keys(value)) {
             if (!seen.has(key)) {
                 seen.add(key); // To avoid duplicate detection when nested fields are specified by another domain
@@ -1026,15 +1044,18 @@ async function handleNestedFields(
         store = resolvedStore;
     }
 
-    if (store && domain && domain !== context.domain) {
-        if (!context.roots[domain]) {
+    const resolvedDomain = domain ? (context.domainAliases[domain] ?? domain) : domain;
+    if (store && resolvedDomain && resolvedDomain !== context.domain) {
+        if (!context.roots[resolvedDomain]) {
             errors.push({
                 domain: context.domain,
                 path: context.path.join('.'),
-                message: `Unable to process nested fields: Domain '${domain}' not found.`,
+                message: resolvedDomain !== domain
+                    ? `Unable to process nested fields: Resolved domain '${resolvedDomain}' (from alias '${domain}') not found.`
+                    : `Unable to process nested fields: Domain '${domain}' not found.`,
             });
         } else {
-            const result = await context.roots[domain].validateFields(store as FormanSchemaField[], context);
+            const result = await context.roots[resolvedDomain].validateFields(store as FormanSchemaField[], context);
             errors.push(...result.errors);
         }
     } else if (store) {

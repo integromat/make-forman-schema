@@ -279,4 +279,6 @@ export type FormanValidationOptions = {
     states?: boolean;
     /** Remote resource resolver */
     resolveRemote?(path: string, data: Record<string, unknown>): Promise<unknown>;
+    /** Maps domain names used in nested.domain to actual domain keys passed to validateFormanWithDomains */
+    domainAliases?: Record<string, string>;
 };
