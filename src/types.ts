@@ -260,6 +260,8 @@ export type FormanValidationResult = {
     }[];
     /** States of fields grouped by domain */
     states?: Record<string, FormanSchemaFieldState>;
+    /** Resolved schema fields per domain */
+    schemas?: Record<string, FormanSchemaField[]>;
 };
 
 export type FormanSchemaFieldState = {
@@ -277,6 +279,8 @@ export type FormanValidationOptions = {
     strict?: boolean;
     /** Whether to generate states for fields */
     states?: boolean;
+    /** Whether to collect resolved schema fields per domain */
+    schemas?: boolean;
     /** Remote resource resolver */
     resolveRemote?(path: string, data: Record<string, unknown>): Promise<unknown>;
     /** Maps domain names used in nested.domain to actual domain keys passed to validateFormanWithDomains */

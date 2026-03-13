@@ -79,6 +79,8 @@ export interface DomainRoot {
         /** State of the field */
         state: Omit<FormanSchemaFieldState, 'nested' | 'items'>;
     }>;
+    /** Resolved schema fields collected during validation */
+    schemaFields: FormanSchemaField[];
 }
 
 /**
@@ -99,6 +101,27 @@ function extractNestedFromField(
     if (field.nested) return field.nested;
     if (isObject<FormanSchemaExtendedOptions>(field.options) && field.options.nested) return field.options.nested;
     return undefined;
+}
+
+const SCHEMA_FIELD_KEYS = [
+    'name', 'type', 'label', 'required', 'validate', 'mode', 'default',
+    'mappable', 'multiple', 'dynamic', 'advanced', 'semantic', 'sequence', 'time', 'grouped',
+] as const;
+
+/**
+ * Keeps only essential properties from a schema field for the schemas output.
+ */
+function stripFieldForSchema(field: FormanSchemaField): FormanSchemaField {
+    const kept = {} as FormanSchemaField;
+    for (const key of SCHEMA_FIELD_KEYS) {
+        if (field[key] != null) (kept as Record<string, unknown>)[key] = field[key];
+    }
+    if (field.spec != null) {
+        kept.spec = Array.isArray(field.spec)
+            ? field.spec.map(stripFieldForSchema)
+            : stripFieldForSchema(field.spec);
+    }
+    return kept;
 }
 
 /**
@@ -171,6 +194,7 @@ export async function validateFormanWithDomainsInternal(
             acc[domain] = {
                 seenFields: new Set(),
                 fieldStates: [],
+                schemaFields: [],
                 validateFields: (fields: FormanSchemaField[], context: ValidationContext) => {
                     return validateFormanValue(
                         domains[domain]!.values,
@@ -285,6 +309,10 @@ export async function validateFormanWithDomainsInternal(
                           .map(domain => roots[domain]!.fieldStates.map(state => ({ domain, ...state })))
                           .flat(),
                   )
+                : undefined,
+        schemas:
+            errors.length === 0 && options?.schemas
+                ? Object.fromEntries(Object.keys(domains).map(domain => [domain, roots[domain]!.schemaFields]))
                 : undefined,
     };
 }
@@ -475,6 +503,9 @@ async function handleCollectionType(
                 continue;
             }
             if (context.strict && !seen.has(subField.name)) seen.add(subField.name);
+            if (path.length === 0) {
+                context.roots[context.domain]!.schemaFields.push(stripFieldForSchema(subField));
+            }
             const result = await validateFormanValue(value[subField.name], subField, {
                 ...context,
                 path: [...path, subField.name],
@@ -492,6 +523,9 @@ async function handleCollectionType(
                             continue;
                         }
                         if (context.strict && !seen.has(subField.name)) seen.add(subField.name);
+                        if (path.length === 0) {
+                            context.roots[context.domain]!.schemaFields.push(stripFieldForSchema(subField));
+                        }
                         const result = await validateFormanValue(value[subField.name], subField, {
                             ...context,
                             path: [...path, subField.name],
