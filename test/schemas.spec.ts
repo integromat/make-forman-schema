@@ -285,6 +285,33 @@ describe('schemas output', () => {
         });
     });
 
+    it('should preserve existing validate.enum on select fields', async () => {
+        const result = await validateForman(
+            { color: 'red' },
+            [
+                {
+                    name: 'color',
+                    type: 'select',
+                    label: 'Color',
+                    validate: { enum: ['red', 'green', 'blue'] },
+                    options: [
+                        { value: 'red', label: 'Red' },
+                        { value: 'blue', label: 'Blue' },
+                    ],
+                },
+            ],
+            { schemas: true },
+        );
+
+        expect(result.valid).toBe(true);
+        expect(result.schemas!['default']![0]).toEqual({
+            name: 'color',
+            type: 'select',
+            label: 'Color',
+            validate: { enum: ['red', 'green', 'blue'] },
+        });
+    });
+
     it('should not generate validate.enum for RPC-sourced select options', async () => {
         const result = await validateForman(
             { picker: 'x' },

@@ -130,8 +130,8 @@ function clampFieldForSchema(field: FormanSchemaField): FormanSchemaField {
             ? field.spec.map(clampFieldForSchema)
             : clampFieldForSchema(field.spec);
     }
-    // Generate validate.enum for select fields with inline array options
-    if (field.type === 'select') {
+    // Generate validate.enum for select fields with inline array options (only if not already set)
+    if (field.type === 'select' && !field.validate?.enum) {
         const rawOptions = isObject<FormanSchemaExtendedOptions>(field.options) ? field.options.store : field.options;
         if (Array.isArray(rawOptions)) {
             const values: FormanSchemaValue[] = [];
