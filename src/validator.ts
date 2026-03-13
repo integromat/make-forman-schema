@@ -11,6 +11,7 @@ import type {
     FormanSchemaPathExtendedOptions,
     FormanSchemaDirectoryOption,
     FormanSchemaSelectOptionsStore,
+    FormanSchemaValue,
 } from './types';
 import {
     containsIMLExpression,
@@ -79,6 +80,8 @@ export interface DomainRoot {
         /** State of the field */
         state: Omit<FormanSchemaFieldState, 'nested' | 'items'>;
     }>;
+    /** Resolved schema fields collected during validation */
+    schemaFields: FormanSchemaField[];
 }
 
 /**
@@ -93,12 +96,61 @@ function hasPlaceholderNested(field: FormanSchemaField): boolean {
 /**
  * Extracts the nested definition from `field.nested` or `field.options.nested`.
  */
-function extractNestedFromField(
-    field: FormanSchemaField,
-): FormanSchemaNested | FormanSchemaExtendedNested | undefined {
+function extractNestedFromField(field: FormanSchemaField): FormanSchemaNested | FormanSchemaExtendedNested | undefined {
     if (field.nested) return field.nested;
     if (isObject<FormanSchemaExtendedOptions>(field.options) && field.options.nested) return field.options.nested;
     return undefined;
+}
+
+const SCHEMA_STRIP_KEYS = [
+    'nested',
+    'options',
+    'help',
+    'rpc',
+    'sort',
+    'disabled',
+    'multiline',
+    'tags',
+    'extension',
+    'codepage',
+    'logic',
+] as const;
+
+/**
+ * Keeps only essential properties from a schema field for the schemas output.
+ * Uses a blocklist approach: removes known non-essential keys and preserves everything else.
+ */
+function clampFieldForSchema(field: FormanSchemaField): FormanSchemaField {
+    const clamped = { ...field } as FormanSchemaField & Record<string, unknown>;
+    for (const key of SCHEMA_STRIP_KEYS) {
+        delete clamped[key];
+    }
+    if (field.spec != null) {
+        clamped.spec = Array.isArray(field.spec)
+            ? field.spec.map(clampFieldForSchema)
+            : clampFieldForSchema(field.spec);
+    }
+    // Generate validate.enum for select fields with inline array options (only if not already set)
+    if (field.type === 'select' && !field.validate?.enum) {
+        const rawOptions = isObject<FormanSchemaExtendedOptions>(field.options) ? field.options.store : field.options;
+        if (Array.isArray(rawOptions)) {
+            const values: FormanSchemaValue[] = [];
+            for (const item of rawOptions) {
+                if ('options' in item) {
+                    // Grouped option
+                    for (const opt of item.options) {
+                        values.push(opt.value);
+                    }
+                } else if ('value' in (item as object)) {
+                    values.push(item.value);
+                }
+            }
+            if (values.length > 0) {
+                clamped.validate = { ...clamped.validate, enum: values.map(String) };
+            }
+        }
+    }
+    return clamped;
 }
 
 /**
@@ -171,6 +223,7 @@ export async function validateFormanWithDomainsInternal(
             acc[domain] = {
                 seenFields: new Set(),
                 fieldStates: [],
+                schemaFields: [],
                 validateFields: (fields: FormanSchemaField[], context: ValidationContext) => {
                     return validateFormanValue(
                         domains[domain]!.values,
@@ -285,6 +338,10 @@ export async function validateFormanWithDomainsInternal(
                           .map(domain => roots[domain]!.fieldStates.map(state => ({ domain, ...state })))
                           .flat(),
                   )
+                : undefined,
+        schemas:
+            errors.length === 0 && options?.schemas
+                ? Object.fromEntries(Object.keys(domains).map(domain => [domain, roots[domain]!.schemaFields]))
                 : undefined,
     };
 }
@@ -475,6 +532,9 @@ async function handleCollectionType(
                 continue;
             }
             if (context.strict && !seen.has(subField.name)) seen.add(subField.name);
+            if (path.length === 0) {
+                context.roots[context.domain]!.schemaFields.push(clampFieldForSchema(subField));
+            }
             const result = await validateFormanValue(value[subField.name], subField, {
                 ...context,
                 path: [...path, subField.name],
@@ -492,6 +552,9 @@ async function handleCollectionType(
                             continue;
                         }
                         if (context.strict && !seen.has(subField.name)) seen.add(subField.name);
+                        if (path.length === 0) {
+                            context.roots[context.domain]!.schemaFields.push(clampFieldForSchema(subField));
+                        }
                         const result = await validateFormanValue(value[subField.name], subField, {
                             ...context,
                             path: [...path, subField.name],
@@ -1050,9 +1113,10 @@ async function handleNestedFields(
             errors.push({
                 domain: context.domain,
                 path: context.path.join('.'),
-                message: resolvedDomain !== domain
-                    ? `Unable to process nested fields: Resolved domain '${resolvedDomain}' (from alias '${domain}') not found.`
-                    : `Unable to process nested fields: Domain '${domain}' not found.`,
+                message:
+                    resolvedDomain !== domain
+                        ? `Unable to process nested fields: Resolved domain '${resolvedDomain}' (from alias '${domain}') not found.`
+                        : `Unable to process nested fields: Domain '${domain}' not found.`,
             });
         } else {
             const result = await context.roots[resolvedDomain].validateFields(store as FormanSchemaField[], context);
