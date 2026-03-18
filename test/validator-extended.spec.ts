@@ -35,7 +35,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: "Value doesn't match the pattern: ^[^@]+@[^@]+\\.[^@]+$",
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -65,7 +65,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: "Value doesn't match the pattern: ^[A-Z]{3}[0-9]{3}$",
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -115,7 +115,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: 'Value exceeded maximum length of 20 characters.',
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -151,7 +151,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: 'Value must be one of the following: active, inactive, pending',
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -201,7 +201,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: 'Value is too big. Maximum value is 100.',
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -254,7 +254,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: 'Array has more than 5 items.',
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -310,7 +310,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: 'Selected more than 3 items.',
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
     });
@@ -385,7 +385,7 @@ describe('Forman Schema Extended Validation', () => {
                         path: 'conflatedNumericField',
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -428,7 +428,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: 'Value contains prohibited IML expression.',
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
     });
@@ -537,7 +537,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: "Value 'invalid' not found in options.",
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -596,7 +596,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: "Value 'invalid' not found in options.",
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
     });
@@ -630,7 +630,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: 'Failed to resolve remote resource rpc://failing-endpoint: Error: Network error',
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -668,7 +668,7 @@ describe('Forman Schema Extended Validation', () => {
                             'Failed to resolve remote resource rpc://failing-nested-endpoint: Error: Nested resource error',
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -695,7 +695,7 @@ describe('Forman Schema Extended Validation', () => {
                             'Failed to resolve remote resource rpc://endpoint: Error: Remote resource not supported when resolver is not provided.',
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
     });
@@ -764,7 +764,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: "Expected type 'string', got type 'number'.",
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -802,7 +802,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: "Expected type 'string', got type 'number'.",
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
     });
@@ -836,7 +836,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: "Expected type 'number', got type 'string'.",
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -855,7 +855,7 @@ describe('Forman Schema Extended Validation', () => {
             expect(await validateForman(formanValue, formanSchema)).toEqual({
                 valid: true,
                 errors: [],
-            warnings: [],
+                warnings: [],
             });
         });
     });
@@ -884,7 +884,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: 'Value is not an array.',
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -933,7 +933,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: "Value 'apple' not found in options.",
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -1033,7 +1033,7 @@ describe('Forman Schema Extended Validation', () => {
                         path: 'wronglyPartiallyGroupedSelect',
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
     });
@@ -1061,7 +1061,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: 'Object contains field with unknown name.',
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -1080,7 +1080,7 @@ describe('Forman Schema Extended Validation', () => {
             expect(await validateForman(formanValue, formanSchema)).toEqual({
                 valid: true,
                 errors: [],
-            warnings: [],
+                warnings: [],
             });
         });
     });
@@ -1115,7 +1115,7 @@ describe('Forman Schema Extended Validation', () => {
             expect(await validateForman(formanValue, formanSchema)).toEqual({
                 valid: true,
                 errors: [],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -1154,7 +1154,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: 'Field is mandatory.',
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
     });
@@ -1192,7 +1192,7 @@ describe('Forman Schema Extended Validation', () => {
             ).toEqual({
                 valid: true,
                 errors: [],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -1220,7 +1220,7 @@ describe('Forman Schema Extended Validation', () => {
             ).toEqual({
                 valid: true,
                 errors: [],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -1248,7 +1248,7 @@ describe('Forman Schema Extended Validation', () => {
             ).toEqual({
                 valid: true,
                 errors: [],
-            warnings: [],
+                warnings: [],
             });
         });
     });
@@ -1299,7 +1299,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: 'Field is mandatory.',
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -1330,7 +1330,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: 'Field is mandatory.',
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -1368,7 +1368,7 @@ describe('Forman Schema Extended Validation', () => {
                         path: 'sheet',
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
     });
@@ -1411,7 +1411,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: 'Field is mandatory.',
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -1437,7 +1437,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: 'Field is mandatory.',
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -1459,7 +1459,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: 'Object contains field with unknown name.',
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
     });
@@ -1499,7 +1499,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: `Single level path cannot contain slashes.`,
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -1539,7 +1539,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: `Single level path cannot contain slashes.`,
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -1576,7 +1576,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: `Path 'file.txt' not found in options.`,
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -1617,15 +1617,15 @@ describe('Forman Schema Extended Validation', () => {
                     },
                 }),
             ).toEqual({
-                valid: false,
-                errors: [
+                valid: true,
+                errors: [],
+                warnings: [
                     {
                         domain: 'default',
                         path: 'invalidPath',
                         message: `Path 'nonexistent.txt' not found in options.`,
                     },
                 ],
-            warnings: [],
             });
         });
 
@@ -1662,7 +1662,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: `Expected type 'string', got type 'object'.`,
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -1716,7 +1716,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: `Invalid selected value of "/folder//file.txt" encountered.`,
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -1736,7 +1736,7 @@ describe('Forman Schema Extended Validation', () => {
             expect(await validateForman(formanValue, formanSchema)).toEqual({
                 valid: true,
                 errors: [],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -1766,15 +1766,15 @@ describe('Forman Schema Extended Validation', () => {
                     },
                 }),
             ).toEqual({
-                valid: false,
-                errors: [
+                valid: true,
+                errors: [],
+                warnings: [
                     {
                         domain: 'default',
                         path: 'pathThroughFile',
                         message: `Path 'file.txt' not found in options.`,
                     },
                 ],
-            warnings: [],
             });
         });
 
@@ -1802,7 +1802,7 @@ describe('Forman Schema Extended Validation', () => {
             expect(await validateForman(formanValue, formanSchema)).toEqual({
                 valid: true,
                 errors: [],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -1836,7 +1836,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: 'Field is mandatory.',
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -1869,7 +1869,7 @@ describe('Forman Schema Extended Validation', () => {
                             'Failed to resolve remote resource rpc://failing-file-explorer: Error: Connection timeout',
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -1906,7 +1906,7 @@ describe('Forman Schema Extended Validation', () => {
             ).toEqual({
                 valid: true,
                 errors: [],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -1944,7 +1944,7 @@ describe('Forman Schema Extended Validation', () => {
             ).toEqual({
                 valid: true,
                 errors: [],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -1985,7 +1985,7 @@ describe('Forman Schema Extended Validation', () => {
                         message: `Path 'nonexistent.pdf' not found in options.`,
                     },
                 ],
-            warnings: [],
+                warnings: [],
             });
         });
 
@@ -2015,7 +2015,7 @@ describe('Forman Schema Extended Validation', () => {
             expect(await validateForman(formanValue, formanSchema)).toEqual({
                 valid: true,
                 errors: [],
-            warnings: [],
+                warnings: [],
             });
         });
     });

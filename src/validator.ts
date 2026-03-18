@@ -815,6 +815,7 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
 
     const selectedPath: FormanSchemaDirectoryOption[] = [];
     let levelOptions: FormanSchemaDirectoryOption[] = [];
+    const optionsFromRPC = typeof options === 'string';
 
     for (let levelIndex = 0; levelIndex < levels.length - 1; ++levelIndex) {
         const isLastLevel = levelIndex === levels.length - 2;
@@ -878,6 +879,14 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
 
         const selectedOption = selectableOptions.find(candidate => candidate.value === levelSelectedValue);
         if (!selectedOption) {
+            if (optionsFromRPC) {
+                warnings.push({
+                    domain: context.domain,
+                    path: context.path.join('.'),
+                    message: `Path '${levelSelectedValue}' not found in options.`,
+                });
+                break;
+            }
             return {
                 valid: false,
                 errors: [
@@ -935,6 +944,7 @@ async function handleSelectType(
 
     let optionsOrGroups = isObject<FormanSchemaExtendedOptions>(field.options) ? field.options.store : field.options;
     let nested = extractNestedFromField(field);
+    let optionsFromRPC = false;
 
     if (typeof optionsOrGroups === 'string') {
         try {
@@ -956,6 +966,7 @@ async function handleSelectType(
             optionsOrGroups = (Array.isArray(resolved) ? resolved : [resolved]) as
                 | FormanSchemaOption[]
                 | FormanSchemaOptionGroup[];
+            optionsFromRPC = true;
         } catch (error) {
             return {
                 valid: false,
@@ -995,7 +1006,7 @@ async function handleSelectType(
                 optionsOrGroups as FormanSchemaSelectOptionsStore,
             );
             if (!found) {
-                errors.push({
+                (optionsFromRPC ? warnings : errors).push({
                     domain: context.domain,
                     path: context.path.join('.'),
                     message: `Value '${singleValue}' not found in options.`,
@@ -1042,32 +1053,40 @@ async function handleSelectType(
         const item = findValueInSelectOptions(field, value, optionsOrGroups as FormanSchemaSelectOptionsStore);
 
         if (!item) {
-            return {
-                valid: false,
-                errors: [
-                    ...errors,
-                    {
-                        domain: context.domain,
-                        path: context.path.join('.'),
-                        message: `Value '${value}' not found in options.`,
+            if (optionsFromRPC) {
+                warnings.push({
+                    domain: context.domain,
+                    path: context.path.join('.'),
+                    message: `Value '${value}' not found in options.`,
+                });
+            } else {
+                return {
+                    valid: false,
+                    errors: [
+                        ...errors,
+                        {
+                            domain: context.domain,
+                            path: context.path.join('.'),
+                            message: `Value '${value}' not found in options.`,
+                        },
+                    ],
+                    warnings,
+                };
+            }
+        } else {
+            if (item.label) {
+                /** Add state of the field to the domain root */
+                context.roots[context.domain]!.fieldStates.push({
+                    path: context.path,
+                    state: {
+                        mode: isReferenceType(field.type) ? undefined : 'chose',
+                        label: item.label,
                     },
-                ],
-                warnings,
-            };
-        }
+                });
+            }
 
-        if (item.label) {
-            /** Add state of the field to the domain root */
-            context.roots[context.domain]!.fieldStates.push({
-                path: context.path,
-                state: {
-                    mode: isReferenceType(field.type) ? undefined : 'chose',
-                    label: item.label,
-                },
-            });
+            if (item.nested) nested = item.nested;
         }
-
-        if (item.nested) nested = item.nested;
     }
 
     if (nested) {
