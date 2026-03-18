@@ -129,32 +129,26 @@ describe('Empty string option for non-required selects', () => {
 
     describe('Validation', () => {
         it('should accept empty string for non-required select', async () => {
-            const result = await validateForman(
-                { color: '' },
-                [
-                    {
-                        name: 'color',
-                        type: 'select',
-                        options: [{ value: 'red' }, { value: 'blue' }],
-                    },
-                ],
-            );
+            const result = await validateForman({ color: '' }, [
+                {
+                    name: 'color',
+                    type: 'select',
+                    options: [{ value: 'red' }, { value: 'blue' }],
+                },
+            ]);
             expect(result.valid).toBe(true);
             expect(result.errors).toEqual([]);
         });
 
         it('should reject empty string for required select', async () => {
-            const result = await validateForman(
-                { color: '' },
-                [
-                    {
-                        name: 'color',
-                        type: 'select',
-                        required: true,
-                        options: [{ value: 'red' }, { value: 'blue' }],
-                    },
-                ],
-            );
+            const result = await validateForman({ color: '' }, [
+                {
+                    name: 'color',
+                    type: 'select',
+                    required: true,
+                    options: [{ value: 'red' }, { value: 'blue' }],
+                },
+            ]);
             expect(result.valid).toBe(false);
             expect(result.errors[0]!.message).toBe('Field is mandatory.');
         });
@@ -186,10 +180,7 @@ describe('Empty string option for non-required selects', () => {
                     type: 'select',
                     label: 'Color',
                     required: false,
-                    options: [
-                        { value: 'red' },
-                        { value: 'blue' },
-                    ],
+                    options: [{ value: 'red' }, { value: 'blue' }],
                 },
             ]);
         });
@@ -214,10 +205,7 @@ describe('Empty string option for non-required selects', () => {
                     name: 'size',
                     type: 'select',
                     required: false,
-                    options: [
-                        { value: 'small' },
-                        { value: 'large' },
-                    ],
+                    options: [{ value: 'small' }, { value: 'large' }],
                 },
             ]);
         });

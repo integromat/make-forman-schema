@@ -656,7 +656,10 @@ function handleSelectOrPathType(
     if (!field.required) {
         if (result.enum && !result.enum.includes('')) {
             result.enum = ['', ...result.enum];
-        } else if (result.oneOf && !result.oneOf.some((entry): entry is JSONSchema7 => isObject(entry) && entry.const === '')) {
+        } else if (
+            result.oneOf &&
+            !result.oneOf.some((entry): entry is JSONSchema7 => isObject(entry) && entry.const === '')
+        ) {
             result.oneOf = [{ title: 'Empty', const: '' }, ...result.oneOf];
         }
         if (result.default === undefined) {

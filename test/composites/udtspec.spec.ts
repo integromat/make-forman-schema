@@ -50,7 +50,6 @@ describe('udtspec composite', () => {
             expect(udttypeDef.title).toBeUndefined();
             expect(udttypeDef.description).toBeUndefined();
             expect(Object.getOwnPropertyDescriptor(udttypeDef, 'x-composite')?.value).toBe('udttype');
-
         });
 
         it('should convert top-level udtspec field directly', () => {

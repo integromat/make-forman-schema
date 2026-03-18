@@ -202,6 +202,8 @@ export function udttypeCollapse(field: JSONSchema7): FormanSchemaField {
         type: 'udttype',
         label: noEmpty(field.title),
         help: noEmpty(field.description),
-        ...(field.default !== '' && field.default != null ? { default: field.default as FormanSchemaField['default'] } : {}),
+        ...(field.default !== '' && field.default != null
+            ? { default: field.default as FormanSchemaField['default'] }
+            : {}),
     };
 }

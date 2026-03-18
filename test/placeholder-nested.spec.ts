@@ -105,28 +105,19 @@ describe('Placeholder Nested', () => {
         const formanSchema = [selectWithPlaceholderNested];
 
         it('should accept empty string value and validate placeholder nested fields', async () => {
-            const result = await validateForman(
-                { aggregator: '', defaultField: 'hello' },
-                formanSchema,
-            );
+            const result = await validateForman({ aggregator: '', defaultField: 'hello' }, formanSchema);
             expect(result.valid).toBe(true);
             expect(result.errors).toEqual([]);
         });
 
         it('should accept null value and validate placeholder nested fields', async () => {
-            const result = await validateForman(
-                { aggregator: null, defaultField: 'hello' },
-                formanSchema,
-            );
+            const result = await validateForman({ aggregator: null, defaultField: 'hello' }, formanSchema);
             expect(result.valid).toBe(true);
             expect(result.errors).toEqual([]);
         });
 
         it('should reject empty string value when placeholder nested required field is missing', async () => {
-            const result = await validateForman(
-                { aggregator: '' },
-                formanSchema,
-            );
+            const result = await validateForman({ aggregator: '' }, formanSchema);
             expect(result.valid).toBe(false);
             expect(result.errors).toEqual([
                 {
@@ -138,28 +129,20 @@ describe('Placeholder Nested', () => {
         });
 
         it('should validate non-null value against options normally', async () => {
-            const result = await validateForman(
-                { aggregator: 'sum' },
-                formanSchema,
-            );
+            const result = await validateForman({ aggregator: 'sum' }, formanSchema);
             expect(result.valid).toBe(true);
         });
 
         it('should reject invalid non-null value', async () => {
-            const result = await validateForman(
-                { aggregator: 'invalid' },
-                formanSchema,
-            );
+            const result = await validateForman({ aggregator: 'invalid' }, formanSchema);
             expect(result.valid).toBe(false);
             expect(result.errors[0]!.message).toContain('not found in options');
         });
 
         it('should add field state with placeholder label when value is empty string', async () => {
-            const result = await validateForman(
-                { aggregator: '', defaultField: 'test' },
-                formanSchema,
-                { states: true },
-            );
+            const result = await validateForman({ aggregator: '', defaultField: 'test' }, formanSchema, {
+                states: true,
+            });
             expect(result.valid).toBe(true);
             expect(result.states).toEqual(
                 expect.objectContaining({

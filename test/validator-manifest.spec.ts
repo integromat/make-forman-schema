@@ -26,7 +26,7 @@ describe('Forman Schema Manifest Validation', () => {
                     path: '__IMTCONN__',
                 },
             ],
-        warnings: [],
+            warnings: [],
         });
 
         expect(
@@ -66,7 +66,7 @@ describe('Forman Schema Manifest Validation', () => {
                     path: 'insertUnformatted',
                 },
             ],
-        warnings: [],
+            warnings: [],
         });
 
         // Nested fields in select type
@@ -256,7 +256,7 @@ describe('Forman Schema Manifest Validation', () => {
         ).toEqual({
             valid: true,
             errors: [],
-        warnings: [],
+            warnings: [],
         });
     });
 
@@ -329,7 +329,7 @@ describe('Forman Schema Manifest Validation', () => {
         ).toEqual({
             valid: true,
             errors: [],
-        warnings: [],
+            warnings: [],
         });
     });
 
