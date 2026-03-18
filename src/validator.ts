@@ -52,7 +52,7 @@ export interface ValidationContext {
     /** Maps domain names used in nested.domain to actual domain keys */
     domainAliases: Record<string, string>;
     /** Validate nested fields */
-    validateNestedFields(fields: FormanSchemaField[], context: ValidationContext): Promise<void>;
+    validateNestedFields(fields: FormanSchemaField[], context: ValidationContext): Promise<FormanValidationResult>;
     /** Remote resource resolver
      * @param path The remote resource path
      * @param context The validation context
@@ -550,12 +550,14 @@ async function handleCollectionType(
                 ...context,
                 path: [...path, subField.name],
                 validateNestedFields: async (fields: FormanSchemaField[], context: ValidationContext) => {
+                    const localErrors: FormanValidationResult['errors'] = [];
+                    const localWarnings: FormanValidationResult['warnings'] = [];
                     for (const subField of fields) {
                         if (isVisualType(subField.type)) {
                             continue;
                         }
                         if (!subField.name) {
-                            errors.push({
+                            localErrors.push({
                                 domain: context.domain,
                                 path: context.path.join('.'),
                                 message: 'Object contains field with unknown name.',
@@ -570,9 +572,10 @@ async function handleCollectionType(
                             ...context,
                             path: [...path, subField.name],
                         });
-                        errors.push(...result.errors);
-                        warnings.push(...result.warnings);
+                        localErrors.push(...result.errors);
+                        localWarnings.push(...result.warnings);
                     }
+                    return { valid: localErrors.length === 0, errors: localErrors, warnings: localWarnings };
                 },
             });
             errors.push(...result.errors);
@@ -815,7 +818,7 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
 
     const selectedPath: FormanSchemaDirectoryOption[] = [];
     let levelOptions: FormanSchemaDirectoryOption[] = [];
-    const optionsFromRPC = typeof options === 'string';
+    let optionsFromRPC = false;
 
     for (let levelIndex = 0; levelIndex < levels.length - 1; ++levelIndex) {
         const isLastLevel = levelIndex === levels.length - 2;
@@ -842,6 +845,7 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
                 levelOptions = (await context.resolveRemote(options, context, {
                     [field.name!]: (showRoot && !selectedPathValue.startsWith('/') ? '/' : '') + selectedPathValue,
                 })) as FormanSchemaDirectoryOption[];
+                optionsFromRPC = true;
             } catch (error) {
                 return {
                     valid: false,
@@ -1179,7 +1183,9 @@ async function handleNestedFields(
             warnings.push(...result.warnings);
         }
     } else if (store) {
-        await context.validateNestedFields(store as FormanSchemaField[], context);
+        const result = await context.validateNestedFields(store as FormanSchemaField[], context);
+        errors.push(...result.errors);
+        warnings.push(...result.warnings);
     }
 
     return {
