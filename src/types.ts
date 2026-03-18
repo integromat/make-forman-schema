@@ -258,6 +258,15 @@ export type FormanValidationResult = {
         /** Error message */
         message: string;
     }[];
+    /** Warnings (do not affect validity) */
+    warnings: {
+        /** Field domain */
+        domain: string;
+        /** Field path */
+        path: string;
+        /** Warning message */
+        message: string;
+    }[];
     /** States of fields grouped by domain */
     states?: Record<string, FormanSchemaFieldState>;
     /** Resolved schema fields per domain */

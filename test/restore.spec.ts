@@ -21,6 +21,7 @@ describe('Restore state for IML-mapped fields', () => {
         expect(result).toEqual({
             valid: true,
             errors: [],
+            warnings: [],
             states: {
                 default: {
                     color: { mode: 'edit' },
@@ -39,6 +40,7 @@ describe('Restore state for IML-mapped fields', () => {
         expect(result).toEqual({
             valid: true,
             errors: [],
+            warnings: [],
             states: {
                 default: {
                     item: { mode: 'edit' },
@@ -53,6 +55,7 @@ describe('Restore state for IML-mapped fields', () => {
         expect(result).toEqual({
             valid: true,
             errors: [],
+            warnings: [],
             states: {
                 default: {
                     doc: { mode: 'edit' },
@@ -69,6 +72,7 @@ describe('Restore state for IML-mapped fields', () => {
         expect(result).toEqual({
             valid: true,
             errors: [],
+            warnings: [],
             states: {
                 default: {
                     dir: { mode: 'edit' },
@@ -85,6 +89,7 @@ describe('Restore state for IML-mapped fields', () => {
         expect(result).toEqual({
             valid: true,
             errors: [],
+            warnings: [],
             states: {
                 default: {
                     flag: { mode: 'edit' },
@@ -112,6 +117,7 @@ describe('Restore state for IML-mapped fields', () => {
         expect(result).toEqual({
             valid: true,
             errors: [],
+            warnings: [],
             states: {
                 default: {
                     color: { label: 'Red', mode: 'chose' },

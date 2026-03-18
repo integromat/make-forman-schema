@@ -55,6 +55,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
             expect(await validateForman(formanValue, formanSchema)).toEqual({
                 valid: true,
                 errors: [],
+            warnings: [],
             });
         });
 
@@ -97,6 +98,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                         message: "Expected type 'string', got type 'number'.",
                     },
                 ],
+            warnings: [],
             });
         });
 
@@ -123,6 +125,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                         message: "Expected type 'array', got type 'string'.",
                     },
                 ],
+            warnings: [],
             });
         });
 
@@ -178,6 +181,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                         path: 'invalidFlatFilter.0',
                     },
                 ],
+                warnings: [],
                 valid: false,
             });
         });
@@ -224,6 +228,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
             expect(await validateForman(formanValue, formanSchema)).toEqual({
                 valid: true,
                 errors: [],
+                warnings: [],
             });
         });
 
@@ -258,6 +263,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                         message: "Expected type 'number', got type 'string'.",
                     },
                 ],
+            warnings: [],
             });
         });
 
@@ -291,6 +297,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
             expect(await validateForman(formanValue, formanSchema, { states: true })).toEqual({
                 valid: true,
                 errors: [],
+                warnings: [],
                 states: {
                     default: {
                         coordinates: {
@@ -374,6 +381,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
             ).toEqual({
                 valid: true,
                 errors: [],
+            warnings: [],
             });
         });
     });
@@ -422,6 +430,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                         message: "Expected type 'string', got type 'number'.",
                     },
                 ],
+            warnings: [],
             });
         });
 
@@ -447,6 +456,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
             expect(await validateForman(wrappedValue, formanSchema)).toEqual({
                 valid: true,
                 errors: [],
+            warnings: [],
             });
         });
     });
@@ -505,6 +515,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
             ).toEqual({
                 valid: true,
                 errors: [],
+                warnings: [],
                 states: {
                     default: {
                         service: {
@@ -572,6 +583,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                         message: "Expected type 'boolean', got type 'number'.",
                     },
                 ],
+            warnings: [],
             });
         });
     });
@@ -598,6 +610,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
             expect(await validateForman(formanValue, formanSchema)).toEqual({
                 valid: true,
                 errors: [],
+            warnings: [],
             });
         });
 
@@ -630,6 +643,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
             expect(await validateForman(formanValue, formanSchema)).toEqual({
                 valid: true,
                 errors: [],
+            warnings: [],
             });
         });
 
@@ -673,6 +687,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
             expect(await validateForman(formanValue, formanSchema)).toEqual({
                 valid: true,
                 errors: [],
+            warnings: [],
             });
         });
     });
@@ -683,7 +698,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                 { enabled: true },
                 [{ name: 'enabled', type: 'checkbox' }],
             );
-            expect(result).toEqual({ valid: true, errors: [] });
+            expect(result).toEqual({ valid: true, errors: [], warnings: [] });
         });
 
         it('should validate checkbox with false value', async () => {
@@ -691,7 +706,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                 { disabled: false },
                 [{ name: 'disabled', type: 'checkbox' }],
             );
-            expect(result).toEqual({ valid: true, errors: [] });
+            expect(result).toEqual({ valid: true, errors: [], warnings: [] });
         });
 
         it('should reject non-boolean values for checkbox', async () => {
@@ -706,6 +721,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                     path: 'enabled',
                     message: "Expected type 'boolean', got type 'string'.",
                 }],
+                warnings: [],
             });
         });
 
@@ -721,6 +737,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                     path: 'enabled',
                     message: "Expected type 'boolean', got type 'number'.",
                 }],
+            warnings: [],
             });
         });
 
@@ -736,6 +753,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                     path: 'enabled',
                     message: 'Field is mandatory.',
                 }],
+            warnings: [],
             });
         });
 
@@ -744,7 +762,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                 { enabled: null },
                 [{ name: 'enabled', type: 'checkbox' }],
             );
-            expect(result).toEqual({ valid: true, errors: [] });
+            expect(result).toEqual({ valid: true, errors: [], warnings: [] });
         });
 
         it('should support default value for checkbox', async () => {
@@ -752,7 +770,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                 {},
                 [{ name: 'enabled', type: 'checkbox', default: true }],
             );
-            expect(result).toEqual({ valid: true, errors: [] });
+            expect(result).toEqual({ valid: true, errors: [], warnings: [] });
         });
 
         it('should validate checkbox in nested objects', async () => {
@@ -764,7 +782,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                     spec: [{ name: 'notifications', type: 'checkbox' }],
                 }],
             );
-            expect(result).toEqual({ valid: true, errors: [] });
+            expect(result).toEqual({ valid: true, errors: [], warnings: [] });
         });
 
         it('should validate checkbox in arrays', async () => {
@@ -776,7 +794,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                     spec: { type: 'collection', spec: [{ name: 'active', type: 'checkbox' }] },
                 }],
             );
-            expect(result).toEqual({ valid: true, errors: [] });
+            expect(result).toEqual({ valid: true, errors: [], warnings: [] });
         });
     });
 });

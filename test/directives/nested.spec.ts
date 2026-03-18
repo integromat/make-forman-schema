@@ -127,6 +127,7 @@ describe('Nested', () => {
             expect(result).toEqual({
                 valid: true,
                 errors: [],
+                warnings: [],
             });
         });
     });
