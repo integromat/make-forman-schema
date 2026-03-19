@@ -41,9 +41,7 @@ describe('Cross-domain validation', () => {
                             name: 'trigger',
                             type: 'select',
                             options: {
-                                store: [
-                                    { value: 'a', label: 'A' },
-                                ],
+                                store: [{ value: 'a', label: 'A' }],
                                 nested: {
                                     store: [{ name: 'crossField', type: 'text' }],
                                     domain: 'default',
@@ -210,9 +208,7 @@ describe('Cross-domain validation', () => {
                             name: 'trigger',
                             type: 'select',
                             options: {
-                                store: [
-                                    { value: 'webhook', label: 'Webhook' },
-                                ],
+                                store: [{ value: 'webhook', label: 'Webhook' }],
                                 nested: {
                                     store: [
                                         { name: 'url', type: 'text' },

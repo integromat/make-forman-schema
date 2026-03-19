@@ -96,7 +96,9 @@ describe('udttype composite', () => {
             // $defs should contain the udttype definition
             expect(result['definitions']).toBeDefined();
             expect(result['definitions']!['udttype']).toBeDefined();
-            expect(Object.getOwnPropertyDescriptor(result['definitions']!['udttype'], 'x-composite')?.value).toBe('udttype');
+            expect(Object.getOwnPropertyDescriptor(result['definitions']!['udttype'], 'x-composite')?.value).toBe(
+                'udttype',
+            );
         });
 
         it('should use $ref for recursive udttype references', () => {

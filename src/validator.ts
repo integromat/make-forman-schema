@@ -217,6 +217,7 @@ export async function validateFormanWithDomainsInternal(
     options?: FormanValidationOptions,
 ): Promise<FormanValidationResult> {
     const errors: FormanValidationResult['errors'] = [];
+    const warnings: FormanValidationResult['warnings'] = [];
 
     const roots = Object.keys(domains).reduce(
         (acc, domain) => {
@@ -285,6 +286,7 @@ export async function validateFormanWithDomainsInternal(
             },
         );
         errors.push(...result.errors);
+        warnings.push(...result.warnings);
 
         // Append the additional restore data, if provided.
         // Extras only apply when states are enabled, because they contribute field-level state (labels, modes, etc.).
@@ -331,6 +333,7 @@ export async function validateFormanWithDomainsInternal(
     return {
         valid: errors.length === 0,
         errors,
+        warnings,
         states:
             errors.length === 0 && options?.states
                 ? buildRestoreStructure(
@@ -362,6 +365,7 @@ async function validateFormanValue(
         return {
             valid: true,
             errors: [],
+            warnings: [],
         };
     }
 
@@ -378,6 +382,7 @@ async function validateFormanValue(
                     message: 'Field is mandatory.',
                 },
             ],
+            warnings: [],
         };
     }
 
@@ -389,6 +394,7 @@ async function validateFormanValue(
         return {
             valid: true,
             errors: [],
+            warnings: [],
         };
     }
 
@@ -406,6 +412,7 @@ async function validateFormanValue(
                     message: `Expected type '${expectedType}', got type '${actualType}'.`,
                 },
             ],
+            warnings: [],
         };
     }
 
@@ -420,6 +427,7 @@ async function validateFormanValue(
                         message: 'Value contains prohibited IML expression.',
                     },
                 ],
+                warnings: [],
             };
         }
 
@@ -438,6 +446,7 @@ async function validateFormanValue(
         return {
             valid: true,
             errors: [],
+            warnings: [],
         };
     }
 
@@ -487,6 +496,7 @@ async function handleCollectionType(
     context: ValidationContext,
 ): Promise<FormanValidationResult> {
     const errors: FormanValidationResult['errors'] = [];
+    const warnings: FormanValidationResult['warnings'] = [];
     const seen = context.path.length === 0 ? context.roots[context.domain]!.seenFields : new Set<string>();
     const path = context.path;
 
@@ -516,6 +526,7 @@ async function handleCollectionType(
                                 message: `Failed to resolve remote resource ${subField}: ${error}`,
                             },
                         ],
+                        warnings,
                     };
                 }
             }
@@ -560,10 +571,12 @@ async function handleCollectionType(
                             path: [...path, subField.name],
                         });
                         errors.push(...result.errors);
+                        warnings.push(...result.warnings);
                     }
                 },
             });
             errors.push(...result.errors);
+            warnings.push(...result.warnings);
         }
     }
 
@@ -583,6 +596,7 @@ async function handleCollectionType(
     return {
         valid: errors.length === 0,
         errors,
+        warnings,
     };
 }
 
@@ -599,6 +613,7 @@ async function handleArrayType(
     context: ValidationContext,
 ): Promise<FormanValidationResult> {
     const errors: FormanValidationResult['errors'] = [];
+    const warnings: FormanValidationResult['warnings'] = [];
 
     if (field.spec) {
         for (const [index, item] of value.entries()) {
@@ -610,6 +625,7 @@ async function handleArrayType(
                 { ...context, path: [...context.path, index] },
             );
             errors.push(...result.errors);
+            warnings.push(...result.warnings);
         }
     }
 
@@ -634,6 +650,7 @@ async function handleArrayType(
     return {
         valid: errors.length === 0,
         errors,
+        warnings,
     };
 }
 
@@ -713,6 +730,7 @@ async function handleFilterType(value: unknown, field: FormanSchemaField, contex
  */
 async function handlePathType(value: unknown, field: FormanSchemaField, context: ValidationContext) {
     const errors: FormanValidationResult['errors'] = [];
+    const warnings: FormanValidationResult['warnings'] = [];
 
     if (typeof value !== 'string') {
         return {
@@ -725,6 +743,7 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
                     message: `Expected type 'string' for path, got type '${typeof value}'.`,
                 },
             ],
+            warnings,
         };
     }
 
@@ -754,6 +773,7 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
                     message: `Single level path cannot contain slashes.`,
                 },
             ],
+            warnings,
         };
     }
     let nested = field.nested
@@ -773,6 +793,7 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
         return {
             valid: true,
             errors: [],
+            warnings,
         };
     }
 
@@ -788,11 +809,13 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
                     message: `Invalid path "${value}" encountered.`,
                 },
             ],
+            warnings,
         };
     }
 
     const selectedPath: FormanSchemaDirectoryOption[] = [];
     let levelOptions: FormanSchemaDirectoryOption[] = [];
+    let optionsFromRPC = false;
 
     for (let levelIndex = 0; levelIndex < levels.length - 1; ++levelIndex) {
         const isLastLevel = levelIndex === levels.length - 2;
@@ -810,6 +833,7 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
                         message: `Invalid selected value of "${value}" encountered.`,
                     },
                 ],
+                warnings,
             };
         }
 
@@ -818,6 +842,7 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
                 levelOptions = (await context.resolveRemote(options, context, {
                     [field.name!]: (showRoot && !selectedPathValue.startsWith('/') ? '/' : '') + selectedPathValue,
                 })) as FormanSchemaDirectoryOption[];
+                optionsFromRPC = true;
             } catch (error) {
                 return {
                     valid: false,
@@ -829,6 +854,7 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
                             message: `Failed to resolve remote resource ${options}: ${error}`,
                         },
                     ],
+                    warnings,
                 };
             }
         } else if (isLastLevel) {
@@ -854,6 +880,14 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
 
         const selectedOption = selectableOptions.find(candidate => candidate.value === levelSelectedValue);
         if (!selectedOption) {
+            if (optionsFromRPC) {
+                warnings.push({
+                    domain: context.domain,
+                    path: context.path.join('.'),
+                    message: `Path '${levelSelectedValue}' not found in options.`,
+                });
+                break;
+            }
             return {
                 valid: false,
                 errors: [
@@ -864,6 +898,7 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
                         message: `Path '${levelSelectedValue}' not found in options.`,
                     },
                 ],
+                warnings,
             };
         }
         selectedPath.push(selectedOption);
@@ -883,11 +918,13 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
     if (nested) {
         const result = await handleNestedFields(nested, value, field, context);
         errors.push(...result.errors);
+        warnings.push(...result.warnings);
     }
 
     return {
         valid: errors.length === 0,
         errors,
+        warnings,
     };
 }
 
@@ -904,9 +941,11 @@ async function handleSelectType(
     context: ValidationContext,
 ): Promise<FormanValidationResult> {
     const errors: FormanValidationResult['errors'] = [];
+    const warnings: FormanValidationResult['warnings'] = [];
 
     let optionsOrGroups = isObject<FormanSchemaExtendedOptions>(field.options) ? field.options.store : field.options;
     let nested = extractNestedFromField(field);
+    let optionsFromRPC = false;
 
     if (typeof optionsOrGroups === 'string') {
         try {
@@ -922,11 +961,13 @@ async function handleSelectType(
                             message: `Remote resource ${optionsOrGroups} returned no data.`,
                         },
                     ],
+                    warnings,
                 };
             }
             optionsOrGroups = (Array.isArray(resolved) ? resolved : [resolved]) as
                 | FormanSchemaOption[]
                 | FormanSchemaOptionGroup[];
+            optionsFromRPC = true;
         } catch (error) {
             return {
                 valid: false,
@@ -938,6 +979,7 @@ async function handleSelectType(
                         message: `Failed to resolve remote resource ${optionsOrGroups}: ${error}`,
                     },
                 ],
+                warnings,
             };
         }
     }
@@ -954,6 +996,7 @@ async function handleSelectType(
                         message: `Value is not an array.`,
                     },
                 ],
+                warnings,
             };
         }
 
@@ -964,7 +1007,7 @@ async function handleSelectType(
                 optionsOrGroups as FormanSchemaSelectOptionsStore,
             );
             if (!found) {
-                errors.push({
+                (optionsFromRPC ? warnings : errors).push({
                     domain: context.domain,
                     path: context.path.join('.'),
                     message: `Value '${singleValue}' not found in options.`,
@@ -1011,41 +1054,52 @@ async function handleSelectType(
         const item = findValueInSelectOptions(field, value, optionsOrGroups as FormanSchemaSelectOptionsStore);
 
         if (!item) {
-            return {
-                valid: false,
-                errors: [
-                    ...errors,
-                    {
-                        domain: context.domain,
-                        path: context.path.join('.'),
-                        message: `Value '${value}' not found in options.`,
+            if (optionsFromRPC) {
+                warnings.push({
+                    domain: context.domain,
+                    path: context.path.join('.'),
+                    message: `Value '${value}' not found in options.`,
+                });
+            } else {
+                return {
+                    valid: false,
+                    errors: [
+                        ...errors,
+                        {
+                            domain: context.domain,
+                            path: context.path.join('.'),
+                            message: `Value '${value}' not found in options.`,
+                        },
+                    ],
+                    warnings,
+                };
+            }
+        } else {
+            if (item.label) {
+                /** Add state of the field to the domain root */
+                context.roots[context.domain]!.fieldStates.push({
+                    path: context.path,
+                    state: {
+                        mode: isReferenceType(field.type) ? undefined : 'chose',
+                        label: item.label,
                     },
-                ],
-            };
-        }
+                });
+            }
 
-        if (item.label) {
-            /** Add state of the field to the domain root */
-            context.roots[context.domain]!.fieldStates.push({
-                path: context.path,
-                state: {
-                    mode: isReferenceType(field.type) ? undefined : 'chose',
-                    label: item.label,
-                },
-            });
+            if (item.nested) nested = item.nested;
         }
-
-        if (item.nested) nested = item.nested;
     }
 
     if (nested) {
         const result = await handleNestedFields(nested, value, field, context);
         errors.push(...result.errors);
+        warnings.push(...result.warnings);
     }
 
     return {
         valid: errors.length === 0,
         errors,
+        warnings,
     };
 }
 
@@ -1064,6 +1118,7 @@ async function handleNestedFields(
     context: ValidationContext,
 ): Promise<FormanValidationResult> {
     const errors: FormanValidationResult['errors'] = [];
+    const warnings: FormanValidationResult['warnings'] = [];
 
     let store = isObject<FormanSchemaExtendedNested>(nested) ? nested.store : nested;
     const domain = isObject<FormanSchemaExtendedNested>(nested) && nested.domain ? nested.domain : undefined;
@@ -1098,6 +1153,7 @@ async function handleNestedFields(
                                 message: `Failed to resolve remote resource ${item}: ${error}`,
                             },
                         ],
+                        warnings,
                     };
                 }
             } else {
@@ -1121,6 +1177,7 @@ async function handleNestedFields(
         } else {
             const result = await context.roots[resolvedDomain].validateFields(store as FormanSchemaField[], context);
             errors.push(...result.errors);
+            warnings.push(...result.warnings);
         }
     } else if (store) {
         await context.validateNestedFields(store as FormanSchemaField[], context);
@@ -1129,6 +1186,7 @@ async function handleNestedFields(
     return {
         valid: errors.length === 0,
         errors,
+        warnings,
     };
 }
 
@@ -1144,6 +1202,7 @@ async function handlePrimitiveType(
     context: ValidationContext,
 ): Promise<FormanValidationResult> {
     const errors: FormanValidationResult['errors'] = [];
+    const warnings: FormanValidationResult['warnings'] = [];
 
     // Add validation if present
     if (field.validate) {
@@ -1203,10 +1262,12 @@ async function handlePrimitiveType(
     if (nested) {
         const result = await handleNestedFields(nested, value, field, context);
         errors.push(...result.errors);
+        warnings.push(...result.warnings);
     }
 
     return {
         valid: errors.length === 0,
         errors,
+        warnings,
     };
 }

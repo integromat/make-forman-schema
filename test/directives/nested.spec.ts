@@ -127,6 +127,7 @@ describe('Nested', () => {
             expect(result).toEqual({
                 valid: true,
                 errors: [],
+                warnings: [],
             });
         });
     });
@@ -294,11 +295,9 @@ describe('Nested', () => {
                 },
             ];
 
-            const result = await validateForman(
-                { input: '{{2.value}}', dynamicallyRenderedField: 'aaa' },
-                schema,
-                { resolveRemote },
-            );
+            const result = await validateForman({ input: '{{2.value}}', dynamicallyRenderedField: 'aaa' }, schema, {
+                resolveRemote,
+            });
             expect(result.valid).toBe(true);
             expect(result.errors).toEqual([]);
         });
@@ -313,15 +312,9 @@ describe('Nested', () => {
                 },
             ];
 
-            const result = await validateForman(
-                { input: '{{2.value}}' },
-                schema,
-                { resolveRemote },
-            );
+            const result = await validateForman({ input: '{{2.value}}' }, schema, { resolveRemote });
             expect(result.valid).toBe(false);
-            expect(result.errors).toEqual([
-                expect.objectContaining({ message: 'Field is mandatory.' }),
-            ]);
+            expect(result.errors).toEqual([expect.objectContaining({ message: 'Field is mandatory.' })]);
         });
 
         it('should expand nested fields on select field with IML value', async () => {
@@ -340,11 +333,9 @@ describe('Nested', () => {
                 },
             ];
 
-            const result = await validateForman(
-                { mySelect: '{{2.value}}', dynamicallyRenderedField: 'aaa' },
-                schema,
-                { resolveRemote },
-            );
+            const result = await validateForman({ mySelect: '{{2.value}}', dynamicallyRenderedField: 'aaa' }, schema, {
+                resolveRemote,
+            });
             expect(result.valid).toBe(true);
             expect(result.errors).toEqual([]);
         });

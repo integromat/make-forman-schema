@@ -238,7 +238,7 @@ describe('Filter Type with Configurable Options and Operators', () => {
             };
 
             const result = await validateForman(value, [formanSchema]);
-            expect(result).toEqual({ valid: true, errors: [] });
+            expect(result).toEqual({ valid: true, errors: [], warnings: [] });
         });
 
         it('should validate filter with unary operator', async () => {
@@ -252,7 +252,7 @@ describe('Filter Type with Configurable Options and Operators', () => {
             };
 
             const result = await validateForman(value, [formanSchema]);
-            expect(result).toEqual({ valid: true, errors: [] });
+            expect(result).toEqual({ valid: true, errors: [], warnings: [] });
         });
 
         it('should validate filter with multiple conditions', async () => {
@@ -271,7 +271,7 @@ describe('Filter Type with Configurable Options and Operators', () => {
             };
 
             const result = await validateForman(value, [formanSchema]);
-            expect(result).toEqual({ valid: true, errors: [] });
+            expect(result).toEqual({ valid: true, errors: [], warnings: [] });
         });
     });
 

@@ -434,4 +434,65 @@ describe('RPC', () => {
         expect(result.valid).toBe(false);
         expect(result.errors[0]?.message).toContain('returned no data');
     });
+
+    it('should emit a warning (not an error) when selected value is missing from RPC options', async () => {
+        const schema: FormanSchemaField[] = [
+            {
+                name: 'mySelect',
+                type: 'select',
+                options: 'rpc://myOptions',
+            },
+        ];
+        const result = await validateForman({ mySelect: 'missing' }, schema, {
+            resolveRemote(): Promise<unknown> {
+                return Promise.resolve([
+                    { value: 'a', label: 'Option A' },
+                    { value: 'b', label: 'Option B' },
+                ]);
+            },
+        });
+        expect(result).toEqual({
+            valid: true,
+            errors: [],
+            warnings: [
+                {
+                    domain: 'default',
+                    path: 'mySelect',
+                    message: "Value 'missing' not found in options.",
+                },
+            ],
+        });
+    });
+
+    it('should emit warnings for each missing value when multiple select uses RPC options', async () => {
+        const schema: FormanSchemaField[] = [
+            {
+                name: 'myMultiSelect',
+                type: 'select',
+                multiple: true,
+                options: 'rpc://myOptions',
+            },
+        ];
+        const result = await validateForman({ myMultiSelect: ['a', 'missing1', 'missing2'] }, schema, {
+            resolveRemote(): Promise<unknown> {
+                return Promise.resolve([{ value: 'a', label: 'Option A' }]);
+            },
+        });
+        expect(result).toEqual({
+            valid: true,
+            errors: [],
+            warnings: [
+                {
+                    domain: 'default',
+                    path: 'myMultiSelect',
+                    message: "Value 'missing1' not found in options.",
+                },
+                {
+                    domain: 'default',
+                    path: 'myMultiSelect',
+                    message: "Value 'missing2' not found in options.",
+                },
+            ],
+        });
+    });
 });
