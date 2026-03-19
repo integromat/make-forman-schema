@@ -1000,6 +1000,7 @@ async function handleSelectType(
             };
         }
 
+        let hasUnresolvedValue = false;
         for (const singleValue of value) {
             const found = findValueInSelectOptions(
                 field,
@@ -1012,7 +1013,15 @@ async function handleSelectType(
                     path: context.path.join('.'),
                     message: `Value '${singleValue}' not found in options.`,
                 });
+                hasUnresolvedValue = true;
             }
+        }
+
+        if (optionsFromRPC && hasUnresolvedValue) {
+            context.roots[context.domain]!.fieldStates.push({
+                path: context.path,
+                state: { mode: 'edit' },
+            });
         }
 
         // Add validation if present
@@ -1059,6 +1068,10 @@ async function handleSelectType(
                     domain: context.domain,
                     path: context.path.join('.'),
                     message: `Value '${value}' not found in options.`,
+                });
+                context.roots[context.domain]!.fieldStates.push({
+                    path: context.path,
+                    state: { mode: 'edit' },
                 });
             } else {
                 return {
