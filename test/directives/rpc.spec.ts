@@ -264,6 +264,106 @@ describe('RPC', () => {
         });
     });
 
+    it('should preserve duplicate query parameter names in RPC options URL', () => {
+        const formanSchema = {
+            type: 'collection',
+            spec: [
+                {
+                    name: 'S1',
+                    type: 'select',
+                    label: 'Select',
+                    options: 'rpc://getTickets?a=1&a=2&a=3',
+                },
+            ],
+        };
+        const jsonSchema = toJSONSchema(formanSchema);
+        const s1 = (jsonSchema as any).properties.S1;
+        expect(s1['x-fetch']).toBe('rpc://getTickets?a=1&a=2&a=3');
+    });
+
+    it('should preserve duplicate query parameter names in nested RPC URL with tail appending', () => {
+        const formanSchema = {
+            type: 'collection',
+            spec: [
+                {
+                    name: 'parent',
+                    type: 'select',
+                    label: 'Parent',
+                    options: [
+                        {
+                            value: 'v1',
+                            label: 'V1',
+                            nested: [
+                                {
+                                    name: 'child',
+                                    type: 'select',
+                                    label: 'Child',
+                                    options: 'rpc://getTickets?a=1&a=2&a=3',
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        };
+        const jsonSchema = toJSONSchema(formanSchema);
+        const thenProps = (jsonSchema as any).allOf[0].then.properties;
+        // Duplicate params preserved AND tail param 'parent' appended
+        expect(thenProps.child['x-fetch']).toBe('rpc://getTickets?a=1&a=2&a=3&parent={{parent}}');
+    });
+
+    it('should preserve duplicate query parameter names in RPC search URL', () => {
+        const formanSchema = {
+            type: 'collection',
+            spec: [
+                {
+                    name: 'S1',
+                    type: 'select',
+                    label: 'Select',
+                    options: 'rpc://getTickets',
+                    rpc: {
+                        url: 'rpc://searchTickets?a=1&a=2&a=3',
+                        parameters: [],
+                    },
+                },
+            ],
+        };
+        const jsonSchema = toJSONSchema(formanSchema);
+        const s1 = (jsonSchema as any).properties.S1;
+        expect(s1['x-search'].url).toBe('rpc://searchTickets?a=1&a=2&a=3');
+    });
+
+    it('should not append tail param that shares name with duplicate query params', () => {
+        const formanSchema = {
+            type: 'collection',
+            spec: [
+                {
+                    name: 'a',
+                    type: 'select',
+                    label: 'A',
+                    options: [
+                        {
+                            value: 'v1',
+                            label: 'V1',
+                            nested: [
+                                {
+                                    name: 'child',
+                                    type: 'select',
+                                    label: 'Child',
+                                    options: 'rpc://getTickets?a=1&a=2&a=3',
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        };
+        const jsonSchema = toJSONSchema(formanSchema);
+        const thenProps = (jsonSchema as any).allOf[0].then.properties;
+        // 'a' is already in query string, should NOT be appended as tail param
+        expect(thenProps.child['x-fetch']).toBe('rpc://getTickets?a=1&a=2&a=3');
+    });
+
     it('should handle RPC returning a single object instead of array for select options', async () => {
         const schema: FormanSchemaField[] = [
             {
