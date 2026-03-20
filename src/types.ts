@@ -295,6 +295,7 @@ export type FormanValidationOptions = {
     /** Maps domain names used in nested.domain to actual domain keys passed to validateFormanWithDomains */
     domainAliases?: Record<string, string>;
     /** Whether to allow dynamic values (IML expressions, unresolved RPC options).
-     *  When false (default), IML expressions cause errors and unresolved RPC options are treated as errors */
+     *  When false (default), IML expressions cause errors and unresolved RPC options are treated as errors.
+     *  Applies as a global default; can be overridden per-domain in validateFormanWithDomains(). */
     allowDynamicValues?: boolean;
 };

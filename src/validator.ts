@@ -228,7 +228,7 @@ export async function validateFormanWithDomainsInternal(
                 seenFields: new Set(),
                 fieldStates: [],
                 schemaFields: [],
-                allowDynamicValues: domains[domain]!.allowDynamicValues ?? false,
+                allowDynamicValues: domains[domain]!.allowDynamicValues ?? options?.allowDynamicValues ?? false,
                 validateFields: (fields: FormanSchemaField[], context: ValidationContext) => {
                     return validateFormanValue(
                         domains[domain]!.values,
