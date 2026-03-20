@@ -86,7 +86,7 @@ describe('schemas output', () => {
                     nested: [{ name: 'sub', type: 'number', label: 'Sub' }],
                 },
             ],
-            { schemas: true },
+            { schemas: true, allowDynamicValues: true },
         );
 
         expect(result.valid).toBe(true);
