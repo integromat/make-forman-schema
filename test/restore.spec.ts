@@ -98,6 +98,72 @@ describe('Restore state for IML-mapped fields', () => {
         });
     });
 
+    it('should produce mode: edit when dynamic select value is not found in RPC options', async () => {
+        const result = await validateForman(
+            { item: 'missing-value' },
+            [{ name: 'item', type: 'select', options: 'rpc://getItems' }],
+            {
+                states: true,
+                resolveRemote() {
+                    return Promise.resolve([
+                        { value: 'a', label: 'Option A' },
+                        { value: 'b', label: 'Option B' },
+                    ]);
+                },
+            },
+        );
+
+        expect(result).toEqual({
+            valid: true,
+            errors: [],
+            warnings: [
+                {
+                    domain: 'default',
+                    path: 'item',
+                    message: "Value 'missing-value' not found in options.",
+                },
+            ],
+            states: {
+                default: {
+                    item: { mode: 'edit' },
+                },
+            },
+        });
+    });
+
+    it('should produce mode: edit when multiple select has unresolved values from RPC', async () => {
+        const result = await validateForman(
+            { items: ['a', 'missing'] },
+            [{ name: 'items', type: 'select', multiple: true, options: 'rpc://getItems' }],
+            {
+                states: true,
+                resolveRemote() {
+                    return Promise.resolve([
+                        { value: 'a', label: 'Option A' },
+                        { value: 'b', label: 'Option B' },
+                    ]);
+                },
+            },
+        );
+
+        expect(result).toEqual({
+            valid: true,
+            errors: [],
+            warnings: [
+                {
+                    domain: 'default',
+                    path: 'items',
+                    message: "Value 'missing' not found in options.",
+                },
+            ],
+            states: {
+                default: {
+                    items: { mode: 'edit' },
+                },
+            },
+        });
+    });
+
     it('should still produce mode: chose for non-mapped select', async () => {
         const result = await validateForman(
             { color: 'red' },
