@@ -53,6 +53,9 @@ export function validateFormanWithDomains(
             schema: FormanSchemaField[];
             /** Extra values injected into restore states, keyed by string path (dot notation, `[index]`, backtick-escaping). */
             restoreExtras?: Record<string, Record<string, unknown>>;
+            /** Whether the domain allows dynamic values (IML expressions, unresolved RPC select options).
+             *  Defaults to false. When false, IML expressions cause errors and unresolved RPC options are treated as errors. */
+            allowDynamicValues?: boolean;
         }
     >,
     options?: FormanValidationOptions,
@@ -76,5 +79,8 @@ export function validateForman(
     options?: FormanValidationOptions,
     restoreExtras?: Record<string, Record<string, unknown>>,
 ): Promise<FormanValidationResult> {
-    return validateFormanWithDomains({ default: { values, schema, restoreExtras } }, options);
+    return validateFormanWithDomains(
+        { default: { values, schema, restoreExtras, allowDynamicValues: options?.allowDynamicValues } },
+        options,
+    );
 }

@@ -15,7 +15,7 @@ describe('Restore state for IML-mapped fields', () => {
                     ],
                 },
             ],
-            { states: true },
+            { states: true, allowDynamicValues: true },
         );
 
         expect(result).toEqual({
@@ -34,7 +34,7 @@ describe('Restore state for IML-mapped fields', () => {
         const result = await validateForman(
             { item: '{{1.item}}' },
             [{ name: 'item', type: 'select', options: { store: 'rpc://getItems' } }],
-            { states: true },
+            { states: true, allowDynamicValues: true },
         );
 
         expect(result).toEqual({
@@ -50,7 +50,10 @@ describe('Restore state for IML-mapped fields', () => {
     });
 
     it('should produce mode: edit for file field with IML value', async () => {
-        const result = await validateForman({ doc: '{{1.fileId}}' }, [{ name: 'doc', type: 'file' }], { states: true });
+        const result = await validateForman({ doc: '{{1.fileId}}' }, [{ name: 'doc', type: 'file' }], {
+            states: true,
+            allowDynamicValues: true,
+        });
 
         expect(result).toEqual({
             valid: true,
@@ -67,6 +70,7 @@ describe('Restore state for IML-mapped fields', () => {
     it('should produce mode: edit for folder field with IML value', async () => {
         const result = await validateForman({ dir: '{{1.folderId}}' }, [{ name: 'dir', type: 'folder' }], {
             states: true,
+            allowDynamicValues: true,
         });
 
         expect(result).toEqual({
@@ -84,6 +88,7 @@ describe('Restore state for IML-mapped fields', () => {
     it('should produce mode: edit for boolean field with IML value', async () => {
         const result = await validateForman({ flag: '{{1.isActive}}' }, [{ name: 'flag', type: 'boolean' }], {
             states: true,
+            allowDynamicValues: true,
         });
 
         expect(result).toEqual({
@@ -104,6 +109,7 @@ describe('Restore state for IML-mapped fields', () => {
             [{ name: 'item', type: 'select', options: 'rpc://getItems' }],
             {
                 states: true,
+                allowDynamicValues: true,
                 resolveRemote() {
                     return Promise.resolve([
                         { value: 'a', label: 'Option A' },
@@ -137,6 +143,7 @@ describe('Restore state for IML-mapped fields', () => {
             [{ name: 'items', type: 'select', multiple: true, options: 'rpc://getItems' }],
             {
                 states: true,
+                allowDynamicValues: true,
                 resolveRemote() {
                     return Promise.resolve([
                         { value: 'a', label: 'Option A' },

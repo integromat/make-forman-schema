@@ -444,6 +444,7 @@ describe('RPC', () => {
             },
         ];
         const result = await validateForman({ mySelect: 'missing' }, schema, {
+            allowDynamicValues: true,
             resolveRemote(): Promise<unknown> {
                 return Promise.resolve([
                     { value: 'a', label: 'Option A' },
@@ -474,6 +475,7 @@ describe('RPC', () => {
             },
         ];
         const result = await validateForman({ myMultiSelect: ['a', 'missing1', 'missing2'] }, schema, {
+            allowDynamicValues: true,
             resolveRemote(): Promise<unknown> {
                 return Promise.resolve([{ value: 'a', label: 'Option A' }]);
             },

@@ -371,7 +371,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema, { allowDynamicValues: true })).toEqual({
                 valid: false,
                 errors: [
                     {

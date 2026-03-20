@@ -297,6 +297,7 @@ describe('Nested', () => {
 
             const result = await validateForman({ input: '{{2.value}}', dynamicallyRenderedField: 'aaa' }, schema, {
                 resolveRemote,
+                allowDynamicValues: true,
             });
             expect(result.valid).toBe(true);
             expect(result.errors).toEqual([]);
@@ -312,7 +313,10 @@ describe('Nested', () => {
                 },
             ];
 
-            const result = await validateForman({ input: '{{2.value}}' }, schema, { resolveRemote });
+            const result = await validateForman({ input: '{{2.value}}' }, schema, {
+                resolveRemote,
+                allowDynamicValues: true,
+            });
             expect(result.valid).toBe(false);
             expect(result.errors).toEqual([expect.objectContaining({ message: 'Field is mandatory.' })]);
         });
@@ -335,6 +339,7 @@ describe('Nested', () => {
 
             const result = await validateForman({ mySelect: '{{2.value}}', dynamicallyRenderedField: 'aaa' }, schema, {
                 resolveRemote,
+                allowDynamicValues: true,
             });
             expect(result.valid).toBe(true);
             expect(result.errors).toEqual([]);
@@ -353,7 +358,7 @@ describe('Nested', () => {
             const result = await validateForman(
                 { input: '{{2.value}}', dynamicallyRenderedField: 'aaa', unknownField: 'bad' },
                 schema,
-                { resolveRemote, strict: true },
+                { resolveRemote, strict: true, allowDynamicValues: true },
             );
             expect(result.valid).toBe(false);
             expect(result.errors).toEqual([

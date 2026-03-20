@@ -82,6 +82,8 @@ export interface DomainRoot {
     }>;
     /** Resolved schema fields collected during validation */
     schemaFields: FormanSchemaField[];
+    /** Whether the domain allows dynamic values (IML expressions, unresolved RPC select options) */
+    allowDynamicValues: boolean;
 }
 
 /**
@@ -212,6 +214,7 @@ export async function validateFormanWithDomainsInternal(
             values: Record<string, unknown>;
             schema?: FormanSchemaField[];
             restoreExtras?: Record<string, Record<string, unknown>>;
+            allowDynamicValues?: boolean;
         }
     >,
     options?: FormanValidationOptions,
@@ -225,6 +228,7 @@ export async function validateFormanWithDomainsInternal(
                 seenFields: new Set(),
                 fieldStates: [],
                 schemaFields: [],
+                allowDynamicValues: domains[domain]!.allowDynamicValues ?? options?.allowDynamicValues ?? false,
                 validateFields: (fields: FormanSchemaField[], context: ValidationContext) => {
                     return validateFormanValue(
                         domains[domain]!.values,
@@ -417,7 +421,7 @@ async function validateFormanValue(
     }
 
     if (containsIMLExpression(value)) {
-        if (normalizedField.mappable === false) {
+        if (normalizedField.mappable === false || !context.roots[context.domain]!.allowDynamicValues) {
             return {
                 valid: false,
                 errors: [
@@ -1008,7 +1012,7 @@ async function handleSelectType(
                 optionsOrGroups as FormanSchemaSelectOptionsStore,
             );
             if (!found) {
-                (optionsFromRPC ? warnings : errors).push({
+                (optionsFromRPC && context.roots[context.domain]!.allowDynamicValues ? warnings : errors).push({
                     domain: context.domain,
                     path: context.path.join('.'),
                     message: `Value '${singleValue}' not found in options.`,
@@ -1017,7 +1021,7 @@ async function handleSelectType(
             }
         }
 
-        if (optionsFromRPC && hasUnresolvedValue) {
+        if (optionsFromRPC && context.roots[context.domain]!.allowDynamicValues && hasUnresolvedValue) {
             context.roots[context.domain]!.fieldStates.push({
                 path: context.path,
                 state: { mode: 'edit' },
@@ -1063,7 +1067,7 @@ async function handleSelectType(
         const item = findValueInSelectOptions(field, value, optionsOrGroups as FormanSchemaSelectOptionsStore);
 
         if (!item) {
-            if (optionsFromRPC) {
+            if (optionsFromRPC && context.roots[context.domain]!.allowDynamicValues) {
                 warnings.push({
                     domain: context.domain,
                     path: context.path.join('.'),
