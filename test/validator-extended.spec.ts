@@ -1591,11 +1591,13 @@ describe('Forman Schema Extended Validation', () => {
                     name: 'validPath',
                     type: 'file',
                     options: 'rpc://file-tree',
+                    editable: true,
                 },
                 {
                     name: 'invalidPath',
                     type: 'file',
                     options: 'rpc://file-tree',
+                    editable: true,
                 },
             ];
 
@@ -1750,6 +1752,7 @@ describe('Forman Schema Extended Validation', () => {
                     name: 'pathThroughFile',
                     type: 'folder',
                     options: 'rpc://file-tree',
+                    editable: true,
                 },
             ];
 
