@@ -101,6 +101,8 @@ export type FormanSchemaField = {
     disabled?: boolean;
     /** Whether the field is mappable */
     mappable?: boolean;
+    /** Whether the field allows custom (typed-in) values even when dynamic values are not allowed in the domain */
+    editable?: boolean;
     /** Whether the user will be able to insert new lines in GUI (a textarea will be displayed instead of the text field) */
     multiline?: boolean;
     /** Whether the select field allows multiple values */

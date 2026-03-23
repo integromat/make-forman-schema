@@ -30,6 +30,11 @@ import {
 import { udttypeExpand } from './composites/udttype';
 import { udtspecExpand } from './composites/udtspec';
 
+/** Whether the field explicitly allows custom (typed-in) values */
+function fieldAllowsCustomValue(field: FormanSchemaField): boolean {
+    return field.mappable === true || field.editable === true;
+}
+
 /**
  * Context for schema validation operations
  */
@@ -884,7 +889,10 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
 
         const selectedOption = selectableOptions.find(candidate => candidate.value === levelSelectedValue);
         if (!selectedOption) {
-            if (optionsFromRPC) {
+            if (
+                optionsFromRPC &&
+                (context.roots[context.domain]!.allowDynamicValues || fieldAllowsCustomValue(field))
+            ) {
                 warnings.push({
                     domain: context.domain,
                     path: context.path.join('.'),
@@ -1012,7 +1020,10 @@ async function handleSelectType(
                 optionsOrGroups as FormanSchemaSelectOptionsStore,
             );
             if (!found) {
-                (optionsFromRPC && context.roots[context.domain]!.allowDynamicValues ? warnings : errors).push({
+                (optionsFromRPC && (context.roots[context.domain]!.allowDynamicValues || fieldAllowsCustomValue(field))
+                    ? warnings
+                    : errors
+                ).push({
                     domain: context.domain,
                     path: context.path.join('.'),
                     message: `Value '${singleValue}' not found in options.`,
@@ -1021,7 +1032,11 @@ async function handleSelectType(
             }
         }
 
-        if (optionsFromRPC && context.roots[context.domain]!.allowDynamicValues && hasUnresolvedValue) {
+        if (
+            optionsFromRPC &&
+            (context.roots[context.domain]!.allowDynamicValues || fieldAllowsCustomValue(field)) &&
+            hasUnresolvedValue
+        ) {
             context.roots[context.domain]!.fieldStates.push({
                 path: context.path,
                 state: { mode: 'edit' },
@@ -1067,7 +1082,10 @@ async function handleSelectType(
         const item = findValueInSelectOptions(field, value, optionsOrGroups as FormanSchemaSelectOptionsStore);
 
         if (!item) {
-            if (optionsFromRPC && context.roots[context.domain]!.allowDynamicValues) {
+            if (
+                optionsFromRPC &&
+                (context.roots[context.domain]!.allowDynamicValues || fieldAllowsCustomValue(field))
+            ) {
                 warnings.push({
                     domain: context.domain,
                     path: context.path.join('.'),
