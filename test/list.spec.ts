@@ -90,15 +90,15 @@ describe('List type', () => {
         const resolveRemote = (path: string) => {
             if (path === 'rpc://items/list') {
                 return Promise.resolve([
-                    { value: 'item-1', label: 'Item 1' },
-                    { value: 'item-2', label: 'Item 2' },
+                    { data: { id: 1 }, label: 'Item 1' },
+                    { data: { id: 2 }, label: 'Item 2' },
                 ]);
             }
             return Promise.resolve([]);
         };
 
         it('should validate list with valid RPC value', async () => {
-            const result = await validateForman({ item: 'item-1' }, listSchema, { resolveRemote });
+            const result = await validateForman({ item: { id: 1 } }, listSchema, { resolveRemote });
             expect(result.valid).toBe(true);
             expect(result.errors).toEqual([]);
         });

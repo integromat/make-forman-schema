@@ -126,17 +126,19 @@ describe('Radio type', () => {
         const resolveRemote = (path: string) => {
             if (path === 'rpc://email/7.5.10/RpcTriggerNewEmailEpoch') {
                 return Promise.resolve([
-                    { value: 'email-1', label: 'Email 1' },
-                    { value: 'email-2', label: 'Email 2' },
+                    { data: { lastId: 1, epochType: 'select' }, label: 'Email 1' },
+                    { data: { lastId: 2, epochType: 'select' }, label: 'Email 2' },
                 ]);
             }
             return Promise.resolve([]);
         };
 
         it('should validate radio with valid value and nested fields', async () => {
-            const result = await validateForman({ __type: 'select', select: 'email-1' }, radioSchema, {
-                resolveRemote,
-            });
+            const result = await validateForman(
+                { __type: 'select', select: { lastId: 1, epochType: 'select' } },
+                radioSchema,
+                { resolveRemote },
+            );
             expect(result.valid).toBe(true);
             expect(result.errors).toEqual([]);
         });

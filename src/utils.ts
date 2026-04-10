@@ -145,6 +145,13 @@ export function normalizeFormanFieldType(field: FormanSchemaField): FormanSchema
     };
 }
 
+function valuesMatch(a: unknown, b: unknown): boolean {
+    if (a === b) return true;
+    // If this ever turns out insufficient, move to object-hash, but given the fact Forman sets the Form Value based on the RPC, which is the data source for the BE validation as well, the stringification should be sufficient.
+    if (isObject(a) && isObject(b)) return JSON.stringify(a) === JSON.stringify(b);
+    return false;
+}
+
 /**
  * Finds an option in the provided options and groups based on the given value.
  * Handles also the case of partially grouped selects, where some options can be on the top-level and some can be inside groups.
@@ -158,14 +165,19 @@ export function findValueInSelectOptions(
     optionsAndGroups?: FormanSchemaSelectOptionsStore,
 ): FormanSchemaOption | undefined {
     if (!optionsAndGroups) return undefined;
+
+    const valueKey =
+        isObject<FormanSchemaExtendedOptions>(field.options) && field.options.value ? field.options.value : 'value';
+
+    const matches = (option: FormanSchemaOption | FormanSchemaOptionGroup) =>
+        valuesMatch((option as Record<string, unknown>)[valueKey], value);
+
     if (field.grouped) {
-        const found = optionsAndGroups
-            .flatMap(group => ('options' in group ? group.options : []))
-            .find(option => option.value === value);
+        const found = optionsAndGroups.flatMap(group => ('options' in group ? group.options : [])).find(matches);
         if (found) return found;
     }
     // The thing is, that Forman supports "partially-grouped" selects, so in case value is not found in the groups, it can still be sitting on the top-level.
-    const found = optionsAndGroups.find(option => 'value' in option && option.value === value);
+    const found = optionsAndGroups.find(option => valueKey in option && matches(option));
     return found as FormanSchemaOption | undefined; // If there was a value, then it has to be an option, because option groups don't have values
 }
 
