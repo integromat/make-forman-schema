@@ -194,6 +194,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, string | undefined>> = {
     path: 'string',
     pkey: 'string',
     port: 'number',
+    radio: undefined,
     select: undefined,
     udttype: 'string',
     udtspec: 'array',
@@ -472,6 +473,7 @@ async function validateFormanValue(
             return handleCollectionType(value as Record<string, unknown>, normalizedField, context);
         case 'array':
             return handleArrayType(value as unknown[], normalizedField, context);
+        case 'radio':
         case 'select':
         case 'account':
         case 'hook':

@@ -121,6 +121,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, JSONSchema7['type']>> = {
     path: 'string',
     pkey: 'string',
     port: 'number',
+    radio: 'string',
     select: 'string',
     udttype: 'string',
     udtspec: 'array',
@@ -266,6 +267,7 @@ export function toJSONSchemaInternal(field: FormanSchemaField, context: Conversi
             return handleCollectionType(normalizedField, result, context);
         case 'array':
             return handleArrayType(normalizedField, result, context);
+        case 'radio':
         case 'select':
         case 'account':
         case 'hook':
