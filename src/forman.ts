@@ -17,6 +17,7 @@ import {
     IML_UNARY_FILTER_OPERATORS,
     IML_BINARY_FILTER_OPERATORS,
     IML_FILTER_ENTRY_TYPES,
+    FORMAN_REFERENCE_TYPES,
 } from './utils';
 import { udttypeExpand, udttypeExtractInner, udttypeWrapRef } from './composites/udttype';
 import { udtspecExpand, udtspecExtractInner, udtspecWrapRef } from './composites/udtspec';
@@ -573,8 +574,8 @@ function handleSelectOrPathType(
                 },
                 {} as Record<string, unknown>,
             );
-            // For non-selects, the type is required to properly handle the fetched options displaying
-            if (field.type !== 'select') xFetchOptions['type'] = field.type;
+            // Special treatment for select-like fields which are supposed to be displayed differently, like 'radio' or 'list'
+            if (![...FORMAN_REFERENCE_TYPES, 'select'].includes(field.type)) xFetchOptions['type'] = field.type;
             if (Object.keys(xFetchOptions).length) {
                 Object.defineProperty(result, 'x-fetch-options', {
                     configurable: true,
