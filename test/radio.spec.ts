@@ -15,7 +15,7 @@ const radioSchema: FormanSchemaField[] = [
                     {
                         name: 'select',
                         label: '',
-                        type: 'select',
+                        type: 'list',
                         required: true,
                         options: {
                             store: 'rpc://email/7.5.10/RpcTriggerNewEmailEpoch',
