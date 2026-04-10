@@ -562,6 +562,28 @@ function handleSelectOrPathType(
             writable: true,
             value: appendQueryString(optionsOrGroups, context.domain, context.tail),
         });
+
+        // Additional fetching options, if provided
+        if (isObject<FormanSchemaExtendedOptions>(field.options)) {
+            const xFetchOptions = (['label', 'value'] as const).reduce(
+                (transferObject, transferKey) => {
+                    const transferValue = (field.options as FormanSchemaExtendedOptions)[transferKey];
+                    if (transferValue) transferObject[transferKey] = transferValue;
+                    return transferObject;
+                },
+                {} as Record<string, unknown>,
+            );
+            // For non-selects, the type is required to properly handle the fetched options displaying
+            if (field.type !== 'select') xFetchOptions['type'] = field.type;
+            if (Object.keys(xFetchOptions).length) {
+                Object.defineProperty(result, 'x-fetch-options', {
+                    configurable: true,
+                    enumerable: true,
+                    writable: true,
+                    value: xFetchOptions,
+                });
+            }
+        }
     } else {
         let options = optionsOrGroups?.flatMap(optionOrGroup => {
             // Selects can be partially grouped, unwrap the groups, and append the rest.

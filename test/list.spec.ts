@@ -16,7 +16,7 @@ const listSchema: FormanSchemaField[] = [
 
 describe('List type', () => {
     describe('toJSONSchema', () => {
-        it('should convert list with RPC options to JSON Schema with x-fetch', () => {
+        it('should convert list with RPC options to JSON Schema with x-fetch and x-fetch-options', () => {
             const result = toJSONSchema({
                 type: 'collection',
                 spec: listSchema,
@@ -33,6 +33,112 @@ describe('List type', () => {
             const item = props.item as Record<string, unknown>;
             expect(item.type).toBe('string');
             expect(item['x-fetch']).toBe('rpc://items/list');
+            expect(item['x-fetch-options']).toEqual({ value: 'data', type: 'list' });
+        });
+
+        it('should include label and value in x-fetch-options when both are specified', () => {
+            const result = toJSONSchema({
+                type: 'collection',
+                spec: [
+                    {
+                        name: 'item',
+                        type: 'list',
+                        required: true,
+                        options: {
+                            store: 'rpc://items/list',
+                            label: 'name',
+                            value: 'data',
+                        },
+                    },
+                ],
+            });
+
+            const props = (result as Record<string, unknown> & { properties: Record<string, unknown> }).properties;
+            const item = props.item as Record<string, unknown>;
+            expect(item['x-fetch-options']).toEqual({ label: 'name', value: 'data', type: 'list' });
+        });
+
+        it('should include type in x-fetch-options for list even without label/value', () => {
+            const result = toJSONSchema({
+                type: 'collection',
+                spec: [
+                    {
+                        name: 'item',
+                        type: 'list',
+                        required: true,
+                        options: {
+                            store: 'rpc://items/list',
+                        },
+                    },
+                ],
+            });
+
+            const props = (result as Record<string, unknown> & { properties: Record<string, unknown> }).properties;
+            const item = props.item as Record<string, unknown>;
+            expect(item['x-fetch-options']).toEqual({ type: 'list' });
+        });
+
+        it('should not include x-fetch-options for select type without label/value', () => {
+            const result = toJSONSchema({
+                type: 'collection',
+                spec: [
+                    {
+                        name: 'choice',
+                        type: 'select',
+                        required: true,
+                        options: {
+                            store: 'rpc://items/list',
+                        },
+                    },
+                ],
+            });
+
+            const props = (result as Record<string, unknown> & { properties: Record<string, unknown> }).properties;
+            const choice = props.choice as Record<string, unknown>;
+            expect(choice['x-fetch-options']).toBeUndefined();
+        });
+
+        it('should produce x-fetch-options on nested list inside a select option', () => {
+            const result = toJSONSchema({
+                type: 'collection',
+                spec: [
+                    {
+                        name: '__type',
+                        type: 'select',
+                        required: true,
+                        options: [
+                            {
+                                value: 'select',
+                                label: 'Start from a specific item',
+                                nested: [
+                                    {
+                                        name: 'select',
+                                        label: 'Starting item',
+                                        type: 'list',
+                                        required: true,
+                                        options: {
+                                            store: 'rpc://test@1/epoch:test',
+                                            value: 'data',
+                                        },
+                                    },
+                                ],
+                            },
+                            {
+                                value: 'all',
+                                label: 'All items',
+                            },
+                        ],
+                    },
+                ],
+            });
+
+            const allOf = (result as Record<string, unknown>).allOf as Record<string, unknown>[];
+            expect(allOf).toHaveLength(1);
+
+            const then = allOf[0]!.then as Record<string, unknown>;
+            const selectProp = (then.properties as Record<string, unknown>).select as Record<string, unknown>;
+            expect(selectProp['x-fetch']).toBe('rpc://test@1/epoch:test?__type={{__type}}');
+            expect(selectProp['x-fetch-options']).toEqual({ value: 'data', type: 'list' });
         });
 
         it('should convert list with inline options to oneOf', () => {
