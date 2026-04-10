@@ -297,9 +297,6 @@ describe('Forman Schema', () => {
                     default: '',
                     description: 'Optional field, can be left empty.',
                     'x-fetch': 'rpc://get-folders',
-                    'x-fetch-options': {
-                        type: 'folder',
-                    },
                     'x-path': {
                         ownName: 'folder',
                         showRoot: false,

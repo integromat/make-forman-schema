@@ -575,7 +575,18 @@ function handleSelectOrPathType(
                 {} as Record<string, unknown>,
             );
             // Special treatment for select-like fields which are supposed to be displayed differently, like 'radio' or 'list'
-            if (![...FORMAN_REFERENCE_TYPES, 'select'].includes(field.type)) xFetchOptions['type'] = field.type;
+            if (
+                ![
+                    // Reference Types are distinguished by the Loader Tool Name directly
+                    ...FORMAN_REFERENCE_TYPES,
+                    // Select is default
+                    'select',
+                    // File and Folder are distinguished by the x-path metadata, so we don't need to append it here
+                    'file',
+                    'folder',
+                ].includes(field.type)
+            )
+                xFetchOptions['type'] = field.type;
             if (Object.keys(xFetchOptions).length) {
                 Object.defineProperty(result, 'x-fetch-options', {
                     configurable: true,
