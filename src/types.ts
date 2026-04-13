@@ -32,6 +32,8 @@ export type FormanSchemaFieldType =
     | 'path'
     | 'pkey'
     | 'port'
+    | 'list'
+    | 'radio'
     | 'select'
     | 'time'
     | 'timestamp'

@@ -2162,4 +2162,166 @@ describe('Forman Schema Extended Validation', () => {
             });
         });
     });
+
+    describe('Extended options with custom value key', () => {
+        const rpcOptions = [
+            {
+                label: '<test@mail.com> - MAYO (10.04.2026)',
+                date: '2026-04-10T11:40:11.000Z',
+                data: {
+                    lastDate: '2026-04-10T11:40:11.000Z',
+                    lastId: 38,
+                    epochType: 'select',
+                },
+            },
+            {
+                label: '<test@mail.com> - TEST (10.04.2026)',
+                date: '2026-04-10T11:40:00.000Z',
+                data: {
+                    lastDate: '2026-04-10T11:40:00.000Z',
+                    lastId: 37,
+                    epochType: 'select',
+                },
+            },
+            {
+                label: '<test@mail.com> - HEYO (10.04.2026)',
+                date: '2026-04-10T11:39:46.000Z',
+                data: {
+                    lastDate: '2026-04-10T11:39:46.000Z',
+                    lastId: 36,
+                    epochType: 'select',
+                },
+            },
+        ];
+
+        const resolveRemote = async () => rpcOptions;
+
+        it('should validate list type with options.value pointing to a custom key', async () => {
+            const schema = [
+                {
+                    name: 'select',
+                    label: '',
+                    type: 'list',
+                    required: true,
+                    options: {
+                        store: 'rpc://test',
+                        value: 'data',
+                    },
+                },
+            ];
+
+            const result = await validateForman(
+                { select: { lastDate: '2026-04-10T11:40:11.000Z', lastId: 38, epochType: 'select' } },
+                schema,
+                { resolveRemote },
+            );
+
+            expect(result).toEqual({
+                valid: true,
+                errors: [],
+                warnings: [],
+            });
+        });
+
+        it('should reject invalid value with custom options.value key', async () => {
+            const schema = [
+                {
+                    name: 'select',
+                    label: '',
+                    type: 'list',
+                    required: true,
+                    options: {
+                        store: 'rpc://test',
+                        value: 'data',
+                    },
+                },
+            ];
+
+            const result = await validateForman({ select: { lastId: 999 } }, schema, { resolveRemote });
+
+            expect(result.valid).toBe(false);
+            expect(result.errors[0]!.message).toContain('not found in options');
+        });
+
+        it('should validate select type with options.value pointing to a custom key', async () => {
+            const schema = [
+                {
+                    name: 'choice',
+                    type: 'select',
+                    required: true,
+                    options: {
+                        store: 'rpc://test',
+                        value: 'date',
+                    },
+                },
+            ];
+
+            const result = await validateForman(
+                { choice: '2026-04-10T11:40:11.000Z' },
+                schema,
+                { resolveRemote },
+            );
+
+            expect(result).toEqual({
+                valid: true,
+                errors: [],
+                warnings: [],
+            });
+        });
+
+        it('should validate multiple select with custom options.value key', async () => {
+            const schema = [
+                {
+                    name: 'choices',
+                    type: 'select',
+                    required: true,
+                    multiple: true,
+                    options: {
+                        store: 'rpc://test',
+                        value: 'date',
+                    },
+                },
+            ];
+
+            const result = await validateForman(
+                { choices: ['2026-04-10T11:40:11.000Z', '2026-04-10T11:40:00.000Z'] },
+                schema,
+                { resolveRemote },
+            );
+
+            expect(result).toEqual({
+                valid: true,
+                errors: [],
+                warnings: [],
+            });
+        });
+
+        it('should use default value key when options.value is not specified', async () => {
+            const standardOptions = [
+                { value: 'a', label: 'Option A' },
+                { value: 'b', label: 'Option B' },
+            ];
+
+            const schema = [
+                {
+                    name: 'pick',
+                    type: 'select',
+                    required: true,
+                    options: {
+                        store: 'rpc://test',
+                    },
+                },
+            ];
+
+            const result = await validateForman({ pick: 'a' }, schema, {
+                resolveRemote: async () => standardOptions,
+            });
+
+            expect(result).toEqual({
+                valid: true,
+                errors: [],
+                warnings: [],
+            });
+        });
+    });
 });

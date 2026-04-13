@@ -17,6 +17,7 @@ import {
     IML_UNARY_FILTER_OPERATORS,
     IML_BINARY_FILTER_OPERATORS,
     IML_FILTER_ENTRY_TYPES,
+    FORMAN_REFERENCE_TYPES,
 } from './utils';
 import { udttypeExpand, udttypeExtractInner, udttypeWrapRef } from './composites/udttype';
 import { udtspecExpand, udtspecExtractInner, udtspecWrapRef } from './composites/udtspec';
@@ -121,6 +122,8 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, JSONSchema7['type']>> = {
     path: 'string',
     pkey: 'string',
     port: 'number',
+    list: 'string',
+    radio: 'string',
     select: 'string',
     udttype: 'string',
     udtspec: 'array',
@@ -266,6 +269,8 @@ export function toJSONSchemaInternal(field: FormanSchemaField, context: Conversi
             return handleCollectionType(normalizedField, result, context);
         case 'array':
             return handleArrayType(normalizedField, result, context);
+        case 'list':
+        case 'radio':
         case 'select':
         case 'account':
         case 'hook':
@@ -558,6 +563,37 @@ function handleSelectOrPathType(
             writable: true,
             value: appendQueryString(optionsOrGroups, context.domain, context.tail),
         });
+
+        // Additional fetching options, if provided
+        const xFetchOptions: Record<string, unknown> = {};
+        if (isObject<FormanSchemaExtendedOptions>(field.options)) {
+            for (const transferKey of ['label', 'value'] as const) {
+                const transferValue = field.options[transferKey];
+                if (transferValue) xFetchOptions[transferKey] = transferValue;
+            }
+        }
+        // Special treatment for select-like fields which are supposed to be displayed differently, like 'radio' or 'list'
+        if (
+            ![
+                // Reference Types are distinguished by the Loader Tool Name directly
+                ...FORMAN_REFERENCE_TYPES,
+                // Select is default
+                'select',
+                // File and Folder are distinguished by the x-path metadata, so we don't need to append it here
+                'file',
+                'folder',
+            ].includes(field.type)
+        ) {
+            xFetchOptions['type'] = field.type;
+        }
+        if (Object.keys(xFetchOptions).length) {
+            Object.defineProperty(result, 'x-fetch-options', {
+                configurable: true,
+                enumerable: true,
+                writable: true,
+                value: xFetchOptions,
+            });
+        }
     } else {
         let options = optionsOrGroups?.flatMap(optionOrGroup => {
             // Selects can be partially grouped, unwrap the groups, and append the rest.
