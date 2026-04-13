@@ -98,6 +98,44 @@ describe('List type', () => {
             expect(choice['x-fetch-options']).toBeUndefined();
         });
 
+        it('should emit x-fetch-options with type when list options is a string shorthand', () => {
+            const result = toJSONSchema({
+                type: 'collection',
+                spec: [
+                    {
+                        name: 'item',
+                        type: 'list',
+                        required: true,
+                        options: 'rpc://items/list',
+                    },
+                ],
+            });
+
+            const props = (result as Record<string, unknown> & { properties: Record<string, unknown> }).properties;
+            const item = props.item as Record<string, unknown>;
+            expect(item['x-fetch']).toBe('rpc://items/list');
+            expect(item['x-fetch-options']).toEqual({ type: 'list' });
+        });
+
+        it('should not emit x-fetch-options when select options is a string shorthand', () => {
+            const result = toJSONSchema({
+                type: 'collection',
+                spec: [
+                    {
+                        name: 'choice',
+                        type: 'select',
+                        required: true,
+                        options: 'rpc://items/list',
+                    },
+                ],
+            });
+
+            const props = (result as Record<string, unknown> & { properties: Record<string, unknown> }).properties;
+            const choice = props.choice as Record<string, unknown>;
+            expect(choice['x-fetch']).toBe('rpc://items/list');
+            expect(choice['x-fetch-options']).toBeUndefined();
+        });
+
         it('should produce x-fetch-options on nested list inside a select option', () => {
             const result = toJSONSchema({
                 type: 'collection',

@@ -88,6 +88,25 @@ describe('Radio type', () => {
             );
         });
 
+        it('should emit x-fetch-options with type when radio options is a string shorthand', () => {
+            const result = toJSONSchema({
+                type: 'collection',
+                spec: [
+                    {
+                        name: 'mode',
+                        type: 'radio',
+                        required: true,
+                        options: 'rpc://modes/list',
+                    },
+                ],
+            });
+
+            const props = (result as Record<string, unknown> & { properties: Record<string, unknown> }).properties;
+            const mode = props.mode as Record<string, unknown>;
+            expect(mode['x-fetch']).toBe('rpc://modes/list');
+            expect(mode['x-fetch-options']).toEqual({ type: 'radio' });
+        });
+
         it('should convert non-required radio with empty default', () => {
             const result = toJSONSchema({
                 type: 'collection',

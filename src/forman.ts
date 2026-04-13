@@ -565,37 +565,34 @@ function handleSelectOrPathType(
         });
 
         // Additional fetching options, if provided
+        const xFetchOptions: Record<string, unknown> = {};
         if (isObject<FormanSchemaExtendedOptions>(field.options)) {
-            const xFetchOptions = (['label', 'value'] as const).reduce(
-                (transferObject, transferKey) => {
-                    const transferValue = (field.options as FormanSchemaExtendedOptions)[transferKey];
-                    if (transferValue) transferObject[transferKey] = transferValue;
-                    return transferObject;
-                },
-                {} as Record<string, unknown>,
-            );
-            // Special treatment for select-like fields which are supposed to be displayed differently, like 'radio' or 'list'
-            if (
-                ![
-                    // Reference Types are distinguished by the Loader Tool Name directly
-                    ...FORMAN_REFERENCE_TYPES,
-                    // Select is default
-                    'select',
-                    // File and Folder are distinguished by the x-path metadata, so we don't need to append it here
-                    'file',
-                    'folder',
-                ].includes(field.type)
-            ) {
-                xFetchOptions['type'] = field.type;
+            for (const transferKey of ['label', 'value'] as const) {
+                const transferValue = field.options[transferKey];
+                if (transferValue) xFetchOptions[transferKey] = transferValue;
             }
-            if (Object.keys(xFetchOptions).length) {
-                Object.defineProperty(result, 'x-fetch-options', {
-                    configurable: true,
-                    enumerable: true,
-                    writable: true,
-                    value: xFetchOptions,
-                });
-            }
+        }
+        // Special treatment for select-like fields which are supposed to be displayed differently, like 'radio' or 'list'
+        if (
+            ![
+                // Reference Types are distinguished by the Loader Tool Name directly
+                ...FORMAN_REFERENCE_TYPES,
+                // Select is default
+                'select',
+                // File and Folder are distinguished by the x-path metadata, so we don't need to append it here
+                'file',
+                'folder',
+            ].includes(field.type)
+        ) {
+            xFetchOptions['type'] = field.type;
+        }
+        if (Object.keys(xFetchOptions).length) {
+            Object.defineProperty(result, 'x-fetch-options', {
+                configurable: true,
+                enumerable: true,
+                writable: true,
+                value: xFetchOptions,
+            });
         }
     } else {
         let options = optionsOrGroups?.flatMap(optionOrGroup => {
