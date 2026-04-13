@@ -585,8 +585,9 @@ function handleSelectOrPathType(
                     'file',
                     'folder',
                 ].includes(field.type)
-            )
+            ) {
                 xFetchOptions['type'] = field.type;
+            }
             if (Object.keys(xFetchOptions).length) {
                 Object.defineProperty(result, 'x-fetch-options', {
                     configurable: true,
