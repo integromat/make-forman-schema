@@ -2166,7 +2166,7 @@ describe('Forman Schema Extended Validation', () => {
     describe('Extended options with custom value key', () => {
         const rpcOptions = [
             {
-                label: '<test@mail.com> - DZIZS (10.04.2026)',
+                label: '<test@mail.com> - MAYO (10.04.2026)',
                 date: '2026-04-10T11:40:11.000Z',
                 data: {
                     lastDate: '2026-04-10T11:40:11.000Z',
