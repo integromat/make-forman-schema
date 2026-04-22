@@ -203,6 +203,8 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, string | undefined>> = {
     timestamp: 'string',
     timezone: 'string',
     upload: 'array',
+    filestorage: 'array',
+    scenario: 'string',
     url: 'string',
     uuid: 'string',
     any: undefined,
@@ -473,6 +475,7 @@ async function validateFormanValue(
         case 'collection':
             return handleCollectionType(value as Record<string, unknown>, normalizedField, context);
         case 'array':
+        case 'filestorage':
             return handleArrayType(value as unknown[], normalizedField, context);
         case 'list':
         case 'radio':

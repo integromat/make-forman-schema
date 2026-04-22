@@ -185,6 +185,7 @@ const result = await validateFormanWithDomains(
 - email → string
 - file → string
 - filename → string
+- filestorage → array (of UUID strings)
 - filter → array
 - folder → string
 - hidden → string
@@ -196,6 +197,7 @@ const result = await validateFormanWithDomains(
 - path → string
 - pkey → string
 - port → number
+- scenario → string
 - select → string with enum
 - text → string
 - time → string

@@ -60,6 +60,16 @@ export function toFormanSchema(field: JSONSchema7): FormanSchemaField {
                 spec,
             };
         case 'array':
+            // If the array is flagged as filestorage field, then short-circuit to it
+            const filestorageMarker = Object.getOwnPropertyDescriptor(field, 'x-filestorage');
+            if (filestorageMarker) {
+                return {
+                    type: 'filestorage',
+                    label: noEmpty(field.title),
+                    help: noEmpty(field.description),
+                };
+            }
+
             // If the array is flagged as filter field root, then short-circuit to it
             const filterLogic = Object.getOwnPropertyDescriptor(field, 'x-filter');
             if (filterLogic) {
