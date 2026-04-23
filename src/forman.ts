@@ -113,6 +113,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, JSONSchema7['type']>> = {
     email: 'string',
     filename: 'string',
     file: 'string',
+    filestorage: 'array',
     filter: 'array',
     folder: 'string',
     hidden: undefined,
@@ -124,6 +125,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, JSONSchema7['type']>> = {
     port: 'number',
     list: 'string',
     radio: 'string',
+    scenario: 'string',
     select: 'string',
     udttype: 'string',
     udtspec: 'array',
@@ -268,6 +270,7 @@ export function toJSONSchemaInternal(field: FormanSchemaField, context: Conversi
         case 'dynamicCollection':
             return handleCollectionType(normalizedField, result, context);
         case 'array':
+        case 'filestorage':
             return handleArrayType(normalizedField, result, context);
         case 'list':
         case 'radio':
@@ -278,6 +281,7 @@ export function toJSONSchemaInternal(field: FormanSchemaField, context: Conversi
         case 'keychain':
         case 'datastore':
         case 'aiagent':
+        case 'scenario':
         case 'file':
         case 'folder':
             return handleSelectOrPathType(normalizedField, result, context);
@@ -381,7 +385,15 @@ function handleCollectionType(field: FormanSchemaField, result: JSONSchema7, con
  * @returns The converted JSON Schema field
  */
 function handleArrayType(field: FormanSchemaField, result: JSONSchema7, context: ConversionContext): JSONSchema7 {
-    if (field.spec) {
+    if (field.type === 'filestorage') {
+        result.items = { type: 'string' };
+        Object.defineProperty(result, 'x-filestorage', {
+            configurable: true,
+            enumerable: false,
+            writable: true,
+            value: true,
+        });
+    } else if (field.spec) {
         result.items = toJSONSchemaInternal(
             Array.isArray(field.spec) ? { type: 'collection', spec: field.spec } : field.spec,
             {

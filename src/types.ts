@@ -25,6 +25,7 @@ export type FormanSchemaFieldType =
     | 'filename'
     | 'file'
     | 'filter'
+    | 'filestorage'
     | 'folder'
     | 'hidden'
     | 'integer'
