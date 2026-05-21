@@ -15,6 +15,8 @@ export type {
     FormanSchemaExtendedNested,
     FormanSchemaOptionGroup,
     FormanSchemaRPCButton,
+    FormanValidationOptions,
+    FormanValidationResult,
 } from './types';
 export { toFormanSchema } from './json';
 
