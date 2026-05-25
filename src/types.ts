@@ -1,3 +1,5 @@
+import type { JSONSchema7 } from 'json-schema';
+
 /**
  * Valid Forman Schema field types
  */
@@ -286,6 +288,32 @@ export type FormanSchemaFieldState = {
     extra?: Record<string, unknown>;
     nested?: Record<string, FormanSchemaFieldState>;
     items?: Record<string, FormanSchemaFieldState>[];
+};
+
+/**
+ * Options for converting a Forman Schema to JSON Schema
+ */
+export type FormanJsonSchemaOptions = {
+    /**
+     * Exclude fields marked `advanced: true` from the rendered schema. Defaults to `false`
+     * (advanced fields are included and stamped with `x-advanced: true`). When `true`,
+     * advanced fields are omitted; their dot-notation paths are reported on
+     * `toJSONSchemaAdvanced`'s `skippedPaths.advanced` so the caller can re-request them.
+     */
+    excludeAdvancedFields?: boolean;
+};
+
+/**
+ * Result of converting a Forman Schema to JSON Schema
+ */
+export type FormanJsonSchemaResult = {
+    /** The converted JSON Schema */
+    schema: JSONSchema7;
+    /** Paths to fields that were skipped during conversion. Present only when at least one field was skipped. */
+    skippedPaths?: {
+        /** Dot-notation paths of advanced fields that were skipped. Present only when at least one advanced field was skipped. */
+        advanced?: string[];
+    };
 };
 
 export type FormanValidationOptions = {

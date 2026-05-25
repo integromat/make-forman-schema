@@ -254,6 +254,7 @@ exports[`udtspec composite Validation should convert schema with multiple udtspe
           "description": "Display name for better readability.",
           "title": "Label",
           "type": "string",
+          "x-advanced": true,
         },
         "name": {
           "description": undefined,

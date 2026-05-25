@@ -2,6 +2,15 @@
 
 Conversion and validation utilities for Forman Schema.
 
+## v1.14.0 — advanced field tracking
+
+Non-breaking minor release. New surface for working with `advanced: true` Forman fields:
+
+- `toJSONSchema(field, options?)` still returns a bare `JSONSchema7` — fully backward-compatible.
+- Fields marked `advanced: true` are now stamped with `x-advanced: true` on the JSON Schema output, and round-trip through `toFormanSchema` (which restores `advanced: true`).
+- New option `excludeAdvancedFields?: boolean` (default `false`). When `true`, advanced sub-fields of a collection are omitted from the schema.
+- New function `toJSONSchemaAdvanced(field, options?)` returns `{ schema: JSONSchema7, skippedPaths?: { advanced?: string[] } }`. Use it to learn which advanced fields were dropped (e.g. to render a "show advanced" toggle). `toJSONSchema` delegates to it internally and returns just `.schema`.
+
 ## Installation
 
 ```bash
@@ -32,6 +41,23 @@ const formanField = {
 
 const jsonSchema = toJSONSchema(formanField);
 ```
+
+Advanced fields (`advanced: true`) are included by default and stamped with `x-advanced: true`. To omit them from the rendered schema, pass `{ excludeAdvancedFields: true }`:
+
+```typescript
+const jsonSchema = toJSONSchema(formanField, { excludeAdvancedFields: true });
+```
+
+If you also need to know **which** advanced fields were dropped (e.g. to render a "show advanced" toggle), use `toJSONSchemaAdvanced`:
+
+```typescript
+import { toJSONSchemaAdvanced } from '@makehq/forman-schema';
+
+const { schema, skippedPaths } = toJSONSchemaAdvanced(formanField, { excludeAdvancedFields: true });
+// skippedPaths?.advanced is an array of dot-notation paths like ['wrapper.field', 'wrapper.arr[].nested']
+```
+
+The filter applies to **sub-fields of a collection** — including nested-by-option fields, array-of-collection items, composite expansions (`udtspec`, `udttype`), and cross-domain buffered fields. It does **not** apply to: the top-level field passed in (always converted), or the item type of an array whose `spec` is a single primitive field. To hide an entire array or any other top-level structure, mark the _parent_ field as `advanced: true`.
 
 ### Converting from JSON Schema to Forman Schema
 

@@ -27,6 +27,14 @@ type XSearchDirective = {
  * @returns The equivalent Forman Schema field
  */
 export function toFormanSchema(field: JSONSchema7): FormanSchemaField {
+    const result = toFormanSchemaInternal(field);
+    if (Object.getOwnPropertyDescriptor(field, 'x-advanced')?.value === true) {
+        result.advanced = true;
+    }
+    return result;
+}
+
+function toFormanSchemaInternal(field: JSONSchema7): FormanSchemaField {
     const compositeType = Object.getOwnPropertyDescriptor(field, 'x-composite')?.value;
     if (compositeType === 'udttype') return udttypeCollapse(field);
     if (compositeType === 'udtspec') return udtspecCollapse(field);

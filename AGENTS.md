@@ -17,12 +17,13 @@ TypeScript library for converting and validating **Forman Schema** (Make's inter
 
 <important if="you need to run commands to build, test, or lint">
 
-| Command | What it does |
-|---|---|
-| `npm run lint` | runs `tsc` (TypeScript check, not eslint) |
-| `npm test` | jest with `--runInBand --coverage --forceExit` |
-| `npm run build` | tsup → `dist/` (ESM + CJS + `.d.ts`/`.d.cts`) |
-| `npm run build:version` | syncs `package.json` version into `jsr.json` |
+| Command                 | What it does                                   |
+| ----------------------- | ---------------------------------------------- |
+| `npm run lint`          | runs `tsc` (TypeScript check, not eslint)      |
+| `npm test`              | jest with `--runInBand --coverage --forceExit` |
+| `npm run build`         | tsup → `dist/` (ESM + CJS + `.d.ts`/`.d.cts`)  |
+| `npm run build:version` | syncs `package.json` version into `jsr.json`   |
+
 </important>
 
 ## Domain Concepts
@@ -33,9 +34,16 @@ TypeScript library for converting and validating **Forman Schema** (Make's inter
 
 <important if="you are modifying toJSONSchema conversion or the forman.ts file">
 
+**Public signatures:**
+
+- `toJSONSchema(field, options?)` returns a bare `JSONSchema7` (backward-compatible). Delegates to `toJSONSchemaAdvanced` and returns `.schema`.
+- `toJSONSchemaAdvanced(field, options?)` returns `{ schema: JSONSchema7, skippedPaths?: { advanced?: string[] } }`. `skippedPaths` is omitted entirely when nothing was skipped.
+
 **Forman types → JSON Schema types** mapping is in `src/forman.ts` at `FORMAN_TYPE_MAP`. Notable: `collection→object`, `array→array`, `filter→array`, `checkbox→boolean`, `hidden/any→undefined`.
 
-Entry: `toJSONSchemaInternal(field, context)`. Dispatches by type to `handleCollectionType`, `handleArrayType`, `handleSelectOrPathType`, `handleFilterType`, `handlePrimitiveType`. `ConversionContext` carries `domain`, `path`, `tail`, `roots`, and `addConditionalFields` callback (for select-with-nested → `allOf[if/then]` generation on parent collection). `SchemaConversionError` is also defined here.
+Entry: `toJSONSchemaInternal(field, context)`. Dispatches by type to `handleCollectionType`, `handleArrayType`, `handleSelectOrPathType`, `handleFilterType`, `handlePrimitiveType`. `ConversionContext` carries `domain`, `path`, `tail`, `roots`, `addConditionalFields` callback (for select-with-nested → `allOf[if/then]` generation on parent collection), `excludeAdvancedFields` (default `false`), and `skippedPaths` (mutable accumulator shared across recursion via context spread). `SchemaConversionError` is also defined here.
+
+**Advanced field tracking:** filter point is `handleCollectionType.addField`. Fields with `advanced: true` are **included by default** and stamped with `x-advanced: true` (enumerable, configurable, writable). When `excludeAdvancedFields: true` is passed, they're omitted from the schema and their paths accumulate in `context.skippedPaths.advanced`. Path segments are built via the `collectionPath` helper, which is `[...context.path, field.name]` when `field.name` is set, else `context.path` (this handles synthetic anonymous collection wrappers — array items, nested-by-option, RPC params, composite expansions — cleanly so `[]` array paths don't get a literal `"undefined"` segment). Composite types (`udtspec`, `udttype`) memoize via `context.definitions[type]`; advanced fields inside a composite are recorded once per `toJSONSchemaAdvanced` call, not per usage.
 </important>
 
 <important if="you are modifying toFormanSchema conversion or the json.ts file">
@@ -52,9 +60,9 @@ Entry: `toJSONSchemaInternal(field, context)`. Dispatches by type to `handleColl
 **tail** — as validation/conversion descends into nested select fields, the selected values accumulate in a `tail: { name, value }[]` array. This is appended as a query string (`?name={{value}}&...`) on `rpc://` URLs passed to `resolveRemote`, providing context for dependent remote calls.
 </important>
 
-<important if="you are modifying non-enumerable property handling or round-trip conversion">
+<important if="you are modifying x-* round-trip markers or round-trip conversion">
 
-**Non-enumerable properties** — round-trip information that doesn't survive `JSON.stringify` is attached via `Object.defineProperty` on JSON Schema output objects: `x-filter`, `x-path`, `x-fetch`, `x-nested`, `x-search`. `toFormanSchema` checks these via `Object.getOwnPropertyDescriptor`.
+**`x-*` round-trip markers** — Forman-specific metadata that JSON Schema doesn't have a native slot for is attached via `Object.defineProperty` on JSON Schema output objects: `x-filter`, `x-path`, `x-fetch`, `x-nested`, `x-search`, `x-advanced`, `x-composite`, `x-filestorage`. Most are declared `enumerable: true` (so they DO appear in `JSON.stringify` output and are part of the serialized schema); `x-filestorage` is the exception at `enumerable: false`. `defineProperty` is used (rather than plain assignment) to keep these out of the structural TypeScript shape of `JSONSchema7` and to keep them isolated from spec-compliant property handling. `toFormanSchema` reads them back via `Object.getOwnPropertyDescriptor`. For `x-advanced`, recovery happens in the top-level `toFormanSchema` wrapper (after delegating to `toFormanSchemaInternal`) so all branches — including composite short-circuits — inherit it uniformly.
 </important>
 
 <important if="you are modifying validation logic or the validator.ts file">
@@ -79,7 +87,7 @@ Per-domain inputs accept `restoreExtras` (extra values injected into restore sta
 - `resolveRemote` is inlined per-test as a callback (no shared test utilities)
 - Fixtures loaded with `readFileSync('./test/mocks/forman.json')`
 - Shared schema defined at `describe` scope, used across multiple `it` blocks
-</important>
+  </important>
 
 <important if="you are modifying TypeScript config or adding new files">
 
@@ -87,7 +95,7 @@ Per-domain inputs accept `restoreExtras` (extra values injected into restore sta
 - `noEmit: true` — tsc is lint-only; tsup handles actual compilation
 - `noUncheckedIndexedAccess: true` — array/record access may return `T | undefined`
 - `isolatedModules: true` — use `import type` for type-only imports
-</important>
+  </important>
 
 ## Keeping AGENTS.md current
 

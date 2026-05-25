@@ -722,5 +722,24 @@ describe('Forman Schema', () => {
                 },
             });
         });
+
+        it('should preserve advanced: true through Forman -> JSON Schema -> Forman round-trip', () => {
+            const originalForman: FormanSchemaField = {
+                name: 'wrapper',
+                type: 'collection',
+                spec: [
+                    { name: 'regular', type: 'text' },
+                    { name: 'extra', type: 'text', advanced: true },
+                ],
+            };
+            const jsonSchema = toJSONSchema(originalForman);
+            const converted = toFormanSchema(jsonSchema);
+
+            const subFields = converted.spec as FormanSchemaField[];
+            const regular = subFields.find(f => f.name === 'regular')!;
+            const extra = subFields.find(f => f.name === 'extra')!;
+            expect(regular.advanced).toBeUndefined();
+            expect(extra.advanced).toBe(true);
+        });
     });
 });

@@ -179,9 +179,7 @@ describe('Radio type', () => {
         it('should reject missing required nested field', async () => {
             const result = await validateForman({ __type: 'date' }, radioSchema, { resolveRemote });
             expect(result.valid).toBe(false);
-            expect(result.errors).toEqual([
-                expect.objectContaining({ message: 'Field is mandatory.' }),
-            ]);
+            expect(result.errors).toEqual([expect.objectContaining({ message: 'Field is mandatory.' })]);
         });
     });
 });
