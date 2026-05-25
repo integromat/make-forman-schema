@@ -48,7 +48,9 @@ const formanField = {
 const { schema, skippedPaths } = toJSONSchema(formanField);
 ```
 
-`toJSONSchema` returns `{ schema, skippedPaths? }`. Fields marked `advanced: true` are skipped by default; their dot-notation paths are reported in `skippedPaths.advanced` so the caller can re-request them on demand. To include them inline, pass `{ includeAdvancedFields: true }` — included advanced fields are stamped with `x-advanced: true` on the JSON Schema and round-trip correctly through `toFormanSchema`.
+`toJSONSchema` returns `{ schema, skippedPaths? }`. **Sub-fields of a collection** (the common case — fields living inside a `collection` `spec`, including nested-by-option fields, array-of-collection items, composite expansions, and cross-domain buffered fields) marked `advanced: true` are skipped by default; their dot-notation paths are reported in `skippedPaths.advanced` so the caller can re-request them on demand. To include them inline, pass `{ includeAdvancedFields: true }` — included advanced fields are stamped with `x-advanced: true` on the JSON Schema and round-trip correctly through `toFormanSchema`.
+
+The filter does **not** apply to: the top-level field passed to `toJSONSchema` (it's always converted), or the item type of an array whose `spec` is a single primitive field (there's no sibling context). To hide an entire array or any other top-level structure, mark the *parent* field as `advanced: true`.
 
 ```typescript
 const { schema } = toJSONSchema(formanField, { includeAdvancedFields: true });

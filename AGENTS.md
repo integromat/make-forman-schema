@@ -57,9 +57,9 @@ Entry: `toJSONSchemaInternal(field, context)`. Dispatches by type to `handleColl
 **tail** — as validation/conversion descends into nested select fields, the selected values accumulate in a `tail: { name, value }[]` array. This is appended as a query string (`?name={{value}}&...`) on `rpc://` URLs passed to `resolveRemote`, providing context for dependent remote calls.
 </important>
 
-<important if="you are modifying non-enumerable property handling or round-trip conversion">
+<important if="you are modifying x-* round-trip markers or round-trip conversion">
 
-**Non-enumerable properties** — round-trip information that doesn't survive `JSON.stringify` is attached via `Object.defineProperty` on JSON Schema output objects: `x-filter`, `x-path`, `x-fetch`, `x-nested`, `x-search`, `x-advanced`. `toFormanSchema` checks these via `Object.getOwnPropertyDescriptor`. For `x-advanced`, recovery happens in the top-level `toFormanSchema` wrapper (after delegating to `toFormanSchemaInternal`) so all branches inherit it uniformly.
+**`x-*` round-trip markers** — Forman-specific metadata that JSON Schema doesn't have a native slot for is attached via `Object.defineProperty` on JSON Schema output objects: `x-filter`, `x-path`, `x-fetch`, `x-nested`, `x-search`, `x-advanced`, `x-composite`, `x-filestorage`. Most are declared `enumerable: true` (so they DO appear in `JSON.stringify` output and are part of the serialized schema); `x-filestorage` is the exception at `enumerable: false`. `defineProperty` is used (rather than plain assignment) to keep these out of the structural TypeScript shape of `JSONSchema7` and to keep them isolated from spec-compliant property handling. `toFormanSchema` reads them back via `Object.getOwnPropertyDescriptor`. For `x-advanced`, recovery happens in the top-level `toFormanSchema` wrapper (after delegating to `toFormanSchemaInternal`) so all branches — including composite short-circuits — inherit it uniformly.
 </important>
 
 <important if="you are modifying validation logic or the validator.ts file">
