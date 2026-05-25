@@ -17,7 +17,7 @@ describe('udtspec composite', () => {
                 ],
             };
 
-            const result = toJSONSchema(field);
+            const { schema: result } = toJSONSchema(field, { includeAdvancedFields: true });
 
             const specField = result.properties!['spec'] as JSONSchema7;
             expect(specField.type).toBe('array');
@@ -53,7 +53,7 @@ describe('udtspec composite', () => {
         });
 
         it('should convert top-level udtspec field directly', () => {
-            const result = toJSONSchema({ name: 'x', type: 'udtspec' });
+            const { schema: result } = toJSONSchema({ name: 'x', type: 'udtspec' });
 
             expect(result.type).toBe('array');
             expect(result['definitions']).toBeDefined();
@@ -74,7 +74,7 @@ describe('udtspec composite', () => {
                 ],
             };
 
-            const result = toJSONSchema(field);
+            const { schema: result } = toJSONSchema(field);
 
             expect(result['definitions']).toBeDefined();
             expect(result['definitions']!['udtspec']).toBeDefined();
@@ -114,7 +114,7 @@ describe('udtspec composite', () => {
                 ],
             };
 
-            const jsonSchema = toJSONSchema(field);
+            const { schema: jsonSchema } = toJSONSchema(field);
             const specField = jsonSchema.properties!['spec'] as JSONSchema7;
             const formanField = toFormanSchema(specField);
 
@@ -243,7 +243,7 @@ describe('udtspec composite', () => {
                 ],
             };
 
-            const result = toJSONSchema(field);
+            const { schema: result } = toJSONSchema(field, { includeAdvancedFields: true });
 
             // Both fields should be wrappers with their own titles
             const spec1 = result.properties!['spec1'] as JSONSchema7;

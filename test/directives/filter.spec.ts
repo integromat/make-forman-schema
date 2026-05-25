@@ -10,7 +10,7 @@ describe('Filter Type with Configurable Options and Operators', () => {
                 type: 'filter',
                 label: 'Plain Filter',
             };
-            const jsonSchema = toJSONSchema(formanSchema);
+            const { schema: jsonSchema } = toJSONSchema(formanSchema);
 
             expect(jsonSchema.type).toBe('array');
             expect('x-filter' in jsonSchema && jsonSchema['x-filter']).toBe('default');
@@ -55,7 +55,7 @@ describe('Filter Type with Configurable Options and Operators', () => {
                     { label: 'Y', value: 'y' },
                 ],
             };
-            const jsonSchema = toJSONSchema(formanSchema);
+            const { schema: jsonSchema } = toJSONSchema(formanSchema);
 
             const innerArray = jsonSchema.items as JSONSchema7;
             const filterDefinition = innerArray.items as JSONSchema7;
@@ -82,7 +82,7 @@ describe('Filter Type with Configurable Options and Operators', () => {
                     store: 'rpc://dropdownExplorer',
                 },
             };
-            const jsonSchema = toJSONSchema(formanSchema);
+            const { schema: jsonSchema } = toJSONSchema(formanSchema);
 
             const innerArray = jsonSchema.items as JSONSchema7;
             const filterDefinition = innerArray.items as JSONSchema7;
@@ -109,7 +109,7 @@ describe('Filter Type with Configurable Options and Operators', () => {
                     },
                 ],
             };
-            const jsonSchema = toJSONSchema(formanSchema);
+            const { schema: jsonSchema } = toJSONSchema(formanSchema);
 
             const innerArray = jsonSchema.items as JSONSchema7;
             const filterDefinition = innerArray.items as JSONSchema7;
@@ -137,7 +137,7 @@ describe('Filter Type with Configurable Options and Operators', () => {
                     operators: [{ label: 'TOP LEVEL', value: 'topLevel' }],
                 },
             };
-            const jsonSchema = toJSONSchema(formanSchema);
+            const { schema: jsonSchema } = toJSONSchema(formanSchema);
 
             const innerArray = jsonSchema.items as JSONSchema7;
             const filterDefinition = innerArray.items as JSONSchema7;
@@ -171,7 +171,7 @@ describe('Filter Type with Configurable Options and Operators', () => {
                     ],
                 },
             };
-            const jsonSchema = toJSONSchema(formanSchema);
+            const { schema: jsonSchema } = toJSONSchema(formanSchema);
 
             const innerArray = jsonSchema.items as JSONSchema7;
             const filterDefinition = innerArray.items as JSONSchema7;
@@ -201,7 +201,7 @@ describe('Filter Type with Configurable Options and Operators', () => {
                     ],
                 },
             };
-            const jsonSchema = toJSONSchema(formanSchema);
+            const { schema: jsonSchema } = toJSONSchema(formanSchema);
 
             const innerArray = jsonSchema.items as JSONSchema7;
             const filterDefinition = innerArray.items as JSONSchema7;
@@ -282,7 +282,7 @@ describe('Filter Type with Configurable Options and Operators', () => {
                 type: 'filter',
                 options: [{ value: 'x' }, { value: 'y' }],
             };
-            const jsonSchema = toJSONSchema(formanSchema);
+            const { schema: jsonSchema } = toJSONSchema(formanSchema);
 
             const innerArray = jsonSchema.items as JSONSchema7;
             const filterDefinition = innerArray.items as JSONSchema7;
@@ -302,7 +302,7 @@ describe('Filter Type with Configurable Options and Operators', () => {
                 type: 'filter',
                 options: [],
             };
-            const jsonSchema = toJSONSchema(formanSchema);
+            const { schema: jsonSchema } = toJSONSchema(formanSchema);
 
             const innerArray = jsonSchema.items as JSONSchema7;
             const filterDefinition = innerArray.items as JSONSchema7;
@@ -322,7 +322,7 @@ describe('Filter Type with Configurable Options and Operators', () => {
                     operators: [{ value: 'op1' }, { value: 'op2' }],
                 },
             };
-            const jsonSchema = toJSONSchema(formanSchema);
+            const { schema: jsonSchema } = toJSONSchema(formanSchema);
 
             const innerArray = jsonSchema.items as JSONSchema7;
             const filterDefinition = innerArray.items as JSONSchema7;

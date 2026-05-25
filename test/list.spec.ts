@@ -17,7 +17,7 @@ const listSchema: FormanSchemaField[] = [
 describe('List type', () => {
     describe('toJSONSchema', () => {
         it('should convert list with RPC options to JSON Schema with x-fetch and x-fetch-options', () => {
-            const result = toJSONSchema({
+            const { schema: result } = toJSONSchema({
                 type: 'collection',
                 spec: listSchema,
             });
@@ -37,7 +37,7 @@ describe('List type', () => {
         });
 
         it('should include label and value in x-fetch-options when both are specified', () => {
-            const result = toJSONSchema({
+            const { schema: result } = toJSONSchema({
                 type: 'collection',
                 spec: [
                     {
@@ -59,7 +59,7 @@ describe('List type', () => {
         });
 
         it('should include type in x-fetch-options for list even without label/value', () => {
-            const result = toJSONSchema({
+            const { schema: result } = toJSONSchema({
                 type: 'collection',
                 spec: [
                     {
@@ -79,7 +79,7 @@ describe('List type', () => {
         });
 
         it('should not include x-fetch-options for select type without label/value', () => {
-            const result = toJSONSchema({
+            const { schema: result } = toJSONSchema({
                 type: 'collection',
                 spec: [
                     {
@@ -99,7 +99,7 @@ describe('List type', () => {
         });
 
         it('should emit x-fetch-options with type when list options is a string shorthand', () => {
-            const result = toJSONSchema({
+            const { schema: result } = toJSONSchema({
                 type: 'collection',
                 spec: [
                     {
@@ -118,7 +118,7 @@ describe('List type', () => {
         });
 
         it('should not emit x-fetch-options when select options is a string shorthand', () => {
-            const result = toJSONSchema({
+            const { schema: result } = toJSONSchema({
                 type: 'collection',
                 spec: [
                     {
@@ -137,7 +137,7 @@ describe('List type', () => {
         });
 
         it('should produce x-fetch-options on nested list inside a select option', () => {
-            const result = toJSONSchema({
+            const { schema: result } = toJSONSchema({
                 type: 'collection',
                 spec: [
                     {
@@ -180,7 +180,7 @@ describe('List type', () => {
         });
 
         it('should convert list with inline options to oneOf', () => {
-            const result = toJSONSchema({
+            const { schema: result } = toJSONSchema({
                 type: 'collection',
                 spec: [
                     {
@@ -205,7 +205,7 @@ describe('List type', () => {
         });
 
         it('should convert non-required list with empty default', () => {
-            const result = toJSONSchema({
+            const { schema: result } = toJSONSchema({
                 type: 'collection',
                 spec: [
                     {

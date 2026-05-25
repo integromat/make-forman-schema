@@ -1,6 +1,11 @@
-import type { JSONSchema7 } from 'json-schema';
 import { toJSONSchemaInternal, createDefaultContext } from './forman';
-import type { FormanSchemaField, FormanValidationResult, FormanValidationOptions } from './types';
+import type {
+    FormanSchemaField,
+    FormanValidationResult,
+    FormanValidationOptions,
+    FormanJsonSchemaOptions,
+    FormanJsonSchemaResult,
+} from './types';
 import { validateFormanWithDomainsInternal } from './validator';
 
 export type {
@@ -17,20 +22,28 @@ export type {
     FormanSchemaRPCButton,
     FormanValidationOptions,
     FormanValidationResult,
+    FormanJsonSchemaOptions,
+    FormanJsonSchemaResult,
 } from './types';
 export { toFormanSchema } from './json';
 
 /**
  * Converts a Forman Schema field to its JSON Schema equivalent.
+ *
+ * Advanced fields (those with `advanced: true`) are skipped by default; their paths are
+ * collected in `skippedPaths.advanced`. Pass `{ includeAdvancedFields: true }` to include
+ * them — included advanced fields are stamped with `x-advanced: true` on the JSON Schema.
+ *
  * @param field The Forman Schema field to convert
- * @returns The equivalent JSON Schema field
+ * @param options Conversion options
+ * @returns The conversion result, including the JSON Schema and any skipped field paths
  */
-export function toJSONSchema(field: FormanSchemaField): JSONSchema7 {
-    const context = createDefaultContext();
-    const result = toJSONSchemaInternal(field, context);
+export function toJSONSchema(field: FormanSchemaField, options?: FormanJsonSchemaOptions): FormanJsonSchemaResult {
+    const context = createDefaultContext(options);
+    const schema = toJSONSchemaInternal(field, context);
 
     if (Object.keys(context.definitions ?? {}).length > 0) {
-        Object.defineProperty(result, 'definitions', {
+        Object.defineProperty(schema, 'definitions', {
             configurable: true,
             enumerable: true,
             writable: true,
@@ -38,7 +51,15 @@ export function toJSONSchema(field: FormanSchemaField): JSONSchema7 {
         });
     }
 
-    return result;
+    const skippedPaths: NonNullable<FormanJsonSchemaResult['skippedPaths']> = {};
+    if (context.skippedPaths.advanced?.length) {
+        skippedPaths.advanced = context.skippedPaths.advanced;
+    }
+
+    return {
+        schema,
+        ...(Object.keys(skippedPaths).length > 0 ? { skippedPaths } : {}),
+    };
 }
 
 /**

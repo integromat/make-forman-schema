@@ -66,7 +66,7 @@ describe('RPC', () => {
                 },
             ],
         };
-        const jsonSchema = toJSONSchema(formanSchema);
+        const { schema: jsonSchema } = toJSONSchema(formanSchema);
         expect(jsonSchema).toEqual({
             allOf: [
                 {
@@ -276,7 +276,7 @@ describe('RPC', () => {
                 },
             ],
         };
-        const jsonSchema = toJSONSchema(formanSchema);
+        const { schema: jsonSchema } = toJSONSchema(formanSchema);
         const s1 = (jsonSchema as any).properties.S1;
         expect(s1['x-fetch']).toBe('rpc://getTickets?a=1&a=2&a=3');
     });
@@ -306,7 +306,7 @@ describe('RPC', () => {
                 },
             ],
         };
-        const jsonSchema = toJSONSchema(formanSchema);
+        const { schema: jsonSchema } = toJSONSchema(formanSchema);
         const thenProps = (jsonSchema as any).allOf[0].then.properties;
         // Duplicate params preserved AND tail param 'parent' appended
         expect(thenProps.child['x-fetch']).toBe('rpc://getTickets?a=1&a=2&a=3&parent={{parent}}');
@@ -328,7 +328,7 @@ describe('RPC', () => {
                 },
             ],
         };
-        const jsonSchema = toJSONSchema(formanSchema);
+        const { schema: jsonSchema } = toJSONSchema(formanSchema);
         const s1 = (jsonSchema as any).properties.S1;
         expect(s1['x-search'].url).toBe('rpc://searchTickets?a=1&a=2&a=3');
     });
@@ -358,7 +358,7 @@ describe('RPC', () => {
                 },
             ],
         };
-        const jsonSchema = toJSONSchema(formanSchema);
+        const { schema: jsonSchema } = toJSONSchema(formanSchema);
         const thenProps = (jsonSchema as any).allOf[0].then.properties;
         // 'a' is already in query string, should NOT be appended as tail param
         expect(thenProps.child['x-fetch']).toBe('rpc://getTickets?a=1&a=2&a=3');

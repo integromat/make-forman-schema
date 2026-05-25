@@ -1,4 +1,4 @@
-import type { JSONSchema7, JSONSchema7Definition, JSONSchema7TypeName } from 'json-schema';
+import type { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 import type {
     FormanSchemaField,
     FormanSchemaValue,
@@ -7,6 +7,7 @@ import type {
     FormanSchemaNested,
     FormanSchemaOption,
     FormanSchemaPathExtendedOptions,
+    FormanJsonSchemaOptions,
 } from './types';
 import {
     noEmpty,
@@ -45,6 +46,10 @@ export interface ConversionContext {
     addConditionalFields: (name: string, value: FormanSchemaValue, nested: JSONSchema7 | string) => void;
     /** Collected definitions for recursive composite types */
     definitions?: Record<string, JSONSchema7>;
+    /** Whether to include fields with `advanced: true`. */
+    includeAdvancedFields: boolean;
+    /** Accumulator for paths of skipped fields, keyed by skip reason. Shared (mutated) across recursion. */
+    skippedPaths: { advanced?: string[] };
 }
 
 /**
@@ -181,13 +186,15 @@ function appendQueryString(path: string, domain: string, tail: string[]): string
  * @param options Conversion options
  * @returns A new conversion context
  */
-export function createDefaultContext(): ConversionContext {
+export function createDefaultContext(options?: FormanJsonSchemaOptions): ConversionContext {
     return {
         domain: 'default',
         tail: [],
         path: [],
         roots: {},
         definitions: {},
+        includeAdvancedFields: options?.includeAdvancedFields ?? false,
+        skippedPaths: {},
         addConditionalFields: () => {
             throw new SchemaConversionError('Cannot serialize nested fields without parent field.');
         },
@@ -224,6 +231,11 @@ export function toJSONSchemaInternal(field: FormanSchemaField, context: Conversi
         const type = normalizedField.type;
         const ref = `#/definitions/${type}`;
 
+        // Composite types are expanded once and memoized in context.definitions. Subsequent
+        // usages of the same composite hit the cache and skip recursion — so any advanced fields
+        // *inside* a composite (e.g. udtspec's `label`) are recorded in skippedPaths only on the
+        // first expansion, not per usage. This is intentional: it keeps skippedPaths concise and
+        // matches how the definitions/$ref shape itself is shared across usages.
         if (!context.definitions?.[type]) {
             if (context.definitions) {
                 context.definitions[type] = {} as JSONSchema7;
@@ -305,6 +317,10 @@ function handleCollectionType(field: FormanSchemaField, result: JSONSchema7, con
         required: [],
     });
 
+    // Synthetic anonymous collections (array items, nested-by-option wrappers, RPC param wrappers)
+    // have no name; in that case the collection contributes no path segment.
+    const collectionPath = field.name ? [...context.path, field.name] : context.path;
+
     function addField(subField: FormanSchemaField | string, tail?: string[]) {
         if (typeof subField === 'string') {
             const value = { $ref: appendQueryString(subField, context.domain, tail || context.tail) };
@@ -329,29 +345,45 @@ function handleCollectionType(field: FormanSchemaField, result: JSONSchema7, con
          */
         if (result.properties && Object.hasOwn(result.properties, subField.name)) return;
 
+        if (subField.advanced === true && !context.includeAdvancedFields) {
+            (context.skippedPaths.advanced ||= []).push([...collectionPath, subField.name].join('.'));
+            return;
+        }
+
         if (subField.required) {
             result.required!.push(subField.name);
         }
 
+        const subSchema = toJSONSchemaInternal(subField, {
+            ...context,
+            domain: (field['x-domain-root'] as string) || context.domain,
+            tail: tail || context.tail,
+            path: collectionPath,
+            addConditionalFields: (name: string, value: FormanSchemaValue, nested: JSONSchema7 | string) => {
+                result.allOf ||= [];
+                result.allOf.push({
+                    if: {
+                        properties: {
+                            [name]: { const: value },
+                        },
+                    },
+                    then: typeof nested === 'string' ? { $ref: nested } : nested,
+                });
+            },
+        });
+
+        if (subField.advanced) {
+            Object.defineProperty(subSchema, 'x-advanced', {
+                configurable: true,
+                enumerable: true,
+                writable: true,
+                value: true,
+            });
+        }
+
         Object.defineProperty(result.properties, subField.name, {
             enumerable: true,
-            value: toJSONSchemaInternal(subField, {
-                ...context,
-                domain: (field['x-domain-root'] as string) || context.domain,
-                tail: tail || context.tail,
-                path: [...context.path, field.name!],
-                addConditionalFields: (name: string, value: FormanSchemaValue, nested: JSONSchema7 | string) => {
-                    result.allOf ||= [];
-                    result.allOf.push({
-                        if: {
-                            properties: {
-                                [name]: { const: value },
-                            },
-                        },
-                        then: typeof nested === 'string' ? { $ref: nested } : nested,
-                    });
-                },
-            }),
+            value: subSchema,
         });
     }
 

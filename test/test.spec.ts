@@ -15,7 +15,7 @@ describe('Forman Schema', () => {
             type: 'collection',
             spec: formanMock,
         };
-        jsonSchema = toJSONSchema(formanSchema);
+        jsonSchema = toJSONSchema(formanSchema).schema;
 
         expect(jsonSchema).toEqual({
             properties: {
@@ -606,7 +606,7 @@ describe('Forman Schema', () => {
                 name: 'enabled',
                 type: 'checkbox',
             };
-            const jsonSchema = toJSONSchema(formanSchema);
+            const { schema: jsonSchema } = toJSONSchema(formanSchema);
             expect(jsonSchema).toEqual({
                 type: 'boolean',
             });
@@ -618,7 +618,7 @@ describe('Forman Schema', () => {
                 type: 'checkbox',
                 default: true,
             };
-            const jsonSchema = toJSONSchema(formanSchema);
+            const { schema: jsonSchema } = toJSONSchema(formanSchema);
             expect(jsonSchema).toEqual({
                 type: 'boolean',
                 default: true,
@@ -649,7 +649,7 @@ describe('Forman Schema', () => {
                 type: 'collection',
                 spec: [{ name: 'enabled', type: 'checkbox', default: true }],
             };
-            const jsonSchema = toJSONSchema(originalForman);
+            const { schema: jsonSchema } = toJSONSchema(originalForman);
 
             // JSON Schema -> Forman (becomes boolean, not checkbox)
             const convertedForman = toFormanSchema(jsonSchema);
@@ -672,7 +672,7 @@ describe('Forman Schema', () => {
                 label: 'Enable Notifications',
                 help: 'Toggle to receive notifications',
             };
-            const jsonSchema = toJSONSchema(formanSchema);
+            const { schema: jsonSchema } = toJSONSchema(formanSchema);
             expect(jsonSchema).toEqual({
                 type: 'boolean',
                 title: 'Enable Notifications',
@@ -689,7 +689,7 @@ describe('Forman Schema', () => {
                     { name: 'notifications', type: 'checkbox', default: false },
                 ],
             };
-            const jsonSchema = toJSONSchema(formanSchema);
+            const { schema: jsonSchema } = toJSONSchema(formanSchema);
             expect(jsonSchema).toEqual({
                 type: 'object',
                 properties: {
@@ -710,7 +710,7 @@ describe('Forman Schema', () => {
                     spec: [{ name: 'active', type: 'checkbox' }],
                 },
             };
-            const jsonSchema = toJSONSchema(formanSchema);
+            const { schema: jsonSchema } = toJSONSchema(formanSchema);
             expect(jsonSchema).toEqual({
                 type: 'array',
                 items: {
@@ -721,6 +721,25 @@ describe('Forman Schema', () => {
                     required: [],
                 },
             });
+        });
+
+        it('should preserve advanced: true through Forman -> JSON Schema -> Forman round-trip', () => {
+            const originalForman: FormanSchemaField = {
+                name: 'wrapper',
+                type: 'collection',
+                spec: [
+                    { name: 'regular', type: 'text' },
+                    { name: 'extra', type: 'text', advanced: true },
+                ],
+            };
+            const { schema: jsonSchema } = toJSONSchema(originalForman, { includeAdvancedFields: true });
+            const converted = toFormanSchema(jsonSchema);
+
+            const subFields = converted.spec as FormanSchemaField[];
+            const regular = subFields.find(f => f.name === 'regular')!;
+            const extra = subFields.find(f => f.name === 'extra')!;
+            expect(regular.advanced).toBeUndefined();
+            expect(extra.advanced).toBe(true);
         });
     });
 });

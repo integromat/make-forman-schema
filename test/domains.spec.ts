@@ -44,7 +44,7 @@ describe('Forman Domains', () => {
             ],
         };
 
-        const jsonSchema = toJSONSchema(formanSchema);
+        const { schema: jsonSchema } = toJSONSchema(formanSchema);
         expect(jsonSchema).toEqual({
             properties: {
                 parameters: {
@@ -110,7 +110,7 @@ describe('Forman Domains', () => {
             ],
         };
 
-        const jsonSchema = toJSONSchema(formanSchema);
+        const { schema: jsonSchema } = toJSONSchema(formanSchema);
         expect(jsonSchema).toEqual({
             properties: {
                 parameters: {
@@ -185,7 +185,7 @@ describe('Forman Domains', () => {
             ],
         };
 
-        const jsonSchema = toJSONSchema(formanSchema);
+        const { schema: jsonSchema } = toJSONSchema(formanSchema);
         expect(jsonSchema).toEqual({
             properties: {
                 parameters: {

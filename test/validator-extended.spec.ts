@@ -2256,11 +2256,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            const result = await validateForman(
-                { choice: '2026-04-10T11:40:11.000Z' },
-                schema,
-                { resolveRemote },
-            );
+            const result = await validateForman({ choice: '2026-04-10T11:40:11.000Z' }, schema, { resolveRemote });
 
             expect(result).toEqual({
                 valid: true,

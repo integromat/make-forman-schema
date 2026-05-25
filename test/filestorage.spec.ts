@@ -5,7 +5,7 @@ import type { JSONSchema7 } from 'json-schema';
 
 describe('filestorage type', () => {
     it('should convert to array with string items and x-filestorage marker', () => {
-        const result = toJSONSchema({
+        const { schema: result } = toJSONSchema({
             type: 'collection',
             spec: [
                 {
@@ -30,7 +30,7 @@ describe('filestorage type', () => {
     });
 
     it('should round-trip through toFormanSchema', () => {
-        const jsonSchema = toJSONSchema({
+        const { schema: jsonSchema } = toJSONSchema({
             type: 'collection',
             spec: [{ name: 'fs', type: 'filestorage', label: 'Files', help: 'Help text' }],
         });
@@ -86,7 +86,7 @@ describe('filestorage type', () => {
         expect(result.valid).toBe(true);
 
         // conversion also ignores upload metadata
-        const jsonSchema = toJSONSchema({ type: 'collection', spec: schema });
+        const { schema: jsonSchema } = toJSONSchema({ type: 'collection', spec: schema });
         const prop = (jsonSchema.properties as Record<string, JSONSchema7>).filestorage!;
         expect(prop.type).toBe('array');
         expect(prop.items).toEqual({ type: 'string' });

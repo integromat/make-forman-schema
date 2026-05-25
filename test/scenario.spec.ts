@@ -5,7 +5,7 @@ import type { JSONSchema7 } from 'json-schema';
 
 describe('scenario type', () => {
     it('should convert to string type with x-fetch pointing to api://scenario-list', () => {
-        const result = toJSONSchema({
+        const { schema: result } = toJSONSchema({
             type: 'collection',
             spec: [{ name: 'scenarioId', type: 'scenario', label: 'Select scenario', required: true }],
         });
@@ -67,7 +67,7 @@ describe('scenario type', () => {
         expect(invalid.errors[0]!.message).toBe("Value 'SCN_00000' not found in options.");
 
         // Conversion carries rpc:// URL and custom keys
-        const jsonSchema = toJSONSchema({ type: 'collection', spec: prodSchema });
+        const { schema: jsonSchema } = toJSONSchema({ type: 'collection', spec: prodSchema });
         const prop = (jsonSchema.properties as Record<string, JSONSchema7>).scenario!;
         expect(prop.type).toBe('string');
         expect(Object.getOwnPropertyDescriptor(prop, 'x-fetch')?.value).toBe(

@@ -10,3 +10,6 @@ coverage/*
 .env
 node_modules/*
 dist
+
+# AI Related
+.claude/*.lock

@@ -2,6 +2,21 @@
 
 Conversion and validation utilities for Forman Schema.
 
+## Breaking changes
+
+### Next major version
+
+- `toJSONSchema(field, options?)` now returns `{ schema: JSONSchema7, skippedPaths?: { advanced?: string[] } }` instead of a bare `JSONSchema7`. Callers must destructure `{ schema }`.
+- Fields with `advanced: true` are **skipped by default**. To restore previous behavior, pass `{ includeAdvancedFields: true }`. Skipped field paths are reported in `skippedPaths.advanced` (dot-notation, e.g. `wrapper.field`, `wrapper.arr[].nested`).
+- Included advanced fields gain an `x-advanced: true` marker on the JSON Schema and round-trip through `toFormanSchema` (restoring `advanced: true` on the Forman field).
+
+Migration:
+
+```diff
+- const jsonSchema = toJSONSchema(formanField);
++ const { schema: jsonSchema } = toJSONSchema(formanField, { includeAdvancedFields: true });
+```
+
 ## Installation
 
 ```bash
@@ -30,7 +45,13 @@ const formanField = {
     ],
 };
 
-const jsonSchema = toJSONSchema(formanField);
+const { schema, skippedPaths } = toJSONSchema(formanField);
+```
+
+`toJSONSchema` returns `{ schema, skippedPaths? }`. Fields marked `advanced: true` are skipped by default; their dot-notation paths are reported in `skippedPaths.advanced` so the caller can re-request them on demand. To include them inline, pass `{ includeAdvancedFields: true }` — included advanced fields are stamped with `x-advanced: true` on the JSON Schema and round-trip correctly through `toFormanSchema`.
+
+```typescript
+const { schema } = toJSONSchema(formanField, { includeAdvancedFields: true });
 ```
 
 ### Converting from JSON Schema to Forman Schema

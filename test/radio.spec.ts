@@ -52,7 +52,7 @@ const radioSchema: FormanSchemaField[] = [
 describe('Radio type', () => {
     describe('toJSONSchema', () => {
         it('should convert radio to JSON Schema with oneOf and allOf conditionals', () => {
-            const result = toJSONSchema({
+            const { schema: result } = toJSONSchema({
                 type: 'collection',
                 spec: radioSchema,
             });
@@ -89,7 +89,7 @@ describe('Radio type', () => {
         });
 
         it('should emit x-fetch-options with type when radio options is a string shorthand', () => {
-            const result = toJSONSchema({
+            const { schema: result } = toJSONSchema({
                 type: 'collection',
                 spec: [
                     {
@@ -108,7 +108,7 @@ describe('Radio type', () => {
         });
 
         it('should convert non-required radio with empty default', () => {
-            const result = toJSONSchema({
+            const { schema: result } = toJSONSchema({
                 type: 'collection',
                 spec: [
                     {
@@ -179,9 +179,7 @@ describe('Radio type', () => {
         it('should reject missing required nested field', async () => {
             const result = await validateForman({ __type: 'date' }, radioSchema, { resolveRemote });
             expect(result.valid).toBe(false);
-            expect(result.errors).toEqual([
-                expect.objectContaining({ message: 'Field is mandatory.' }),
-            ]);
+            expect(result.errors).toEqual([expect.objectContaining({ message: 'Field is mandatory.' })]);
         });
     });
 });
