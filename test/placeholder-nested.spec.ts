@@ -32,7 +32,7 @@ describe('Placeholder Nested', () => {
                 spec: [selectWithPlaceholderNested],
             };
 
-            const { schema: jsonSchema } = toJSONSchema(formanSchema);
+            const jsonSchema = toJSONSchema(formanSchema);
             expect(jsonSchema).toMatchObject({
                 type: 'object',
                 properties: {
@@ -81,7 +81,7 @@ describe('Placeholder Nested', () => {
                 ],
             };
 
-            const { schema: jsonSchema } = toJSONSchema(formanSchema);
+            const jsonSchema = toJSONSchema(formanSchema);
             // When required, placeholder is NOT injected as an option
             expect(jsonSchema).toMatchObject({
                 type: 'object',

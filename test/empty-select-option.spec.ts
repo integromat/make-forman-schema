@@ -21,7 +21,7 @@ describe('Empty string option for non-required selects', () => {
                 ],
             };
 
-            const { schema: jsonSchema } = toJSONSchema(formanSchema);
+            const jsonSchema = toJSONSchema(formanSchema);
             const colorField = jsonSchema.properties!['color'] as JSONSchema7;
 
             expect(colorField.oneOf).toEqual([
@@ -45,7 +45,7 @@ describe('Empty string option for non-required selects', () => {
                 ],
             };
 
-            const { schema: jsonSchema } = toJSONSchema(formanSchema);
+            const jsonSchema = toJSONSchema(formanSchema);
             const sizeField = jsonSchema.properties!['size'] as JSONSchema7;
 
             expect(sizeField.enum).toEqual(['', 'small', 'large']);
@@ -69,7 +69,7 @@ describe('Empty string option for non-required selects', () => {
                 ],
             };
 
-            const { schema: jsonSchema } = toJSONSchema(formanSchema);
+            const jsonSchema = toJSONSchema(formanSchema);
             const colorField = jsonSchema.properties!['color'] as JSONSchema7;
 
             expect(colorField.oneOf).toEqual([
@@ -97,7 +97,7 @@ describe('Empty string option for non-required selects', () => {
                 ],
             };
 
-            const { schema: jsonSchema } = toJSONSchema(formanSchema);
+            const jsonSchema = toJSONSchema(formanSchema);
             const colorField = jsonSchema.properties!['color'] as JSONSchema7;
 
             expect(colorField.description).toBe('Pick a color');
@@ -116,7 +116,7 @@ describe('Empty string option for non-required selects', () => {
                 ],
             };
 
-            const { schema: jsonSchema } = toJSONSchema(formanSchema);
+            const jsonSchema = toJSONSchema(formanSchema);
             const itemField = jsonSchema.properties!['item'] as JSONSchema7;
 
             expect(itemField.default).toBe('');
@@ -171,7 +171,7 @@ describe('Empty string option for non-required selects', () => {
                 ],
             };
 
-            const { schema: jsonSchema } = toJSONSchema(originalForman);
+            const jsonSchema = toJSONSchema(originalForman);
             const roundtripped = toFormanSchema(jsonSchema);
 
             expect(roundtripped.spec).toEqual([
@@ -197,7 +197,7 @@ describe('Empty string option for non-required selects', () => {
                 ],
             };
 
-            const { schema: jsonSchema } = toJSONSchema(originalForman);
+            const jsonSchema = toJSONSchema(originalForman);
             const roundtripped = toFormanSchema(jsonSchema);
 
             expect(roundtripped.spec).toEqual([

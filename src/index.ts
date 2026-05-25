@@ -1,3 +1,4 @@
+import type { JSONSchema7 } from 'json-schema';
 import { toJSONSchemaInternal, createDefaultContext } from './forman';
 import type {
     FormanSchemaField,
@@ -28,29 +29,32 @@ export type {
 export { toFormanSchema } from './json';
 
 /**
- * Converts a Forman Schema field to its JSON Schema equivalent.
+ * Converts a Forman Schema field to its JSON Schema equivalent and reports the paths of any
+ * fields that were skipped during conversion.
  *
- * **Advanced field filtering** applies to sub-fields of a collection (the common case — fields
- * living inside a `collection` `spec`, including nested-by-option fields, array-of-collection
- * items, composite expansions, and cross-domain buffered fields). Such fields marked
- * `advanced: true` are skipped by default; their dot-notation paths are collected in
- * `skippedPaths.advanced`. Pass `{ includeAdvancedFields: true }` to include them — included
- * advanced fields are stamped with `x-advanced: true` on the JSON Schema and round-trip
- * through `toFormanSchema`.
- *
- * The filter does NOT apply to the top-level field passed to this function, nor to the item
- * type of an array whose `spec` is a single primitive field (no sibling context). Mark the
- * parent field as `advanced: true` to hide such structures.
+ * **Advanced fields** (`advanced: true`) are included by default and stamped with
+ * `x-advanced: true` on the JSON Schema (the marker round-trips through `toFormanSchema`).
+ * Pass `{ excludeAdvancedFields: true }` to omit them — when excluded, the affected
+ * dot-notation paths are reported on `skippedPaths.advanced`. The filter applies to sub-fields
+ * of a collection (main form, nested-by-option, array-of-collection items, composite
+ * expansions, cross-domain buffered fields). It does NOT apply to the top-level field passed
+ * here, nor to the item type of an array whose `spec` is a single primitive field. Mark the
+ * parent as `advanced: true` to hide such structures.
  *
  * Known limitation: composite types (`udtspec`, `udttype`) are memoized in
  * `definitions[type]`; advanced fields inside a composite template are recorded with the
  * path of the FIRST usage only. See the comment near `compositeHandlers` in `src/forman.ts`.
  *
+ * If you don't need `skippedPaths`, use {@link toJSONSchema} which returns just the schema.
+ *
  * @param field The Forman Schema field to convert
  * @param options Conversion options
- * @returns The conversion result, including the JSON Schema and any skipped field paths
+ * @returns The conversion result `{ schema, skippedPaths? }`. `skippedPaths` is omitted when nothing was skipped.
  */
-export function toJSONSchema(field: FormanSchemaField, options?: FormanJsonSchemaOptions): FormanJsonSchemaResult {
+export function toJSONSchemaAdvanced(
+    field: FormanSchemaField,
+    options?: FormanJsonSchemaOptions,
+): FormanJsonSchemaResult {
     const context = createDefaultContext(options);
     const schema = toJSONSchemaInternal(field, context);
 
@@ -72,6 +76,22 @@ export function toJSONSchema(field: FormanSchemaField, options?: FormanJsonSchem
         schema,
         ...(Object.keys(skippedPaths).length > 0 ? { skippedPaths } : {}),
     };
+}
+
+/**
+ * Converts a Forman Schema field to its JSON Schema equivalent.
+ *
+ * Advanced fields (`advanced: true`) are included by default and stamped with `x-advanced: true`.
+ * Pass `{ excludeAdvancedFields: true }` to omit them. If you need to know *which* advanced
+ * fields were dropped (e.g. to render a "show advanced" toggle), use {@link toJSONSchemaAdvanced}
+ * which returns `{ schema, skippedPaths? }`.
+ *
+ * @param field The Forman Schema field to convert
+ * @param options Conversion options
+ * @returns The equivalent JSON Schema
+ */
+export function toJSONSchema(field: FormanSchemaField, options?: FormanJsonSchemaOptions): JSONSchema7 {
+    return toJSONSchemaAdvanced(field, options).schema;
 }
 
 /**

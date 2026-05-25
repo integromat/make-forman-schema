@@ -36,7 +36,7 @@ describe('Nested', () => {
         ];
 
         it('should convert to JSON schema', () => {
-            const { schema: jsonSchema } = toJSONSchema({
+            const jsonSchema = toJSONSchema({
                 type: 'collection',
                 spec: formanSchema,
             });
@@ -146,7 +146,7 @@ describe('Nested', () => {
             ];
 
             it('should unwrap store property and process nested fields inline', () => {
-                const { schema: jsonSchema } = toJSONSchema({
+                const jsonSchema = toJSONSchema({
                     type: 'collection',
                     spec: formanSchema,
                 });
@@ -198,7 +198,7 @@ describe('Nested', () => {
             ];
 
             it('should route nested fields to correct domain root', () => {
-                const { schema: jsonSchema } = toJSONSchema({ type: 'collection', spec: formanSchema });
+                const jsonSchema = toJSONSchema({ type: 'collection', spec: formanSchema });
 
                 // Verify textWithCrossDomainNested has no local x-nested
                 const parametersField = jsonSchema.properties?.parameters as Record<string, unknown>;
@@ -396,7 +396,7 @@ describe('Nested', () => {
         ];
 
         it('should convert to JSON schema', () => {
-            const { schema: jsonSchema } = toJSONSchema({
+            const jsonSchema = toJSONSchema({
                 type: 'collection',
                 spec: formanSchema,
             });

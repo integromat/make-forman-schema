@@ -84,7 +84,7 @@ describe('Grouped', () => {
                 },
             ],
         };
-        const { schema: jsonSchema } = toJSONSchema(formanSchema);
+        const jsonSchema = toJSONSchema(formanSchema);
         expect(jsonSchema).toEqual({
             properties: {
                 groupedSelect: {

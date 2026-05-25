@@ -2,20 +2,14 @@
 
 Conversion and validation utilities for Forman Schema.
 
-## Breaking changes
+## v1.14.0 — advanced field tracking
 
-### Next major version
+Non-breaking minor release. New surface for working with `advanced: true` Forman fields:
 
-- `toJSONSchema(field, options?)` now returns `{ schema: JSONSchema7, skippedPaths?: { advanced?: string[] } }` instead of a bare `JSONSchema7`. Callers must destructure `{ schema }`.
-- Fields with `advanced: true` are **skipped by default**. To restore previous behavior, pass `{ includeAdvancedFields: true }`. Skipped field paths are reported in `skippedPaths.advanced` (dot-notation, e.g. `wrapper.field`, `wrapper.arr[].nested`).
-- Included advanced fields gain an `x-advanced: true` marker on the JSON Schema and round-trip through `toFormanSchema` (restoring `advanced: true` on the Forman field).
-
-Migration:
-
-```diff
-- const jsonSchema = toJSONSchema(formanField);
-+ const { schema: jsonSchema } = toJSONSchema(formanField, { includeAdvancedFields: true });
-```
+- `toJSONSchema(field, options?)` still returns a bare `JSONSchema7` — fully backward-compatible.
+- Fields marked `advanced: true` are now stamped with `x-advanced: true` on the JSON Schema output, and round-trip through `toFormanSchema` (which restores `advanced: true`).
+- New option `excludeAdvancedFields?: boolean` (default `false`). When `true`, advanced sub-fields of a collection are omitted from the schema.
+- New function `toJSONSchemaAdvanced(field, options?)` returns `{ schema: JSONSchema7, skippedPaths?: { advanced?: string[] } }`. Use it to learn which advanced fields were dropped (e.g. to render a "show advanced" toggle). `toJSONSchema` delegates to it internally and returns just `.schema`.
 
 ## Installation
 
@@ -45,16 +39,25 @@ const formanField = {
     ],
 };
 
-const { schema, skippedPaths } = toJSONSchema(formanField);
+const jsonSchema = toJSONSchema(formanField);
 ```
 
-`toJSONSchema` returns `{ schema, skippedPaths? }`. **Sub-fields of a collection** (the common case — fields living inside a `collection` `spec`, including nested-by-option fields, array-of-collection items, composite expansions, and cross-domain buffered fields) marked `advanced: true` are skipped by default; their dot-notation paths are reported in `skippedPaths.advanced` so the caller can re-request them on demand. To include them inline, pass `{ includeAdvancedFields: true }` — included advanced fields are stamped with `x-advanced: true` on the JSON Schema and round-trip correctly through `toFormanSchema`.
-
-The filter does **not** apply to: the top-level field passed to `toJSONSchema` (it's always converted), or the item type of an array whose `spec` is a single primitive field (there's no sibling context). To hide an entire array or any other top-level structure, mark the *parent* field as `advanced: true`.
+Advanced fields (`advanced: true`) are included by default and stamped with `x-advanced: true`. To omit them from the rendered schema, pass `{ excludeAdvancedFields: true }`:
 
 ```typescript
-const { schema } = toJSONSchema(formanField, { includeAdvancedFields: true });
+const jsonSchema = toJSONSchema(formanField, { excludeAdvancedFields: true });
 ```
+
+If you also need to know **which** advanced fields were dropped (e.g. to render a "show advanced" toggle), use `toJSONSchemaAdvanced`:
+
+```typescript
+import { toJSONSchemaAdvanced } from '@makehq/forman-schema';
+
+const { schema, skippedPaths } = toJSONSchemaAdvanced(formanField, { excludeAdvancedFields: true });
+// skippedPaths?.advanced is an array of dot-notation paths like ['wrapper.field', 'wrapper.arr[].nested']
+```
+
+The filter applies to **sub-fields of a collection** — including nested-by-option fields, array-of-collection items, composite expansions (`udtspec`, `udttype`), and cross-domain buffered fields. It does **not** apply to: the top-level field passed in (always converted), or the item type of an array whose `spec` is a single primitive field. To hide an entire array or any other top-level structure, mark the _parent_ field as `advanced: true`.
 
 ### Converting from JSON Schema to Forman Schema
 

@@ -1,11 +1,11 @@
 import { describe, expect, it } from '@jest/globals';
 import type { JSONSchema7 } from 'json-schema';
-import { type FormanSchemaField, toJSONSchema } from '../src/index.js';
+import { type FormanSchemaField, toJSONSchema, toJSONSchemaAdvanced } from '../src/index.js';
 
-describe('advanced field filtering', () => {
-    describe('default behavior (includeAdvancedFields: false)', () => {
-        it('omits advanced fields and records their paths', () => {
-            const result = toJSONSchema({
+describe('advanced field tracking', () => {
+    describe('default behavior (excludeAdvancedFields: false)', () => {
+        it('includes advanced fields and stamps x-advanced: true', () => {
+            const schema = toJSONSchema({
                 name: 'w',
                 type: 'collection',
                 spec: [
@@ -14,37 +14,34 @@ describe('advanced field filtering', () => {
                 ],
             });
 
-            expect(result.schema.properties).toHaveProperty('a');
-            expect(result.schema.properties).not.toHaveProperty('b');
-            expect(result.skippedPaths).toEqual({ advanced: ['w.b'] });
-        });
+            expect(schema.properties).toHaveProperty('a');
+            expect(schema.properties).toHaveProperty('b');
 
-        it('omits skippedPaths entirely when nothing was skipped', () => {
-            const result = toJSONSchema({
-                name: 'w',
-                type: 'collection',
-                spec: [{ name: 'a', type: 'text' }],
-            });
+            const bField = schema.properties!['b'] as JSONSchema7;
+            expect(Object.getOwnPropertyDescriptor(bField, 'x-advanced')?.value).toBe(true);
 
-            expect(result.schema.properties).toHaveProperty('a');
-            expect(result.skippedPaths).toBeUndefined();
-        });
-
-        it('does not stamp x-advanced on regular fields', () => {
-            const result = toJSONSchema({
-                name: 'w',
-                type: 'collection',
-                spec: [{ name: 'a', type: 'text' }],
-            });
-
-            const aField = result.schema.properties!['a'] as JSONSchema7;
+            const aField = schema.properties!['a'] as JSONSchema7;
             expect(Object.getOwnPropertyDescriptor(aField, 'x-advanced')).toBeUndefined();
+        });
+
+        it('returns no skippedPaths from toJSONSchemaAdvanced when nothing was excluded', () => {
+            const result = toJSONSchemaAdvanced({
+                name: 'w',
+                type: 'collection',
+                spec: [
+                    { name: 'a', type: 'text' },
+                    { name: 'b', type: 'text', advanced: true },
+                ],
+            });
+
+            expect(result.schema.properties).toHaveProperty('b');
+            expect(result.skippedPaths).toBeUndefined();
         });
     });
 
-    describe('includeAdvancedFields: true', () => {
-        it('includes advanced fields and stamps x-advanced: true', () => {
-            const result = toJSONSchema(
+    describe('opt-out via { excludeAdvancedFields: true }', () => {
+        it('omits advanced fields from the schema', () => {
+            const schema = toJSONSchema(
                 {
                     name: 'w',
                     type: 'collection',
@@ -53,119 +50,172 @@ describe('advanced field filtering', () => {
                         { name: 'b', type: 'text', advanced: true },
                     ],
                 },
-                { includeAdvancedFields: true },
+                { excludeAdvancedFields: true },
             );
 
-            expect(result.schema.properties).toHaveProperty('a');
-            expect(result.schema.properties).toHaveProperty('b');
-            expect(result.skippedPaths).toBeUndefined();
+            expect(schema.properties).toHaveProperty('a');
+            expect(schema.properties).not.toHaveProperty('b');
+        });
 
-            const bField = result.schema.properties!['b'] as JSONSchema7;
-            expect(Object.getOwnPropertyDescriptor(bField, 'x-advanced')?.value).toBe(true);
+        it('reports skipped paths via toJSONSchemaAdvanced', () => {
+            const result = toJSONSchemaAdvanced(
+                {
+                    name: 'w',
+                    type: 'collection',
+                    spec: [
+                        { name: 'a', type: 'text' },
+                        { name: 'b', type: 'text', advanced: true },
+                    ],
+                },
+                { excludeAdvancedFields: true },
+            );
 
-            const aField = result.schema.properties!['a'] as JSONSchema7;
-            expect(Object.getOwnPropertyDescriptor(aField, 'x-advanced')).toBeUndefined();
+            expect(result.schema.properties).not.toHaveProperty('b');
+            expect(result.skippedPaths).toEqual({ advanced: ['w.b'] });
         });
     });
 
-    describe('path notation', () => {
-        it('records correct path for advanced field inside an array of collections', () => {
-            const result = toJSONSchema({
+    describe('toJSONSchema vs toJSONSchemaAdvanced', () => {
+        it('produces the same schema for the same input', () => {
+            const field: FormanSchemaField = {
                 name: 'w',
                 type: 'collection',
                 spec: [
-                    {
-                        name: 'arr',
-                        type: 'array',
-                        spec: [
-                            { name: 'inner', type: 'text', advanced: true },
-                            { name: 'visible', type: 'text' },
-                        ],
-                    },
+                    { name: 'a', type: 'text' },
+                    { name: 'b', type: 'text', advanced: true },
                 ],
-            });
+            };
+
+            const schema = toJSONSchema(field);
+            const { schema: advancedSchema } = toJSONSchemaAdvanced(field);
+            expect(advancedSchema).toEqual(schema);
+        });
+    });
+
+    describe('path tracking when excluded', () => {
+        it('records correct path for advanced field inside an array of collections', () => {
+            const result = toJSONSchemaAdvanced(
+                {
+                    name: 'w',
+                    type: 'collection',
+                    spec: [
+                        {
+                            name: 'arr',
+                            type: 'array',
+                            spec: [
+                                { name: 'inner', type: 'text', advanced: true },
+                                { name: 'visible', type: 'text' },
+                            ],
+                        },
+                    ],
+                },
+                { excludeAdvancedFields: true },
+            );
 
             expect(result.skippedPaths).toEqual({ advanced: ['w.arr[].inner'] });
         });
 
         it('records correct path through nested collections inside arrays', () => {
-            const result = toJSONSchema({
-                name: 'w',
-                type: 'collection',
-                spec: [
-                    {
-                        name: 'arr',
-                        type: 'array',
-                        spec: [
-                            {
-                                name: 'subColl',
-                                type: 'collection',
-                                spec: [{ name: 'deepAdvanced', type: 'text', advanced: true }],
-                            },
-                        ],
-                    },
-                ],
-            });
+            const result = toJSONSchemaAdvanced(
+                {
+                    name: 'w',
+                    type: 'collection',
+                    spec: [
+                        {
+                            name: 'arr',
+                            type: 'array',
+                            spec: [
+                                {
+                                    name: 'subColl',
+                                    type: 'collection',
+                                    spec: [{ name: 'deepAdvanced', type: 'text', advanced: true }],
+                                },
+                            ],
+                        },
+                    ],
+                },
+                { excludeAdvancedFields: true },
+            );
 
             expect(result.skippedPaths).toEqual({ advanced: ['w.arr[].subColl.deepAdvanced'] });
         });
 
-        it('records correct path through nested-by-option fields (same JSON level as gating select)', () => {
-            const result = toJSONSchema({
-                name: 'w',
-                type: 'collection',
-                spec: [
-                    {
-                        name: 'color',
-                        type: 'select',
-                        options: [
-                            {
-                                value: 'red',
-                                label: 'Red',
-                                nested: [{ name: 'shade', type: 'text', advanced: true }],
-                            },
-                        ],
-                    },
-                ],
-            });
+        it('records correct path for nested-by-option fields (same JSON level as gating select)', () => {
+            const result = toJSONSchemaAdvanced(
+                {
+                    name: 'w',
+                    type: 'collection',
+                    spec: [
+                        {
+                            name: 'color',
+                            type: 'select',
+                            options: [
+                                {
+                                    value: 'red',
+                                    label: 'Red',
+                                    nested: [{ name: 'shade', type: 'text', advanced: true }],
+                                },
+                            ],
+                        },
+                    ],
+                },
+                { excludeAdvancedFields: true },
+            );
 
             expect(result.skippedPaths).toEqual({ advanced: ['w.shade'] });
         });
     });
 
     describe('composites', () => {
-        it('hides udtspec internal label field by default', () => {
-            const result = toJSONSchema({
+        it('includes the udtspec internal label field by default with x-advanced stamp', () => {
+            const schema = toJSONSchema({
                 name: 'wrapper',
                 type: 'collection',
                 spec: [{ name: 'spec', type: 'udtspec', label: 'Specification' }],
             });
 
-            const udtspecDef = result.schema['definitions']!['udtspec'] as JSONSchema7;
-            expect(udtspecDef.properties).not.toHaveProperty('label');
-            expect(udtspecDef.properties).toHaveProperty('name');
-            expect(udtspecDef.properties).toHaveProperty('help');
+            const udtspecDef = schema['definitions']!['udtspec'] as JSONSchema7;
+            expect(udtspecDef.properties).toHaveProperty('label');
+            const labelField = udtspecDef.properties!['label'] as JSONSchema7;
+            expect(Object.getOwnPropertyDescriptor(labelField, 'x-advanced')?.value).toBe(true);
         });
 
-        it('exposes udtspec internal label field with x-advanced when included', () => {
-            const result = toJSONSchema(
+        it('hides udtspec internal label field when excluded', () => {
+            const result = toJSONSchemaAdvanced(
                 {
                     name: 'wrapper',
                     type: 'collection',
                     spec: [{ name: 'spec', type: 'udtspec', label: 'Specification' }],
                 },
-                { includeAdvancedFields: true },
+                { excludeAdvancedFields: true },
             );
 
             const udtspecDef = result.schema['definitions']!['udtspec'] as JSONSchema7;
-            expect(udtspecDef.properties).toHaveProperty('label');
-            const labelField = udtspecDef.properties!['label'] as JSONSchema7;
-            expect(Object.getOwnPropertyDescriptor(labelField, 'x-advanced')?.value).toBe(true);
+            expect(udtspecDef.properties).not.toHaveProperty('label');
+            expect(udtspecDef.properties).toHaveProperty('name');
+            expect(result.skippedPaths?.advanced).toHaveLength(1);
+            expect(result.skippedPaths!.advanced![0]).toContain('label');
+        });
+
+        it('records the udtspec label skip only once even when used in multiple fields', () => {
+            const result = toJSONSchemaAdvanced(
+                {
+                    name: 'wrapper',
+                    type: 'collection',
+                    spec: [
+                        { name: 'spec1', type: 'udtspec', label: 'Spec One' },
+                        { name: 'spec2', type: 'udtspec', label: 'Spec Two' },
+                    ],
+                },
+                { excludeAdvancedFields: true },
+            );
+
+            expect(result.skippedPaths?.advanced).toHaveLength(1);
         });
     });
 
     describe('cross-domain', () => {
-        it('filters advanced fields inside cross-domain nested blocks', () => {
+        it('filters advanced fields inside cross-domain nested blocks (records both inline and buffered paths)', () => {
             const formanSchema: FormanSchemaField = {
                 name: 'wrapper',
                 type: 'collection',
@@ -193,7 +243,7 @@ describe('advanced field filtering', () => {
                 ],
             };
 
-            const result = toJSONSchema(formanSchema);
+            const result = toJSONSchemaAdvanced(formanSchema, { excludeAdvancedFields: true });
             // Field-level options.nested with a domain is processed BOTH inline (via addConditionalFields)
             // and buffered into the target domain root — so the advanced field is skipped twice, at two
             // distinct paths. This is preexisting cross-domain semantics, not duplication.
@@ -205,23 +255,26 @@ describe('advanced field filtering', () => {
 
     describe('multiple advanced fields', () => {
         it('collects all skipped paths in order of encounter', () => {
-            const result = toJSONSchema({
-                name: 'w',
-                type: 'collection',
-                spec: [
-                    { name: 'a', type: 'text', advanced: true },
-                    { name: 'b', type: 'text' },
-                    { name: 'c', type: 'text', advanced: true },
-                ],
-            });
+            const result = toJSONSchemaAdvanced(
+                {
+                    name: 'w',
+                    type: 'collection',
+                    spec: [
+                        { name: 'a', type: 'text', advanced: true },
+                        { name: 'b', type: 'text' },
+                        { name: 'c', type: 'text', advanced: true },
+                    ],
+                },
+                { excludeAdvancedFields: true },
+            );
 
             expect(result.skippedPaths?.advanced).toEqual(['w.a', 'w.c']);
         });
     });
 
     describe('required + advanced interaction', () => {
-        it('omits required+advanced field from required[] and properties by default', () => {
-            const result = toJSONSchema({
+        it('includes a required+advanced field in properties and required[] by default', () => {
+            const schema = toJSONSchema({
                 name: 'w',
                 type: 'collection',
                 spec: [
@@ -230,14 +283,13 @@ describe('advanced field filtering', () => {
                 ],
             });
 
-            expect(result.schema.properties).toHaveProperty('a');
-            expect(result.schema.properties).not.toHaveProperty('b');
-            expect(result.schema.required).toEqual(['a']);
-            expect(result.skippedPaths).toEqual({ advanced: ['w.b'] });
+            expect(schema.properties).toHaveProperty('a');
+            expect(schema.properties).toHaveProperty('b');
+            expect(schema.required).toEqual(['a', 'b']);
         });
 
-        it('includes required+advanced field in required[] and properties when included', () => {
-            const result = toJSONSchema(
+        it('omits a required+advanced field from required[] and properties when excluded', () => {
+            const result = toJSONSchemaAdvanced(
                 {
                     name: 'w',
                     type: 'collection',
@@ -246,87 +298,47 @@ describe('advanced field filtering', () => {
                         { name: 'b', type: 'text', required: true, advanced: true },
                     ],
                 },
-                { includeAdvancedFields: true },
+                { excludeAdvancedFields: true },
             );
 
             expect(result.schema.properties).toHaveProperty('a');
-            expect(result.schema.properties).toHaveProperty('b');
-            expect(result.schema.required).toEqual(['a', 'b']);
-            expect(result.skippedPaths).toBeUndefined();
+            expect(result.schema.properties).not.toHaveProperty('b');
+            expect(result.schema.required).toEqual(['a']);
+            expect(result.skippedPaths).toEqual({ advanced: ['w.b'] });
         });
     });
 
     describe('top-level field', () => {
-        it('always converts a top-level advanced field (filtering applies to descendants only)', () => {
-            const result = toJSONSchema({ name: 'x', type: 'text', advanced: true });
+        it('always converts a top-level advanced field (filter applies only to descendants)', () => {
+            const schema = toJSONSchema({ name: 'x', type: 'text', advanced: true }, { excludeAdvancedFields: true });
 
-            expect(result.schema.type).toBe('string');
-            expect(result.skippedPaths).toBeUndefined();
-            expect(Object.getOwnPropertyDescriptor(result.schema, 'x-advanced')).toBeUndefined();
+            expect(schema.type).toBe('string');
+            expect(Object.getOwnPropertyDescriptor(schema, 'x-advanced')).toBeUndefined();
         });
     });
 
     describe('array with non-array spec', () => {
-        // `advanced` is a UI directive about sibling fields ("hide me behind a toggle in my parent form").
-        // When an array's `spec` is a single primitive, that field IS the array's item type — there are
-        // no sibling fields, so `advanced` is semantically degenerate. To hide an entire array, mark the
-        // array field itself as `advanced: true` (which is covered by the standard collection filter).
-        it('does not filter `advanced` on a single-primitive item type (no sibling context — mark the array field instead)', () => {
-            const result = toJSONSchema({
-                name: 'w',
-                type: 'collection',
-                spec: [
-                    {
-                        name: 'arr',
-                        type: 'array',
-                        spec: { name: 'item', type: 'text', advanced: true } as FormanSchemaField,
-                    },
-                ],
-            });
+        it('renders a single-spec primitive into items regardless of advanced flag (no addField guard)', () => {
+            const result = toJSONSchemaAdvanced(
+                {
+                    name: 'w',
+                    type: 'collection',
+                    spec: [
+                        {
+                            name: 'arr',
+                            type: 'array',
+                            spec: { name: 'item', type: 'text', advanced: true } as FormanSchemaField,
+                        },
+                    ],
+                },
+                { excludeAdvancedFields: true },
+            );
 
             expect(result.schema.properties).toHaveProperty('arr');
             const arrField = result.schema.properties!['arr'] as JSONSchema7;
+            expect(arrField.items).toBeDefined();
             expect((arrField.items as JSONSchema7).type).toBe('string');
             expect(result.skippedPaths).toBeUndefined();
-        });
-
-        it('filters the array itself when the array field is marked advanced', () => {
-            const result = toJSONSchema({
-                name: 'w',
-                type: 'collection',
-                spec: [
-                    {
-                        name: 'arr',
-                        type: 'array',
-                        advanced: true,
-                        spec: { name: 'item', type: 'text' } as FormanSchemaField,
-                    },
-                ],
-            });
-
-            expect(result.schema.properties).not.toHaveProperty('arr');
-            expect(result.skippedPaths).toEqual({ advanced: ['w.arr'] });
-        });
-    });
-
-    describe('composite caching', () => {
-        // KNOWN LIMITATION: composite types memoize their expansion in context.definitions;
-        // the addField filter only runs during the first expansion. As a result, advanced fields
-        // inside a composite template (e.g. udtspec's `label`) are recorded with the path of the
-        // FIRST usage only — subsequent usages at other paths are not represented in skippedPaths,
-        // even though `wrapper.spec2[].label` is an equally valid path for the same advanced field.
-        // See the comment near `compositeHandlers` in src/forman.ts for the full rationale.
-        it('records only the first composite usage path (known limitation, see src/forman.ts)', () => {
-            const result = toJSONSchema({
-                name: 'wrapper',
-                type: 'collection',
-                spec: [
-                    { name: 'spec1', type: 'udtspec', label: 'Spec One' },
-                    { name: 'spec2', type: 'udtspec', label: 'Spec Two' },
-                ],
-            });
-
-            expect(result.skippedPaths?.advanced).toEqual(['wrapper.spec1[].label']);
         });
     });
 });

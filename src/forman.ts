@@ -46,8 +46,8 @@ export interface ConversionContext {
     addConditionalFields: (name: string, value: FormanSchemaValue, nested: JSONSchema7 | string) => void;
     /** Collected definitions for recursive composite types */
     definitions?: Record<string, JSONSchema7>;
-    /** Whether to include fields with `advanced: true`. */
-    includeAdvancedFields: boolean;
+    /** Whether to exclude fields with `advanced: true` from the rendered schema. */
+    excludeAdvancedFields: boolean;
     /** Accumulator for paths of skipped fields, keyed by skip reason. Shared (mutated) across recursion. */
     skippedPaths: { advanced?: string[] };
 }
@@ -193,7 +193,7 @@ export function createDefaultContext(options?: FormanJsonSchemaOptions): Convers
         path: [],
         roots: {},
         definitions: {},
-        includeAdvancedFields: options?.includeAdvancedFields ?? false,
+        excludeAdvancedFields: options?.excludeAdvancedFields ?? false,
         skippedPaths: {},
         addConditionalFields: () => {
             throw new SchemaConversionError('Cannot serialize nested fields without parent field.');
@@ -355,7 +355,7 @@ function handleCollectionType(field: FormanSchemaField, result: JSONSchema7, con
          */
         if (result.properties && Object.hasOwn(result.properties, subField.name)) return;
 
-        if (subField.advanced === true && !context.includeAdvancedFields) {
+        if (subField.advanced === true && context.excludeAdvancedFields) {
             (context.skippedPaths.advanced ||= []).push([...collectionPath, subField.name].join('.'));
             return;
         }

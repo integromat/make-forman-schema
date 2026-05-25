@@ -24,7 +24,7 @@ describe('Redefine', () => {
                 },
             ],
         };
-        const { schema: schema } = toJSONSchema(field);
+        const schema = toJSONSchema(field);
         expect(schema).toStrictEqual({
             description: undefined,
             properties: {

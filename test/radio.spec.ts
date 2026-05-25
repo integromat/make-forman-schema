@@ -52,7 +52,7 @@ const radioSchema: FormanSchemaField[] = [
 describe('Radio type', () => {
     describe('toJSONSchema', () => {
         it('should convert radio to JSON Schema with oneOf and allOf conditionals', () => {
-            const { schema: result } = toJSONSchema({
+            const result = toJSONSchema({
                 type: 'collection',
                 spec: radioSchema,
             });
@@ -89,7 +89,7 @@ describe('Radio type', () => {
         });
 
         it('should emit x-fetch-options with type when radio options is a string shorthand', () => {
-            const { schema: result } = toJSONSchema({
+            const result = toJSONSchema({
                 type: 'collection',
                 spec: [
                     {
@@ -108,7 +108,7 @@ describe('Radio type', () => {
         });
 
         it('should convert non-required radio with empty default', () => {
-            const { schema: result } = toJSONSchema({
+            const result = toJSONSchema({
                 type: 'collection',
                 spec: [
                     {

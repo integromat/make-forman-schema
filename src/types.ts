@@ -294,8 +294,13 @@ export type FormanSchemaFieldState = {
  * Options for converting a Forman Schema to JSON Schema
  */
 export type FormanJsonSchemaOptions = {
-    /** Include fields marked `advanced: true`. Defaults to false (advanced fields hidden, their paths recorded in `skippedPaths.advanced`). */
-    includeAdvancedFields?: boolean;
+    /**
+     * Exclude fields marked `advanced: true` from the rendered schema. Defaults to `false`
+     * (advanced fields are included and stamped with `x-advanced: true`). When `true`,
+     * advanced fields are omitted; their dot-notation paths are reported on
+     * `toJSONSchemaAdvanced`'s `skippedPaths.advanced` so the caller can re-request them.
+     */
+    excludeAdvancedFields?: boolean;
 };
 
 /**

@@ -18,7 +18,7 @@ describe('udttype composite', () => {
                 ],
             };
 
-            const { schema: result } = toJSONSchema(field);
+            const result = toJSONSchema(field);
 
             // The type property should be an allOf wrapper with $ref (draft-07 compliant)
             expect(result.properties!['type']).toBeDefined();
@@ -56,7 +56,7 @@ describe('udttype composite', () => {
                 ],
             };
 
-            const { schema: result } = toJSONSchema(field);
+            const result = toJSONSchema(field);
 
             // Parent collection should have allOf with conditional fields
             expect(result.allOf).toBeDefined();
@@ -91,7 +91,7 @@ describe('udttype composite', () => {
                 ],
             };
 
-            const { schema: result } = toJSONSchema(field);
+            const result = toJSONSchema(field);
 
             // $defs should contain the udttype definition
             expect(result['definitions']).toBeDefined();
@@ -114,7 +114,7 @@ describe('udttype composite', () => {
                 ],
             };
 
-            const { schema: result } = toJSONSchema(field);
+            const result = toJSONSchema(field);
 
             // The array option's nested spec should reference $ref for the recursive udttype
             const arrayConditional = result.allOf?.find(item => {
@@ -133,7 +133,7 @@ describe('udttype composite', () => {
         });
 
         it('should convert a single udttype field in a minimal collection', () => {
-            const { schema: result } = toJSONSchema({
+            const result = toJSONSchema({
                 name: 'root',
                 type: 'collection',
                 spec: [{ name: 'x', type: 'udttype', label: 'Type' }],
@@ -159,7 +159,7 @@ describe('udttype composite', () => {
                 ],
             };
 
-            const { schema: result } = toJSONSchema(field);
+            const result = toJSONSchema(field);
             const typeField = result.properties!['type'] as JSONSchema7;
 
             expect(typeField).not.toHaveProperty('default');
@@ -179,7 +179,7 @@ describe('udttype composite', () => {
                 ],
             };
 
-            const { schema: result } = toJSONSchema(field, { includeAdvancedFields: true });
+            const result = toJSONSchema(field);
             expect(result).toMatchSnapshot();
         });
     });
@@ -272,7 +272,7 @@ describe('udttype composite', () => {
                 ],
             };
 
-            const { schema: jsonSchema } = toJSONSchema(field);
+            const jsonSchema = toJSONSchema(field);
             const typeField = jsonSchema.properties!['type'] as JSONSchema7;
             const formanField = toFormanSchema({ type: 'object', properties: { type: typeField } });
             const firstField = (formanField.spec as FormanSchemaField[])[0]!;
@@ -323,7 +323,7 @@ describe('udttype composite', () => {
             };
 
             // Should complete without hanging
-            const { schema: result } = toJSONSchema(field);
+            const result = toJSONSchema(field);
             expect(result).toBeDefined();
             expect(result['definitions']).toBeDefined();
         });

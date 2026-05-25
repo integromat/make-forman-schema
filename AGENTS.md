@@ -34,13 +34,16 @@ TypeScript library for converting and validating **Forman Schema** (Make's inter
 
 <important if="you are modifying toJSONSchema conversion or the forman.ts file">
 
-**Public signature:** `toJSONSchema(field, options?)` returns `{ schema: JSONSchema7, skippedPaths?: { advanced?: string[] } }` — NOT a bare `JSONSchema7`. `skippedPaths` is omitted when nothing was skipped.
+**Public signatures:**
+
+- `toJSONSchema(field, options?)` returns a bare `JSONSchema7` (backward-compatible). Delegates to `toJSONSchemaAdvanced` and returns `.schema`.
+- `toJSONSchemaAdvanced(field, options?)` returns `{ schema: JSONSchema7, skippedPaths?: { advanced?: string[] } }`. `skippedPaths` is omitted entirely when nothing was skipped.
 
 **Forman types → JSON Schema types** mapping is in `src/forman.ts` at `FORMAN_TYPE_MAP`. Notable: `collection→object`, `array→array`, `filter→array`, `checkbox→boolean`, `hidden/any→undefined`.
 
-Entry: `toJSONSchemaInternal(field, context)`. Dispatches by type to `handleCollectionType`, `handleArrayType`, `handleSelectOrPathType`, `handleFilterType`, `handlePrimitiveType`. `ConversionContext` carries `domain`, `path`, `tail`, `roots`, `addConditionalFields` callback (for select-with-nested → `allOf[if/then]` generation on parent collection), `includeAdvancedFields` (default `false`), and `skippedPaths` (mutable accumulator shared across recursion via context spread). `SchemaConversionError` is also defined here.
+Entry: `toJSONSchemaInternal(field, context)`. Dispatches by type to `handleCollectionType`, `handleArrayType`, `handleSelectOrPathType`, `handleFilterType`, `handlePrimitiveType`. `ConversionContext` carries `domain`, `path`, `tail`, `roots`, `addConditionalFields` callback (for select-with-nested → `allOf[if/then]` generation on parent collection), `excludeAdvancedFields` (default `false`), and `skippedPaths` (mutable accumulator shared across recursion via context spread). `SchemaConversionError` is also defined here.
 
-**Advanced field filtering:** filter point is `handleCollectionType.addField`. Fields with `advanced: true` are skipped unless `includeAdvancedFields: true`; their paths accumulate in `context.skippedPaths.advanced`. Included advanced fields are stamped with `x-advanced: true` (enumerable, configurable, writable). Path segments are built via the `collectionPath` helper, which is `[...context.path, field.name]` when `field.name` is set, else `context.path` (this handles synthetic anonymous collection wrappers — array items, nested-by-option, RPC params, composite expansions — cleanly so `[]` array paths don't get a literal `"undefined"` segment). Composite types (`udtspec`, `udttype`) memoize via `context.definitions[type]`; advanced fields inside a composite are recorded once per `toJSONSchema` call, not per usage.
+**Advanced field tracking:** filter point is `handleCollectionType.addField`. Fields with `advanced: true` are **included by default** and stamped with `x-advanced: true` (enumerable, configurable, writable). When `excludeAdvancedFields: true` is passed, they're omitted from the schema and their paths accumulate in `context.skippedPaths.advanced`. Path segments are built via the `collectionPath` helper, which is `[...context.path, field.name]` when `field.name` is set, else `context.path` (this handles synthetic anonymous collection wrappers — array items, nested-by-option, RPC params, composite expansions — cleanly so `[]` array paths don't get a literal `"undefined"` segment). Composite types (`udtspec`, `udttype`) memoize via `context.definitions[type]`; advanced fields inside a composite are recorded once per `toJSONSchemaAdvanced` call, not per usage.
 </important>
 
 <important if="you are modifying toFormanSchema conversion or the json.ts file">

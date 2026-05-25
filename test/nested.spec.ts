@@ -42,7 +42,7 @@ describe('Forman Nested', () => {
             ],
         };
 
-        const { schema: jsonSchema } = toJSONSchema(formanSchema);
+        const jsonSchema = toJSONSchema(formanSchema);
         expect(jsonSchema).toEqual({
             properties: {
                 connection: {
@@ -132,7 +132,7 @@ describe('Forman Nested', () => {
             ],
         };
 
-        const { schema: jsonSchema } = toJSONSchema(formanSchema);
+        const jsonSchema = toJSONSchema(formanSchema);
         expect(jsonSchema).toEqual({
             properties: {
                 connection: {
@@ -196,7 +196,7 @@ describe('Forman Nested', () => {
             ],
         };
 
-        const { schema: jsonSchema } = toJSONSchema(formanSchema);
+        const jsonSchema = toJSONSchema(formanSchema);
         expect(jsonSchema).toEqual({
             properties: {
                 connection: {
@@ -248,7 +248,7 @@ describe('Forman Nested', () => {
             ],
         };
 
-        const { schema: jsonSchema } = toJSONSchema(formanSchema);
+        const jsonSchema = toJSONSchema(formanSchema);
         expect(jsonSchema).toEqual({
             properties: {
                 connection: {
@@ -299,7 +299,7 @@ describe('Forman Nested', () => {
             ],
         };
 
-        const { schema: jsonSchema } = toJSONSchema(formanSchema);
+        const jsonSchema = toJSONSchema(formanSchema);
         expect(jsonSchema).toEqual({
             properties: {
                 connection: {
@@ -363,7 +363,7 @@ describe('Forman Nested', () => {
             ],
         };
 
-        const { schema: jsonSchema } = toJSONSchema(formanSchema);
+        const jsonSchema = toJSONSchema(formanSchema);
         expect(jsonSchema).toEqual({
             properties: {
                 connection: {
@@ -414,7 +414,7 @@ describe('Forman Nested', () => {
             ],
         };
 
-        const { schema: jsonSchema } = toJSONSchema(formanSchema);
+        const jsonSchema = toJSONSchema(formanSchema);
         expect(jsonSchema).toEqual({
             properties: {
                 connection: {
@@ -509,7 +509,7 @@ describe('Forman Nested', () => {
             ],
         };
 
-        const { schema: jsonSchema } = toJSONSchema(formanSchema);
+        const jsonSchema = toJSONSchema(formanSchema);
         expect(jsonSchema).toEqual({
             properties: {
                 connection: {
@@ -570,7 +570,7 @@ describe('Forman Nested', () => {
             ],
         };
 
-        const { schema: jsonSchema } = toJSONSchema(formanSchema);
+        const jsonSchema = toJSONSchema(formanSchema);
         expect(jsonSchema).toEqual({
             properties: {
                 connection: {
@@ -618,7 +618,7 @@ describe('Forman Nested', () => {
             ],
         };
 
-        const { schema: jsonSchema } = toJSONSchema(formanSchema);
+        const jsonSchema = toJSONSchema(formanSchema);
         expect(jsonSchema).toEqual({
             properties: {
                 real: {
