@@ -232,10 +232,20 @@ export function toJSONSchemaInternal(field: FormanSchemaField, context: Conversi
         const ref = `#/definitions/${type}`;
 
         // Composite types are expanded once and memoized in context.definitions. Subsequent
-        // usages of the same composite hit the cache and skip recursion — so any advanced fields
-        // *inside* a composite (e.g. udtspec's `label`) are recorded in skippedPaths only on the
-        // first expansion, not per usage. This is intentional: it keeps skippedPaths concise and
-        // matches how the definitions/$ref shape itself is shared across usages.
+        // usages of the same composite hit the cache below and skip recursion — each usage emits
+        // only a $ref wrapper pointing at the shared definition.
+        //
+        // KNOWN LIMITATION (skippedPaths): the addField filter only runs during the FIRST expansion,
+        // so advanced fields living inside a composite template (e.g. udtspec's `label`) are recorded
+        // in skippedPaths with the path of the FIRST usage only. If the schema uses the same composite
+        // multiple times (e.g. `spec1` and `spec2`, both `udtspec`), the recorded path is
+        // `wrapper.spec1[].label` — `wrapper.spec2[].label` is a real, equally valid path for the same
+        // advanced field but is NOT in skippedPaths. Consumers iterating skippedPaths to render
+        // per-path UI affordances will under-report composite usages.
+        //
+        // Not fixed here because the cache is load-bearing for the $ref shape (definitions are shared
+        // by design). A future fix would store *relative* advanced paths during expansion and emit
+        // per-usage paths at each wrapRef call site below — out of scope for the current change.
         if (!context.definitions?.[type]) {
             if (context.definitions) {
                 context.definitions[type] = {} as JSONSchema7;

@@ -267,7 +267,11 @@ describe('advanced field filtering', () => {
     });
 
     describe('array with non-array spec', () => {
-        it('renders a single-spec primitive into items regardless of advanced flag (no addField guard)', () => {
+        // `advanced` is a UI directive about sibling fields ("hide me behind a toggle in my parent form").
+        // When an array's `spec` is a single primitive, that field IS the array's item type — there are
+        // no sibling fields, so `advanced` is semantically degenerate. To hide an entire array, mark the
+        // array field itself as `advanced: true` (which is covered by the standard collection filter).
+        it('does not filter `advanced` on a single-primitive item type (no sibling context — mark the array field instead)', () => {
             const result = toJSONSchema({
                 name: 'w',
                 type: 'collection',
@@ -282,14 +286,37 @@ describe('advanced field filtering', () => {
 
             expect(result.schema.properties).toHaveProperty('arr');
             const arrField = result.schema.properties!['arr'] as JSONSchema7;
-            expect(arrField.items).toBeDefined();
             expect((arrField.items as JSONSchema7).type).toBe('string');
             expect(result.skippedPaths).toBeUndefined();
+        });
+
+        it('filters the array itself when the array field is marked advanced', () => {
+            const result = toJSONSchema({
+                name: 'w',
+                type: 'collection',
+                spec: [
+                    {
+                        name: 'arr',
+                        type: 'array',
+                        advanced: true,
+                        spec: { name: 'item', type: 'text' } as FormanSchemaField,
+                    },
+                ],
+            });
+
+            expect(result.schema.properties).not.toHaveProperty('arr');
+            expect(result.skippedPaths).toEqual({ advanced: ['w.arr'] });
         });
     });
 
     describe('composite caching', () => {
-        it('records the udtspec label skip only once even when used in multiple fields', () => {
+        // KNOWN LIMITATION: composite types memoize their expansion in context.definitions;
+        // the addField filter only runs during the first expansion. As a result, advanced fields
+        // inside a composite template (e.g. udtspec's `label`) are recorded with the path of the
+        // FIRST usage only — subsequent usages at other paths are not represented in skippedPaths,
+        // even though `wrapper.spec2[].label` is an equally valid path for the same advanced field.
+        // See the comment near `compositeHandlers` in src/forman.ts for the full rationale.
+        it('records only the first composite usage path (known limitation, see src/forman.ts)', () => {
             const result = toJSONSchema({
                 name: 'wrapper',
                 type: 'collection',
@@ -299,8 +326,7 @@ describe('advanced field filtering', () => {
                 ],
             });
 
-            expect(result.skippedPaths?.advanced).toHaveLength(1);
-            expect(result.skippedPaths!.advanced![0]).toContain('label');
+            expect(result.skippedPaths?.advanced).toEqual(['wrapper.spec1[].label']);
         });
     });
 });
