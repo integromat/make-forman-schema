@@ -306,7 +306,7 @@ describe('Forman Schema', () => {
                 },
                 json: {
                     description: 'description',
-                    type: 'string',
+                    type: 'object',
                 },
                 number: {
                     default: 15,
@@ -536,7 +536,7 @@ describe('Forman Schema', () => {
                     required: false,
                 },
                 {
-                    type: 'text',
+                    type: 'dynamicCollection',
                     help: 'description',
                     name: 'json',
                     required: false,

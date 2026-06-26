@@ -35,6 +35,14 @@ export function toFormanSchema(field: JSONSchema7): FormanSchemaField {
 }
 
 function toFormanSchemaInternal(field: JSONSchema7): FormanSchemaField {
+    // Short-circuit for fields that should stay as JSON Schema.
+    if (Object.getOwnPropertyDescriptor(field, 'x-json')?.value === true) {
+        const schema = { ...field } as JSONSchema7 & Record<string, unknown>;
+        delete schema['x-json'];
+
+        return { type: 'json', schema };
+    }
+
     const compositeType = Object.getOwnPropertyDescriptor(field, 'x-composite')?.value;
     if (compositeType === 'udttype') return udttypeCollapse(field);
     if (compositeType === 'udtspec') return udtspecCollapse(field);

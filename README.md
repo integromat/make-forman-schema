@@ -80,6 +80,56 @@ const jsonSchemaField = {
 const formanSchema = toFormanSchema(jsonSchemaField);
 ```
 
+### JSON fields (`type: 'json'`)
+
+A `json` field can carry an explicit `schema` (a JSON Schema). This lets you author complex parts of a form directly in JSON Schema and mix them with primitive Forman fields:
+
+```typescript
+const formanField = {
+    type: 'collection',
+    spec: [
+        { name: 'title', type: 'text' },
+        {
+            name: 'input',
+            type: 'json',
+            schema: {
+                type: 'object',
+                properties: {
+                    name: { type: 'string' },
+                    age: { type: 'number' },
+                },
+            },
+        },
+    ],
+};
+```
+
+On conversion, the `schema` is **echoed verbatim** into the JSON Schema output (the field's `label`/`help` fill in `title`/`description` only when the schema omits them). An enumerable `x-json` marker is added so `toFormanSchema` can recover the `json` type; it survives JSON serialization. A `json` field **without** a `schema` renders as a plain object schema (`{ type: 'object' }`), since a JSON value is most naturally an object.
+
+#### External validators
+
+The library cannot validate a JSON value against an arbitrary JSON Schema on its own — it has **no JSON Schema validator built in**. Validation of `json` fields is therefore opt-in: **a `json` value is not validated unless you provide a `validateJson` callback.** Without it, the value passes through untouched.
+
+This is the first of a general **external validator** concept: a callback that performs validation the library can't, and returns a `FormanExternalValidationResult` verdict (`{ valid, errors?, warnings? }`) that is spliced into the overall result. The callback may be async (awaited), and its `errors`/`warnings` are stamped with the field's domain and path automatically. A `valid: false` verdict always fails validation, even when it carries no messages.
+
+```typescript
+import { validateForman, type FormanExternalValidationResult } from '@makehq/forman-schema';
+import Ajv from 'ajv'; // any JSON Schema validator works
+
+const ajv = new Ajv({ allErrors: true });
+
+const result = await validateForman({ input: { name: 'Alice', age: 30 } }, schema, {
+    async validateJson(schema, value): Promise<FormanExternalValidationResult> {
+        const validate = ajv.compile(schema);
+        if (validate(value)) return { valid: true };
+        return {
+            valid: false,
+            errors: (validate.errors ?? []).map(e => `${e.instancePath} ${e.message}`),
+        };
+    },
+});
+```
+
 ### Validation
 
 Validate Forman values against a Forman Schema. Two entry points are available:
@@ -217,7 +267,7 @@ const result = await validateFormanWithDomains(
 - hidden → string
 - hook → number
 - integer → number
-- json → string
+- json → object (or its `schema` echoed verbatim when provided — see [JSON fields](#json-fields-type-json))
 - keychain → number
 - number → number
 - path → string
