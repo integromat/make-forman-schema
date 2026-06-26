@@ -1270,7 +1270,13 @@ async function handleJsonType(
     }
 
     const path = context.path.join('.');
-    const fragment = await context.validateJson(field.schema, value);
+    let fragment: FormanExternalValidationResult;
+    try {
+        fragment = await context.validateJson(field.schema, value);
+    } catch (err) {
+        const message = err instanceof Error ? err.message : 'JSON schema validation failed unexpectedly.';
+        return { valid: false, errors: [{ domain: context.domain, path, message }], warnings };
+    }
 
     for (const message of fragment.errors ?? []) {
         errors.push({ domain: context.domain, path, message });

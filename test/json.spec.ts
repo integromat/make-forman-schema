@@ -6,7 +6,7 @@ import {
     validateForman,
     type FormanSchemaField,
     type FormanExternalValidationResult,
-} from '../src';
+} from '../src/index.js';
 
 describe('json type', () => {
     const personSchema: JSONSchema7 = {
@@ -183,6 +183,19 @@ describe('json type', () => {
             expect(result.valid).toBe(false);
             expect(result.errors).toEqual([
                 { domain: 'default', path: 'input', message: 'JSON value failed schema validation.' },
+            ]);
+        });
+
+        it('converts a throwing callback into a validation error', async () => {
+            const validateJson = (): never => {
+                throw new Error('validator crashed');
+            };
+
+            const result = await validateForman({ input: { name: 'Alice' } }, schema, { validateJson });
+
+            expect(result.valid).toBe(false);
+            expect(result.errors).toEqual([
+                { domain: 'default', path: 'input', message: 'validator crashed' },
             ]);
         });
 

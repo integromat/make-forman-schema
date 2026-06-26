@@ -773,9 +773,9 @@ function handleSelectOrPathType(
  *
  * `result` already carries `title`/`description` derived from the field's `label`/`help`. The
  * echoed schema is spread over it so the JSON Schema wins on any conflict, while `label`/`help`
- * propagate whenever the schema omits `title`/`description`. The placeholder `type` (`string`, from
+ * propagate whenever the schema omits `title`/`description`. The placeholder `type` (`object`, from
  * the type map) is dropped first — a JSON Schema may legitimately be typeless (`oneOf`, `$ref`,
- * `enum`), and a stray `type: 'string'` would corrupt it. The caller's `schema` is never mutated
+ * `enum`), and a stray `type: 'object'` would corrupt it. The caller's `schema` is never mutated
  * (its props are copied onto `result`). An enumerable `x-json` marker is attached so
  * `toFormanSchema` can recover the `json` type; being enumerable it survives JSON serialization,
  * consistent with the other `x-*` markers.
