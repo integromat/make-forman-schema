@@ -128,6 +128,7 @@ const SCHEMA_STRIP_KEYS = [
     'extension',
     'codepage',
     'logic',
+    'schema',
 ] as const;
 
 /**
