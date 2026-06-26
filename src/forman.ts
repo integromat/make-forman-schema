@@ -111,7 +111,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, JSONSchema7['type']>> = {
     boolean: 'boolean',
     checkbox: 'boolean',
     date: 'string',
-    json: 'string',
+    json: 'object',
     buffer: 'string',
     cert: 'string',
     color: 'string',
@@ -291,6 +291,8 @@ export function toJSONSchemaInternal(field: FormanSchemaField, context: Conversi
         case 'collection':
         case 'dynamicCollection':
             return handleCollectionType(normalizedField, result, context);
+        case 'json':
+            return handleJsonType(normalizedField, result);
         case 'array':
         case 'filestorage':
             return handleArrayType(normalizedField, result, context);
@@ -763,6 +765,42 @@ function handleSelectOrPathType(
     result = handleNestedWithDomain(field, nested, domain, result, context);
 
     if (field.rpc) result = processRpcDirective(field, result, context);
+    return result;
+}
+
+/**
+ * Handles `json` type conversion by echoing the field's `schema` verbatim.
+ *
+ * `result` already carries `title`/`description` derived from the field's `label`/`help`. The
+ * echoed schema is spread over it so the JSON Schema wins on any conflict, while `label`/`help`
+ * propagate whenever the schema omits `title`/`description`. The placeholder `type` (`object`, from
+ * the type map) is dropped first — a JSON Schema may legitimately be typeless (`oneOf`, `$ref`,
+ * `enum`), and a stray `type: 'object'` would corrupt it. The caller's `schema` is never mutated
+ * (its props are copied onto `result`). An enumerable `x-json` marker is attached so
+ * `toFormanSchema` can recover the `json` type; being enumerable it survives JSON serialization,
+ * consistent with the other `x-*` markers.
+ * A `json` field without a `schema` carries no echo target, so the pre-built `result` is returned
+ * as-is — `{ type: 'object' }` (from the type map) plus any `title`/`description` from `label`/`help`.
+ * @param field The field to convert (`type: 'json'`)
+ * @param result The prepared JSON Schema field (seeded with type/title/description)
+ * @returns The echoed JSON Schema
+ */
+function handleJsonType(field: FormanSchemaField, result: JSONSchema7): JSONSchema7 {
+    if (!isObject<JSONSchema7>(field.schema)) {
+        return result;
+    }
+
+    // Originally inferred type from Forman could cause troubles when the schema is more complex (e.g. oneOf, $ref, enum).
+    delete result.type;
+    Object.assign(result, field.schema);
+
+    Object.defineProperty(result, 'x-json', {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        value: true,
+    });
+
     return result;
 }
 

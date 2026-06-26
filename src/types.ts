@@ -94,6 +94,8 @@ export type FormanSchemaField = {
     help?: string;
     /** Sub-fields specification for collection or array types */
     spec?: FormanSchemaField[] | FormanSchemaField;
+    /** JSON Schema for `json` typed fields */
+    schema?: JSONSchema7;
     /** Hide field behind advanced toggle */
     advanced?: boolean;
     /** Human readable label for the field */
@@ -316,6 +318,20 @@ export type FormanJsonSchemaResult = {
     };
 };
 
+/**
+ * Verdict fragment returned by an external validation callback (e.g. `validateJson`) that the
+ * library cannot perform itself. Spliced into the overall validation result: `errors`/`warnings`
+ * are stamped with the field's domain and path.
+ */
+export type FormanExternalValidationResult = {
+    /** Whether the value is valid. A `false` verdict always fails validation, even with no messages. */
+    valid: boolean;
+    /** Error messages (cause validation to fail) */
+    errors?: string[];
+    /** Warning messages (do not affect validity) */
+    warnings?: string[];
+};
+
 export type FormanValidationOptions = {
     /** Unknown fields are not allowed when strict is true */
     strict?: boolean;
@@ -325,6 +341,13 @@ export type FormanValidationOptions = {
     schemas?: boolean;
     /** Remote resource resolver */
     resolveRemote?(path: string, data: Record<string, unknown>): Promise<unknown>;
+    /** Validator for `json` typed fields. Receives the field's JSON Schema and the value, and
+     *  returns (or resolves to) a result fragment that is spliced into the overall validation
+     *  result. When omitted, `json` fields with a `schema` pass without schema validation. */
+    validateJson?(
+        schema: JSONSchema7,
+        value: unknown,
+    ): FormanExternalValidationResult | Promise<FormanExternalValidationResult>;
     /** Maps domain names used in nested.domain to actual domain keys passed to validateFormanWithDomains */
     domainAliases?: Record<string, string>;
     /** Whether to allow dynamic values (IML expressions, unresolved RPC options).

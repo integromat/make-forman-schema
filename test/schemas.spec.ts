@@ -333,4 +333,23 @@ describe('schemas output', () => {
         const field = result.schemas!['default']![0];
         expect(field).not.toHaveProperty('validate');
     });
+
+    it('strips the embedded schema from json fields in schemas output', async () => {
+        const result = await validateForman(
+            { payload: { name: 'Alice' } },
+            [
+                {
+                    name: 'payload',
+                    type: 'json',
+                    label: 'Payload',
+                    schema: { type: 'object', properties: { name: { type: 'string' } } },
+                },
+            ],
+            { schemas: true },
+        );
+
+        expect(result.valid).toBe(true);
+        expect(result.schemas!['default']![0]).toEqual({ name: 'payload', type: 'json', label: 'Payload' });
+        expect(result.schemas!['default']![0]).not.toHaveProperty('schema');
+    });
 });

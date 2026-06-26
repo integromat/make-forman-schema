@@ -1,6 +1,8 @@
+import type { JSONSchema7 } from 'json-schema';
 import type {
     FormanSchemaField,
     FormanValidationResult,
+    FormanExternalValidationResult,
     FormanSchemaExtendedNested,
     FormanSchemaExtendedOptions,
     FormanSchemaOption,
@@ -64,6 +66,11 @@ export interface ValidationContext {
      * @param localData Optional local data to merge with data of the context in which the resolver is called
      */
     resolveRemote(path: string, context: ValidationContext, localData?: Record<string, unknown>): Promise<unknown>;
+    /** Validator for `json` typed fields, receiving the field's JSON Schema and value */
+    validateJson?(
+        schema: JSONSchema7,
+        value: unknown,
+    ): FormanExternalValidationResult | Promise<FormanExternalValidationResult>;
 }
 
 /**
@@ -121,6 +128,7 @@ const SCHEMA_STRIP_KEYS = [
     'extension',
     'codepage',
     'logic',
+    'schema',
 ] as const;
 
 /**
@@ -178,7 +186,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, string | undefined>> = {
     boolean: 'boolean',
     checkbox: 'boolean',
     date: 'string',
-    json: 'string',
+    json: undefined,
     buffer: 'string',
     cert: 'string',
     color: 'string',
@@ -296,6 +304,7 @@ export async function validateFormanWithDomainsInternal(
                         ...localData,
                     });
                 },
+                validateJson: options?.validateJson,
             },
         );
         errors.push(...result.errors);
@@ -472,6 +481,8 @@ async function validateFormanValue(
     }
 
     switch (normalizedField.type) {
+        case 'json':
+            return handleJsonType(value, normalizedField, context);
         case 'collection':
             return handleCollectionType(value as Record<string, unknown>, normalizedField, context);
         case 'array':
@@ -1223,6 +1234,59 @@ async function handleNestedFields(
         }
     } else if (store) {
         await context.validateNestedFields(store as FormanSchemaField[], context);
+    }
+
+    return {
+        valid: errors.length === 0,
+        errors,
+        warnings,
+    };
+}
+
+/**
+ * Handles `json` type validation by delegating to the `validateJson` callback.
+ *
+ * A `json` value is freeform JSON, so it is never type-constrained. Real shape validation happens
+ * only when the field carries a `schema` AND a `validateJson` callback is supplied; otherwise the
+ * value passes untouched (there is nothing to enforce it against). The callback receives the
+ * field's JSON Schema and the value, and returns a result fragment whose messages are stamped with
+ * the current domain/path and spliced into the overall result. The callback's `valid` flag is
+ * honored: a `false` verdict with no messages still produces an error so the failure cannot be
+ * silently swallowed by the top-level `valid: errors.length === 0` rule.
+ * @param value The value to validate
+ * @param field The field to validate (`type: 'json'`)
+ * @param context The context for the validation
+ * @returns The validation result
+ */
+async function handleJsonType(
+    value: unknown,
+    field: FormanSchemaField,
+    context: ValidationContext,
+): Promise<FormanValidationResult> {
+    const errors: FormanValidationResult['errors'] = [];
+    const warnings: FormanValidationResult['warnings'] = [];
+
+    if (!isObject<JSONSchema7>(field.schema) || !context.validateJson) {
+        return { valid: true, errors, warnings };
+    }
+
+    const path = context.path.join('.');
+    let fragment: FormanExternalValidationResult;
+    try {
+        fragment = await context.validateJson(field.schema, value);
+    } catch (err) {
+        const message = err instanceof Error ? err.message : 'JSON schema validation failed unexpectedly.';
+        return { valid: false, errors: [{ domain: context.domain, path, message }], warnings };
+    }
+
+    for (const message of fragment.errors ?? []) {
+        errors.push({ domain: context.domain, path, message });
+    }
+    for (const message of fragment.warnings ?? []) {
+        warnings.push({ domain: context.domain, path, message });
+    }
+    if (fragment.valid === false && errors.length === 0) {
+        errors.push({ domain: context.domain, path, message: 'JSON value failed schema validation.' });
     }
 
     return {

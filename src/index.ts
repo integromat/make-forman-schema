@@ -23,6 +23,7 @@ export type {
     FormanSchemaRPCButton,
     FormanValidationOptions,
     FormanValidationResult,
+    FormanExternalValidationResult,
     FormanJsonSchemaOptions,
     FormanJsonSchemaResult,
 } from './types';
