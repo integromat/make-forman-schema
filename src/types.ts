@@ -288,7 +288,12 @@ export type FormanSchemaFieldState = {
     path?: Array<string>;
     data?: Record<string, unknown>;
     extra?: Record<string, unknown>;
-    nested?: Record<string, FormanSchemaFieldState>;
+    /**
+     * Child field states (record, built from field paths) or, on `chose` states of
+     * select-like fields, the chosen option's nested field specification — the UI
+     * persists that spec in `metadata.restore` to render the dependent fields.
+     */
+    nested?: Record<string, FormanSchemaFieldState> | FormanSchemaNested;
     items?: Record<string, FormanSchemaFieldState>[];
 };
 

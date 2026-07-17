@@ -90,7 +90,7 @@ export interface DomainRoot {
         /** Path of the field (string for field name, number for array index) */
         path: (string | number)[];
         /** State of the field */
-        state: Omit<FormanSchemaFieldState, 'nested' | 'items'>;
+        state: Omit<FormanSchemaFieldState, 'items'>;
     }>;
     /** Resolved schema fields collected during validation */
     schemaFields: FormanSchemaField[];
@@ -1091,6 +1091,7 @@ async function handleSelectType(
                 state: {
                     mode: 'chose',
                     label: placeholder.label,
+                    ...(placeholder.nested ? { nested: placeholder.nested } : {}),
                 },
             });
         }
@@ -1135,6 +1136,7 @@ async function handleSelectType(
                     state: {
                         mode: isReferenceType(field.type) ? undefined : 'chose',
                         label: item.label,
+                        ...(item.nested ? { nested: item.nested } : {}),
                     },
                 });
             }

@@ -2,6 +2,30 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from '@jest/globals';
 import { validateForman, validateFormanWithDomains } from '../src/index.js';
 
+/** Finds the first field definition with the given name anywhere in a manifest. */
+function findFieldByName(node: unknown, name: string): Record<string, any> | undefined {
+    if (Array.isArray(node)) {
+        for (const item of node) {
+            const found = findFieldByName(item, name);
+            if (found) return found;
+        }
+    } else if (node && typeof node === 'object') {
+        const record = node as Record<string, any>;
+        if (record.name === name && record.options) return record;
+        for (const key of Object.keys(record)) {
+            const found = findFieldByName(record[key], name);
+            if (found) return found;
+        }
+    }
+    return undefined;
+}
+
+/** Returns the `nested` spec of the option with the given value on a select field. */
+function chosenOptionNested(field: Record<string, any>, value: unknown): unknown {
+    const store = Array.isArray(field.options) ? field.options : field.options.store;
+    return store.find((option: Record<string, any>) => option.value === value)?.nested;
+}
+
 describe('Forman Schema Manifest Validation', () => {
     it('should validate google-sheets manifest', async () => {
         const googleSheetsAddRowMock = JSON.parse(readFileSync('./test/mocks/google-sheets-add-row.json').toString());
@@ -162,10 +186,12 @@ describe('Forman Schema Manifest Validation', () => {
                     from: {
                         label: 'My Drive',
                         mode: 'chose',
+                        nested: chosenOptionNested(findFieldByName(googleSheetsAddRowMock, 'from')!, 'drive'),
                     },
                     includesHeaders: {
                         label: 'Yes',
                         mode: 'chose',
+                        nested: 'rpc://google-sheets@2/rpcSheetInput',
                     },
                     insertDataOption: {
                         label: 'Insert rows',
@@ -174,6 +200,7 @@ describe('Forman Schema Manifest Validation', () => {
                     mode: {
                         label: 'Search by path',
                         mode: 'chose',
+                        nested: chosenOptionNested(findFieldByName(googleSheetsAddRowMock, 'mode')!, 'select'),
                     },
                     valueInputOption: {
                         label: 'User entered',

@@ -258,7 +258,7 @@ export function buildRestoreStructure(
     items: Array<{
         domain: string;
         path: (string | number)[];
-        state: Omit<FormanSchemaFieldState, 'nested' | 'items'>;
+        state: Omit<FormanSchemaFieldState, 'items'>;
     }>,
 ): Record<string, FormanSchemaFieldState> {
     const result: Record<string, Record<string, FormanSchemaFieldState>> = {};
@@ -331,11 +331,16 @@ export function buildRestoreStructure(
                         }
                         current = current[key].items;
                     } else {
-                        // Next level is an object - navigate to nested
-                        if (!current[key].nested) {
+                        // Next level is an object - navigate to nested. A chose state may carry
+                        // the chosen option's nested spec here; child states take precedence.
+                        if (
+                            !current[key].nested ||
+                            typeof current[key].nested !== 'object' ||
+                            Array.isArray(current[key].nested)
+                        ) {
                             current[key].nested = {};
                         }
-                        current = current[key].nested;
+                        current = current[key].nested as Record<string, FormanSchemaFieldState>;
                     }
                 }
             }
