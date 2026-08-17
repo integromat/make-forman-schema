@@ -782,4 +782,36 @@ describe('Forman Schema Comprehensive Coverage', () => {
             expect(result).toEqual({ valid: true, errors: [], warnings: [] });
         });
     });
+
+    describe('Malformed Field Types', () => {
+        it('should report a missing field type as a structured error, not crash', async () => {
+            // Previously threw a raw `TypeError: Cannot read properties of undefined (reading 'split')`
+            // from `normalizeFormanFieldType`. Same production data that broke schema conversion.
+            const result = await validateForman({ f: 'x' }, [{ name: 'f' } as never]);
+
+            expect(result).toEqual({
+                valid: false,
+                errors: [{ domain: 'default', path: 'f', message: 'Field type is required.' }],
+                warnings: [],
+            });
+        });
+
+        it('should accept an unknown field type', async () => {
+            // Pins the validator's long-standing tolerant contract: an unknown type has no expected
+            // JSON type, so the type check is skipped rather than failing. The converter now matches.
+            const result = await validateForman({ f: 'x' }, [{ name: 'f', type: 'bogusType' }]);
+
+            expect(result).toEqual({ valid: true, errors: [], warnings: [] });
+        });
+
+        it('should still enforce required on a field with an unknown type', async () => {
+            const result = await validateForman({ f: '' }, [{ name: 'f', type: 'bogusType', required: true }]);
+
+            expect(result).toEqual({
+                valid: false,
+                errors: [{ domain: 'default', path: 'f', message: 'Field is mandatory.' }],
+                warnings: [],
+            });
+        });
+    });
 });

@@ -28,6 +28,7 @@ export type {
     FormanJsonSchemaResult,
 } from './types';
 export { toFormanSchema } from './json';
+export { SchemaConversionError, resolveFormanFieldType } from './forman';
 
 /**
  * Converts a Forman Schema field to its JSON Schema equivalent and reports the paths of any
@@ -45,6 +46,13 @@ export { toFormanSchema } from './json';
  * Known limitation: composite types (`udtspec`, `udttype`) are memoized in
  * `definitions[type]`; advanced fields inside a composite template are recorded with the
  * path of the FIRST usage only. See the comment near `compositeHandlers` in `src/forman.ts`.
+ *
+ * **Unresolvable field types** are tolerated by default. A field whose type is missing, or is not a
+ * known type (after case-insensitive and alias resolution), is degraded to a permissive typeless
+ * schema rather than aborting the whole conversion, and its dot-notation path is reported on
+ * `skippedPaths.unconvertible` with the reason. This matters because the throw was fatal at any
+ * depth: a single unrecognized leaf field destroyed the entire schema, leaving consumers with
+ * nothing. Pass `{ strictFieldTypes: true }` to restore fail-fast throwing.
  *
  * If you don't need `skippedPaths`, use {@link toJSONSchema} which returns just the schema.
  *
@@ -72,6 +80,9 @@ export function toJSONSchemaAdvanced(
     if (context.skippedPaths.advanced?.length) {
         skippedPaths.advanced = context.skippedPaths.advanced;
     }
+    if (context.skippedPaths.unconvertible?.length) {
+        skippedPaths.unconvertible = context.skippedPaths.unconvertible;
+    }
 
     return {
         schema,
@@ -86,6 +97,9 @@ export function toJSONSchemaAdvanced(
  * Pass `{ excludeAdvancedFields: true }` to omit them. If you need to know *which* advanced
  * fields were dropped (e.g. to render a "show advanced" toggle), use {@link toJSONSchemaAdvanced}
  * which returns `{ schema, skippedPaths? }`.
+ *
+ * Fields with an unresolvable type are degraded to a permissive schema rather than throwing; use
+ * {@link toJSONSchemaAdvanced} to see which, or `{ strictFieldTypes: true }` to throw instead.
  *
  * @param field The Forman Schema field to convert
  * @param options Conversion options
