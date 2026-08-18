@@ -291,11 +291,53 @@ const result = await validateFormanWithDomains(
 - object → collection
 - array → array
 
+## Field type resolution
+
+Field types resolve through three steps, so schemas authored with loose casing or common synonyms
+still convert:
+
+1. **Exact match** against `FORMAN_TYPE_MAP`.
+2. **Case-insensitive match** — `fileName`, `Boolean`, `URL`, `Select` resolve to their canonical
+   lowercase types. The index is derived from the map itself, so new entries get this for free.
+3. **Aliases** — `string→text`, `bool→boolean`, `datetime→date`, `float→number`,
+   `upload→filestorage`. Only unambiguous, information-preserving synonyms are aliased.
+
+A `type:kind` suffix (`account:google`, `device:apn`) resolves on its base type and keeps the kind,
+which drives the `api://` store expansion.
+
+### Unconvertible fields
+
+A field whose type is **missing or unresolvable** is degraded to a permissive typeless schema (the
+same shape `any` produces) instead of aborting the conversion, and its dot-notation path is reported
+on `toJSONSchemaAdvanced`'s `skippedPaths.unconvertible`:
+
+```js
+const { schema, skippedPaths } = toJSONSchemaAdvanced({
+    name: 'wrapper',
+    type: 'collection',
+    spec: [
+        { name: 'good', type: 'text' },
+        { name: 'odd', type: 'somethingNew' },
+    ],
+});
+// schema.properties → { good: { type: 'string' }, odd: {} }
+// skippedPaths      → { unconvertible: ['wrapper.odd (unknown type: somethingNew)'] }
+```
+
+This is deliberate: the throw was fatal at any depth, so a single unrecognized leaf field destroyed
+the whole schema and left consumers with nothing. Types requiring a guess about intent (`tags`,
+`category`, `object`) are degraded rather than aliased — a degraded field is honest, a wrongly
+aliased one is a lie the consumer will act on.
+
+Pass `{ strictFieldTypes: true }` to restore fail-fast throwing.
+
 ## Error Handling
 
 ### SchemaConversionError
 
-`SchemaConversionError` is thrown when schema conversion fails. It includes a message and optionally the field that caused the error.
+`SchemaConversionError` is thrown when schema conversion fails, and for unresolvable field types
+only when `strictFieldTypes: true` is set. It carries a message and the `field` that caused the
+error.
 
 ## Testing
 

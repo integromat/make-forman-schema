@@ -308,6 +308,14 @@ export type FormanJsonSchemaOptions = {
      * `toJSONSchemaAdvanced`'s `skippedPaths.advanced` so the caller can re-request them.
      */
     excludeAdvancedFields?: boolean;
+    /**
+     * Throw a `SchemaConversionError` when a field's type cannot be resolved, instead of degrading
+     * it to a permissive typeless schema. Defaults to `false` — by default, unresolvable fields are
+     * degraded and their dot-notation paths reported on `toJSONSchemaAdvanced`'s
+     * `skippedPaths.unconvertible`, so one unrecognized field can no longer abort the whole
+     * conversion. Set `true` only when a caller genuinely wants fail-fast behaviour.
+     */
+    strictFieldTypes?: boolean;
 };
 
 /**
@@ -320,6 +328,12 @@ export type FormanJsonSchemaResult = {
     skippedPaths?: {
         /** Dot-notation paths of advanced fields that were skipped. Present only when at least one advanced field was skipped. */
         advanced?: string[];
+        /**
+         * Dot-notation paths of fields whose type could not be resolved and were therefore degraded
+         * to a permissive typeless schema. Each entry is suffixed with the reason —
+         * `(unknown type: X)` or `(missing type)`. Present only when at least one field was degraded.
+         */
+        unconvertible?: string[];
     };
 };
 

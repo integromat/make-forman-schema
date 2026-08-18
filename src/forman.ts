@@ -49,7 +49,9 @@ export interface ConversionContext {
     /** Whether to exclude fields with `advanced: true` from the rendered schema. */
     excludeAdvancedFields: boolean;
     /** Accumulator for paths of skipped fields, keyed by skip reason. Shared (mutated) across recursion. */
-    skippedPaths: { advanced?: string[] };
+    skippedPaths: { advanced?: string[]; unconvertible?: string[] };
+    /** Throw on unresolvable field types instead of degrading them to a permissive schema. */
+    strictFieldTypes: boolean;
 }
 
 /**
@@ -89,6 +91,7 @@ export class SchemaConversionError extends Error {
     constructor(message: string, field?: FormanSchemaField | JSONSchema7) {
         super(message);
         this.name = 'SchemaConversionError';
+        this.field = field;
     }
 }
 
@@ -98,6 +101,7 @@ export class SchemaConversionError extends Error {
 const FORMAN_TYPE_MAP: Readonly<Record<string, JSONSchema7['type']>> = {
     account: 'number',
     hook: 'number',
+    device: 'number',
     keychain: 'number',
     datastore: 'number',
     aiagent: 'string',
@@ -143,19 +147,59 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, JSONSchema7['type']>> = {
 } as const;
 
 /**
- * Validates a Forman Schema field
- * @param field The field to validate
- * @throws {SchemaConversionError} If validation fails
+ * Case-insensitive index of `FORMAN_TYPE_MAP` keys: lowercased key -> canonical key.
+ * Derived from the map itself so it can never drift from it — every future map entry gets
+ * case-insensitive resolution for free. App schemas in the wild ship types like `fileName`,
+ * `Boolean` and `URL`, which are the canonical types differing only in case.
  */
-function validateFormanField(field: FormanSchemaField): void {
-    if (!field.type) {
-        throw new SchemaConversionError('Field type is required', field);
-    }
+const FORMAN_TYPE_LOOKUP: ReadonlyMap<string, string> = new Map(
+    Object.keys(FORMAN_TYPE_MAP).map(key => [key.toLowerCase(), key]),
+);
 
-    const normalizedType = field.type.includes(':') ? field.type.split(':')[0] : field.type;
-    if (!Object.keys(FORMAN_TYPE_MAP).includes(normalizedType!)) {
-        throw new SchemaConversionError(`Unknown field type: ${field.type}`, field);
-    }
+/**
+ * Aliases for field types that are unambiguous, information-preserving synonyms of a canonical
+ * Forman type. Only exact-meaning synonyms belong here — anything whose intent requires a guess
+ * must fall through to tolerant degradation instead, where it is reported rather than mis-typed.
+ * A degraded field is honest; a wrongly-aliased field is a lie the consumer will act on.
+ */
+const FORMAN_TYPE_ALIASES: Readonly<Record<string, string>> = {
+    // Forman's plain-string primitive is `text`; there is no `string` type.
+    string: 'text',
+    bool: 'boolean',
+    // Forman's `date` already carries time (see `time` on FormanSchemaField, default true).
+    datetime: 'date',
+    // JSON Schema has no float; `number` is the only target.
+    float: 'number',
+    // `upload` is the validator's existing name for the same array-shaped type.
+    upload: 'filestorage',
+} as const;
+
+/**
+ * Resolves a raw Forman field type to a canonical `FORMAN_TYPE_MAP` key, handling `type:kind`
+ * prefixes, casing and known aliases.
+ * @param rawType The raw field type from the Forman schema
+ * @returns The canonical type key, or `undefined` when the type is missing or unresolvable
+ */
+export function resolveFormanFieldType(rawType: string | undefined): string | undefined {
+    if (!rawType) return undefined;
+
+    const base = rawType.includes(':') ? rawType.split(':')[0]! : rawType;
+    const lower = base.toLowerCase();
+
+    return FORMAN_TYPE_LOOKUP.get(lower) ?? FORMAN_TYPE_ALIASES[lower];
+}
+
+/**
+ * Rebuilds a `type:kind` string with the canonical base type, preserving the kind suffix.
+ * Canonicalization must happen BEFORE `normalizeFormanFieldType`, whose `API_ENDPOINTS` lookup is
+ * keyed by lowercase type — otherwise `Device:ios` would silently skip its `api://` store expansion.
+ * @param rawType The original raw type (possibly `Type:kind`)
+ * @param canonicalType The resolved canonical base type
+ * @returns The canonicalized type string, with any `:kind` suffix intact
+ */
+function canonicalTypeWithKind(rawType: string, canonicalType: string): string {
+    const separatorIndex = rawType.indexOf(':');
+    return separatorIndex === -1 ? canonicalType : `${canonicalType}${rawType.slice(separatorIndex)}`;
 }
 
 /**
@@ -194,6 +238,7 @@ export function createDefaultContext(options?: FormanJsonSchemaOptions): Convers
         roots: {},
         definitions: {},
         excludeAdvancedFields: options?.excludeAdvancedFields ?? false,
+        strictFieldTypes: options?.strictFieldTypes ?? false,
         skippedPaths: {},
         addConditionalFields: () => {
             throw new SchemaConversionError('Cannot serialize nested fields without parent field.');
@@ -215,16 +260,35 @@ const compositeHandlers: Record<
 
 /**
  * Converts a Forman Schema field to its JSON Schema equivalent.
+ *
+ * A field whose type cannot be resolved is degraded to a permissive typeless schema and recorded on
+ * `context.skippedPaths.unconvertible`, so a single unrecognized field can no longer abort the whole
+ * conversion. Pass `strictFieldTypes` to throw instead.
  * @param field The Forman Schema field to convert
  * @param context The context for the conversion
  * @returns The equivalent JSON Schema field
  */
 export function toJSONSchemaInternal(field: FormanSchemaField, context: ConversionContext): JSONSchema7 {
-    // Validate the field
-    validateFormanField(field);
+    // Resolve the field type through casing and aliases; undefined means missing or unrecognized.
+    const canonicalType = resolveFormanFieldType(field.type);
 
-    // Normalize field type (handle prefixed types)
-    const normalizedField = normalizeFormanFieldType(field);
+    if (!canonicalType) {
+        if (context.strictFieldTypes) {
+            throw new SchemaConversionError(
+                field.type ? `Unknown field type: ${field.type}` : 'Field type is required',
+                field,
+            );
+        }
+
+        return degradeUnconvertibleField(field, context);
+    }
+
+    // Normalize field type (handle prefixed types). Canonicalize first — `normalizeFormanFieldType`
+    // matches `API_ENDPOINTS` by lowercase type, so a miscased `Device:ios` must be rewritten before
+    // it gets there or it silently loses its `api://` store.
+    const normalizedField = normalizeFormanFieldType(
+        canonicalType === field.type ? field : { ...field, type: canonicalTypeWithKind(field.type, canonicalType) },
+    );
 
     const handler = compositeHandlers[normalizedField.type];
     if (handler) {
@@ -802,6 +866,28 @@ function handleJsonType(field: FormanSchemaField, result: JSONSchema7): JSONSche
     });
 
     return result;
+}
+
+/**
+ * Degrades a field whose type could not be resolved into a permissive, typeless JSON Schema — the
+ * same shape `any` and `hidden` already produce, so it round-trips through `toFormanSchema` as
+ * `any` with no new case. The field's path is recorded on `context.skippedPaths.unconvertible` so
+ * callers can report what was degraded instead of the conversion failing outright.
+ * @param field The field whose type could not be resolved
+ * @param context The context for the conversion
+ * @returns A permissive JSON Schema preserving the field's label and help
+ */
+function degradeUnconvertibleField(field: FormanSchemaField, context: ConversionContext): JSONSchema7 {
+    const path = field.name ? [...context.path, field.name].join('.') : context.path.join('.');
+    const reason = field.type ? `unknown type: ${field.type}` : 'missing type';
+
+    (context.skippedPaths.unconvertible ||= []).push(`${path} (${reason})`);
+
+    return {
+        type: FORMAN_TYPE_MAP['any'],
+        title: noEmpty(field.label),
+        description: noEmpty(field.help),
+    };
 }
 
 /**

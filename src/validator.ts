@@ -391,6 +391,22 @@ async function validateFormanValue(
         };
     }
 
+    // A field with no type at all is a malformed schema. Report it as a structured error rather
+    // than letting `normalizeFormanFieldType` crash on `field.type.split(':')`.
+    if (!field.type) {
+        return {
+            valid: false,
+            errors: [
+                {
+                    domain: context.domain,
+                    path: context.path.join('.'),
+                    message: 'Field type is required.',
+                },
+            ],
+            warnings: [],
+        };
+    }
+
     // Normalize field type (handle prefixed types)
     const normalizedField = normalizeFormanFieldType(field);
 
