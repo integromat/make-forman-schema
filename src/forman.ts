@@ -12,6 +12,7 @@ import type {
 import {
     noEmpty,
     isObject,
+    isBooleanBranchNested,
     isOptionGroup,
     normalizeFormanFieldType,
     isVisualType,
@@ -965,13 +966,17 @@ function extractNestedAndDomain(field: FormanSchemaField): {
     nested: (FormanSchemaField | string)[] | string | undefined;
     domain: string | undefined;
 } {
+    // The boolean two-branch object form has no single unconditional spec, so it produces no
+    // x-nested here (it previously fell into the extended-nested branch with an undefined store).
     const nested = isObject<FormanSchemaExtendedOptions>(field.options)
         ? isObject<FormanSchemaExtendedNested>(field.options.nested)
             ? field.options.nested.store
             : field.options.nested
-        : isObject<FormanSchemaExtendedNested>(field.nested)
-          ? field.nested.store
-          : field.nested;
+        : isBooleanBranchNested(field.nested)
+          ? undefined
+          : isObject<FormanSchemaExtendedNested>(field.nested)
+            ? field.nested.store
+            : field.nested;
 
     const domain = isObject<FormanSchemaExtendedOptions>(field.options)
         ? isObject<FormanSchemaExtendedNested>(field.options.nested) && field.options.nested.domain

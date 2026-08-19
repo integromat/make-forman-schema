@@ -1,8 +1,11 @@
 import {
+    FormanSchemaBooleanNested,
+    FormanSchemaExtendedNested,
     FormanSchemaExtendedOptions,
     FormanSchemaField,
     FormanSchemaFieldState,
     FormanSchemaFieldType,
+    FormanSchemaNested,
     FormanSchemaOption,
     FormanSchemaOptionGroup,
     FormanSchemaSelectOptionsStore,
@@ -75,6 +78,20 @@ export function noEmpty(text: string | undefined): string | undefined {
  */
 export function isObject<T = object>(value: unknown): value is T {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Checks whether a nested definition is the boolean two-branch object form ({ true?, false? }).
+ * Distinguished from the extended nested form by the absence of `store`.
+ * @param nested The nested definition to check
+ * @returns true if the definition is the boolean two-branch object form
+ */
+export function isBooleanBranchNested(
+    nested: FormanSchemaNested | FormanSchemaBooleanNested | FormanSchemaExtendedNested | undefined,
+): nested is FormanSchemaBooleanNested {
+    return (
+        isObject<FormanSchemaBooleanNested>(nested) && !('store' in nested) && ('true' in nested || 'false' in nested)
+    );
 }
 
 /**

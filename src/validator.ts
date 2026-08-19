@@ -9,6 +9,7 @@ import type {
     FormanSchemaOptionGroup,
     FormanValidationOptions,
     FormanSchemaNested,
+    FormanSchemaBooleanNested,
     FormanSchemaFieldState,
     FormanSchemaPathExtendedOptions,
     FormanSchemaDirectoryOption,
@@ -18,6 +19,7 @@ import type {
 import {
     containsIMLExpression,
     isObject,
+    isBooleanBranchNested,
     buildRestoreStructure,
     isPrimitiveIMLExpression,
     normalizeFormanFieldType,
@@ -56,6 +58,8 @@ export interface ValidationContext {
     path: (string | number)[];
     /** Unknown fields are not allowed when strict is true */
     strict: boolean;
+    /** Suppresses required-field enforcement; set while validating nested fields of a branch the UI does not render (e.g. boolean nested when the toggle state does not match) */
+    suppressRequired?: boolean;
     /** Maps domain names used in nested.domain to actual domain keys */
     domainAliases: Record<string, string>;
     /** Validate nested fields */
@@ -110,7 +114,9 @@ function hasPlaceholderNested(field: FormanSchemaField): boolean {
 /**
  * Extracts the nested definition from `field.nested` or `field.options.nested`.
  */
-function extractNestedFromField(field: FormanSchemaField): FormanSchemaNested | FormanSchemaExtendedNested | undefined {
+function extractNestedFromField(
+    field: FormanSchemaField,
+): FormanSchemaNested | FormanSchemaExtendedNested | FormanSchemaBooleanNested | undefined {
     if (field.nested) return field.nested;
     if (isObject<FormanSchemaExtendedOptions>(field.options) && field.options.nested) return field.options.nested;
     return undefined;
@@ -410,7 +416,7 @@ async function validateFormanValue(
     // Normalize field type (handle prefixed types)
     const normalizedField = normalizeFormanFieldType(field);
 
-    if (normalizedField.required && (value == null || value === '')) {
+    if (normalizedField.required && !context.suppressRequired && (value == null || value === '')) {
         return {
             valid: false,
             errors: [
@@ -1183,7 +1189,7 @@ async function handleSelectType(
  * @returns The validation result
  */
 async function handleNestedFields(
-    nested: FormanSchemaNested | FormanSchemaExtendedNested,
+    nested: FormanSchemaNested | FormanSchemaExtendedNested | FormanSchemaBooleanNested,
     value: unknown,
     field: FormanSchemaField,
     context: ValidationContext,
@@ -1384,7 +1390,10 @@ async function handlePrimitiveType(
 
     const nested = extractNestedFromField(field);
     if (nested) {
-        const result = await handleNestedFields(nested, value, field, context);
+        const result =
+            FORMAN_TYPE_MAP[field.type] === 'boolean'
+                ? await handleBooleanNestedFields(nested, value, field, context)
+                : await handleNestedFields(nested, value, field, context);
         errors.push(...result.errors);
         warnings.push(...result.warnings);
     }
@@ -1394,4 +1403,40 @@ async function handlePrimitiveType(
         errors,
         warnings,
     };
+}
+
+/**
+ * Handles nested fields of boolean fields, which apply conditionally on the value: the
+ * single-branch form (array or RPC string) applies when the value is `true`, or `false` with
+ * `reversedNested`, and the two-branch object form ({ true?, false? }) applies the branch
+ * matching the value. Fields of a non-matching single branch are still processed so their
+ * values stay known to strict mode and type-checked, but without required-field enforcement,
+ * because the UI does not render them. A non-matching branch of the two-branch form is
+ * skipped entirely.
+ * @param nested The nested fields
+ * @param value The value of the boolean field
+ * @param field The field to validate
+ * @param context The context for the validation
+ * @returns The validation result
+ */
+async function handleBooleanNestedFields(
+    nested: FormanSchemaNested | FormanSchemaExtendedNested | FormanSchemaBooleanNested,
+    value: unknown,
+    field: FormanSchemaField,
+    context: ValidationContext,
+): Promise<FormanValidationResult> {
+    if (isBooleanBranchNested(nested)) {
+        const branch = value === false ? nested.false : nested.true;
+        if (!branch) {
+            return {
+                valid: true,
+                errors: [],
+                warnings: [],
+            };
+        }
+        return handleNestedFields(branch, value, field, context);
+    }
+
+    const active = field.reversedNested === true ? value === false : value === true;
+    return handleNestedFields(nested, value, field, active ? context : { ...context, suppressRequired: true });
 }

@@ -100,8 +100,10 @@ export type FormanSchemaField = {
     advanced?: boolean;
     /** Human readable label for the field */
     label?: string;
-    /** Nested fields */
-    nested?: FormanSchemaNested;
+    /** Nested fields. On boolean fields the single-branch forms (array or RPC string) apply when the value is `true`, and the two-branch object form applies the branch matching the value. */
+    nested?: FormanSchemaNested | FormanSchemaBooleanNested;
+    /** When `true` alongside an array/string `nested` on a boolean field, the nested fields apply when the value is `false` instead of `true`. Ignored when `nested` is the two-branch object form. */
+    reversedNested?: boolean;
     /** Validation rules */
     validate?: FormanSchemaValidation;
     /** Whether the field is disabled (`false` by default) */
@@ -250,6 +252,18 @@ export type FormanSchemaExtendedNested = {
     store: (FormanSchemaField | string)[] | string;
     /** Domain for the nested fields */
     domain?: string;
+};
+
+/**
+ * Two-branch nested fields for boolean fields. Each branch applies when the field's value
+ * matches its key; keys other than "true" / "false" are ignored, as is `reversedNested`.
+ * Distinguished from {@link FormanSchemaExtendedNested} by the absence of `store`.
+ */
+export type FormanSchemaBooleanNested = {
+    /** Nested fields applied when the value is `true` */
+    true?: (FormanSchemaField | string)[] | string;
+    /** Nested fields applied when the value is `false` */
+    false?: (FormanSchemaField | string)[] | string;
 };
 
 /**
