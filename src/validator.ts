@@ -58,7 +58,6 @@ export interface ValidationContext {
     path: (string | number)[];
     /** Unknown fields are not allowed when strict is true */
     strict: boolean;
-    /** Suppresses required-field enforcement; set while validating nested fields of a branch the UI does not render (e.g. boolean nested when the toggle state does not match) */
     suppressRequired?: boolean;
     /** Maps domain names used in nested.domain to actual domain keys */
     domainAliases: Record<string, string>;
@@ -1405,20 +1404,6 @@ async function handlePrimitiveType(
     };
 }
 
-/**
- * Handles nested fields of boolean fields, which apply conditionally on the value: the
- * single-branch form (array or RPC string) applies when the value is `true`, or `false` with
- * `reversedNested`, and the two-branch object form ({ true?, false? }) applies the branch
- * matching the value. Fields of a non-matching single branch are still processed so their
- * values stay known to strict mode and type-checked, but without required-field enforcement,
- * because the UI does not render them. A non-matching branch of the two-branch form is
- * skipped entirely.
- * @param nested The nested fields
- * @param value The value of the boolean field
- * @param field The field to validate
- * @param context The context for the validation
- * @returns The validation result
- */
 async function handleBooleanNestedFields(
     nested: FormanSchemaNested | FormanSchemaExtendedNested | FormanSchemaBooleanNested,
     value: unknown,
