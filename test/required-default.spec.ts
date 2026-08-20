@@ -48,6 +48,12 @@ describe('Required fields with a schema default', () => {
         ]);
     });
 
+    it('should treat an empty-string default as no default', async () => {
+        const schema: FormanSchemaField[] = [{ name: 'mode', type: 'text', required: true, default: '' }];
+        const result = await validateForman({}, schema, { strict: true });
+        expect(result.errors).toEqual([{ domain: 'default', path: 'mode', message: 'Field is mandatory.' }]);
+    });
+
     it('should treat a null default as no default', async () => {
         const schema: FormanSchemaField[] = [{ name: 'source', type: 'text', required: true, default: null }];
         const result = await validateForman({}, schema, { strict: true });

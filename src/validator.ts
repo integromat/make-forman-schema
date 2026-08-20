@@ -428,7 +428,7 @@ async function validateFormanValue(
     const normalizedField = normalizeFormanFieldType(field);
 
     if (normalizedField.required && !context.suppressRequired && (value == null || value === '')) {
-        if (value !== undefined || normalizedField.default == null) {
+        if (value !== undefined || normalizedField.default == null || normalizedField.default === '') {
             return {
                 valid: false,
                 errors: [
