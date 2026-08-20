@@ -1,5 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
-import { FormanSchemaField, validateForman } from '../src';
+import type { FormanSchemaField } from '../src/index.js';
+import { validateForman } from '../src/index.js';
 
 describe('Boolean nested conditioning', () => {
     describe('single-branch nested (applies when true)', () => {

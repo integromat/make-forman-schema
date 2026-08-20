@@ -28,7 +28,7 @@ TypeScript library for converting and validating **Forman Schema** (Make's inter
 
 ## Domain Concepts
 
-**Forman Schema** is Make's proprietary form field format. A schema is an array of `FormanSchemaField` objects. Each field has a `type` (one of ~40 types), optional `spec` (sub-fields for `collection`/`array`), `options` (select options or `rpc://` URL), `nested` (fields revealed when a select option is chosen), and `validate`.
+**Forman Schema** is Make's proprietary form field format. A schema is an array of `FormanSchemaField` objects. Each field has a `type` (one of ~40 types), optional `spec` (sub-fields for `collection`/`array`), `options` (select options or `rpc://` URL), `nested` (fields revealed by the value of a select or boolean), and `validate`.
 
 **Domains** are named scopes (e.g. `default`, `additional`) used in multi-domain validation. Fields in one domain can reveal nested fields in another domain via `field.nested.domain`. The `x-domain-root` property on a `collection` field registers it as the anchor for cross-domain routing.
 
@@ -75,11 +75,13 @@ Entry: `toJSONSchemaInternal(field, context)`. Dispatches by type to `handleColl
 
 <important if="you are modifying validation logic or the validator.ts file">
 
-`validateFormanWithDomainsInternal` is the core; it builds a `roots` map per domain then calls `validateFormanValue` recursively. Handlers: `handleCollectionType`, `handleArrayType`, `handleSelectType`, `handleFilterType`, `handlePathType`, `handlePrimitiveType`, `handleNestedFields`. `resolveRemote` is wrapped into a closure that merges `context.tail` into the `data` argument.
+`validateFormanWithDomainsInternal` is the core; it builds a `roots` map per domain then calls `validateFormanValue` recursively. Handlers: `handleCollectionType`, `handleArrayType`, `handleSelectType`, `handleFilterType`, `handlePathType`, `handlePrimitiveType`, `handleNestedFields`, `handleBooleanNestedFields`. `resolveRemote` is wrapped into a closure that merges `context.tail` into the `data` argument.
 
 `validateForman` always wraps to a single `default` domain. Result type: `{ valid, errors[], warnings[], states?, schemas? }`. `warnings` do not affect `valid`. `states` populated only when `options.states === true` AND no errors. `schemas` populated only when `options.schemas === true` AND no errors — returns resolved field definitions per domain.
 
 Per-domain inputs accept `restoreExtras` (extra values injected into restore states, keyed by dot-notation path) and `allowDynamicValues` (when true, IML expressions and unresolved RPC select options produce warnings instead of errors; default false). `allowDynamicValues` can also be set globally via `FormanValidationOptions`.
+
+**Boolean nested** is conditioned on the toggle value, matching how imt-forman renders it (`docs/inputs/boolean.md`). Single-branch `nested` (spec array or `rpc://` string) applies when the value is `true`, or `false` if `reversedNested: true`; the two-branch object form `{ true?, false? }` applies whichever branch matches. An inactive single-branch is still walked, under `context.suppressRequired`, which disables only the `"Field is mandatory."` check — provided values stay type-checked and the fields stay registered for strict mode, so stale values of hidden fields do not become `Unknown field`. An inactive two-branch branch is skipped outright. Every other type keeps unconditional `handleNestedFields`.
 
 **Strict mode** (`options.strict`): checks `values` keys against `seen` set. Unknown keys produce `"Unknown field '${key}'"` errors.
 
