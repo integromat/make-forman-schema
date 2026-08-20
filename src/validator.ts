@@ -428,17 +428,20 @@ async function validateFormanValue(
     const normalizedField = normalizeFormanFieldType(field);
 
     if (normalizedField.required && !context.suppressRequired && (value == null || value === '')) {
-        return {
-            valid: false,
-            errors: [
-                {
-                    domain: context.domain,
-                    path: context.path.join('.'),
-                    message: 'Field is mandatory.',
-                },
-            ],
-            warnings: [],
-        };
+        if (value !== undefined || normalizedField.default == null) {
+            return {
+                valid: false,
+                errors: [
+                    {
+                        domain: context.domain,
+                        path: context.path.join('.'),
+                        message: 'Field is mandatory.',
+                    },
+                ],
+                warnings: [],
+            };
+        }
+        value = normalizedField.default;
     }
 
     if (value == null || value === '') {

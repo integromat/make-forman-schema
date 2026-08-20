@@ -82,12 +82,7 @@ describe('Forman Schema Manifest Validation', () => {
                 {
                     domain: 'expect',
                     message: 'Field is mandatory.',
-                    path: 'mode',
-                },
-                {
-                    domain: 'expect',
-                    message: 'Field is mandatory.',
-                    path: 'insertUnformatted',
+                    path: 'from',
                 },
             ],
             warnings: [],
