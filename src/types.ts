@@ -100,8 +100,8 @@ export type FormanSchemaField = {
     advanced?: boolean;
     /** Human readable label for the field */
     label?: string;
-    /** Nested fields */
-    nested?: FormanSchemaNested;
+    nested?: FormanSchemaNested | FormanSchemaBooleanNested;
+    reversedNested?: boolean;
     /** Validation rules */
     validate?: FormanSchemaValidation;
     /** Whether the field is disabled (`false` by default) */
@@ -250,6 +250,11 @@ export type FormanSchemaExtendedNested = {
     store: (FormanSchemaField | string)[] | string;
     /** Domain for the nested fields */
     domain?: string;
+};
+
+export type FormanSchemaBooleanNested = {
+    true?: (FormanSchemaField | string)[] | string;
+    false?: (FormanSchemaField | string)[] | string;
 };
 
 /**

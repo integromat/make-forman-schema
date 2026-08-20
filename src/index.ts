@@ -16,6 +16,7 @@ export type {
     FormanSchemaOption,
     FormanSchemaDirectoryOption,
     FormanSchemaNested,
+    FormanSchemaBooleanNested,
     FormanSchemaExtendedOptions,
     FormanSchemaPathExtendedOptions,
     FormanSchemaExtendedNested,

@@ -1,8 +1,11 @@
 import {
+    FormanSchemaBooleanNested,
+    FormanSchemaExtendedNested,
     FormanSchemaExtendedOptions,
     FormanSchemaField,
     FormanSchemaFieldState,
     FormanSchemaFieldType,
+    FormanSchemaNested,
     FormanSchemaOption,
     FormanSchemaOptionGroup,
     FormanSchemaSelectOptionsStore,
@@ -75,6 +78,14 @@ export function noEmpty(text: string | undefined): string | undefined {
  */
 export function isObject<T = object>(value: unknown): value is T {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+export function isBooleanBranchNested(
+    nested: FormanSchemaNested | FormanSchemaBooleanNested | FormanSchemaExtendedNested | undefined,
+): nested is FormanSchemaBooleanNested {
+    return (
+        isObject<FormanSchemaBooleanNested>(nested) && !('store' in nested) && ('true' in nested || 'false' in nested)
+    );
 }
 
 /**

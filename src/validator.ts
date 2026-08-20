@@ -9,6 +9,7 @@ import type {
     FormanSchemaOptionGroup,
     FormanValidationOptions,
     FormanSchemaNested,
+    FormanSchemaBooleanNested,
     FormanSchemaFieldState,
     FormanSchemaPathExtendedOptions,
     FormanSchemaDirectoryOption,
@@ -18,6 +19,7 @@ import type {
 import {
     containsIMLExpression,
     isObject,
+    isBooleanBranchNested,
     buildRestoreStructure,
     isPrimitiveIMLExpression,
     normalizeFormanFieldType,
@@ -56,6 +58,8 @@ export interface ValidationContext {
     path: (string | number)[];
     /** Unknown fields are not allowed when strict is true */
     strict: boolean;
+    suppressRequired?: boolean;
+    registerOnly?: boolean;
     /** Maps domain names used in nested.domain to actual domain keys */
     domainAliases: Record<string, string>;
     /** Validate nested fields */
@@ -110,7 +114,9 @@ function hasPlaceholderNested(field: FormanSchemaField): boolean {
 /**
  * Extracts the nested definition from `field.nested` or `field.options.nested`.
  */
-function extractNestedFromField(field: FormanSchemaField): FormanSchemaNested | FormanSchemaExtendedNested | undefined {
+function extractNestedFromField(
+    field: FormanSchemaField,
+): FormanSchemaNested | FormanSchemaExtendedNested | FormanSchemaBooleanNested | undefined {
     if (field.nested) return field.nested;
     if (isObject<FormanSchemaExtendedOptions>(field.options) && field.options.nested) return field.options.nested;
     return undefined;
@@ -383,6 +389,17 @@ async function validateFormanValue(
     field: FormanSchemaField,
     context: ValidationContext,
 ): Promise<FormanValidationResult> {
+    // The caller has already registered this field's name for strict mode. Both branches of a
+    // two-branch boolean can carry the same name with different types, so the inactive branch's
+    // rules must not be applied to a value that belongs to the active one.
+    if (context.registerOnly) {
+        return {
+            valid: true,
+            errors: [],
+            warnings: [],
+        };
+    }
+
     if (isVisualType(field.type)) {
         return {
             valid: true,
@@ -410,7 +427,7 @@ async function validateFormanValue(
     // Normalize field type (handle prefixed types)
     const normalizedField = normalizeFormanFieldType(field);
 
-    if (normalizedField.required && (value == null || value === '')) {
+    if (normalizedField.required && !context.suppressRequired && (value == null || value === '')) {
         return {
             valid: false,
             errors: [
@@ -606,7 +623,7 @@ async function handleCollectionType(
                             continue;
                         }
                         if (context.strict && !seen.has(subField.name)) seen.add(subField.name);
-                        if (path.length === 0) {
+                        if (path.length === 0 && !context.registerOnly) {
                             context.roots[context.domain]!.schemaFields.push(clampFieldForSchema(subField));
                         }
                         const result = await validateFormanValue(value[subField.name], subField, {
@@ -1183,7 +1200,7 @@ async function handleSelectType(
  * @returns The validation result
  */
 async function handleNestedFields(
-    nested: FormanSchemaNested | FormanSchemaExtendedNested,
+    nested: FormanSchemaNested | FormanSchemaExtendedNested | FormanSchemaBooleanNested,
     value: unknown,
     field: FormanSchemaField,
     context: ValidationContext,
@@ -1384,7 +1401,10 @@ async function handlePrimitiveType(
 
     const nested = extractNestedFromField(field);
     if (nested) {
-        const result = await handleNestedFields(nested, value, field, context);
+        const result =
+            FORMAN_TYPE_MAP[field.type] === 'boolean'
+                ? await handleBooleanNestedFields(nested, value, field, context)
+                : await handleNestedFields(nested, value, field, context);
         errors.push(...result.errors);
         warnings.push(...result.warnings);
     }
@@ -1394,4 +1414,28 @@ async function handlePrimitiveType(
         errors,
         warnings,
     };
+}
+
+async function handleBooleanNestedFields(
+    nested: FormanSchemaNested | FormanSchemaExtendedNested | FormanSchemaBooleanNested,
+    value: unknown,
+    field: FormanSchemaField,
+    context: ValidationContext,
+): Promise<FormanValidationResult> {
+    if (isBooleanBranchNested(nested)) {
+        const active = value === false ? nested.false : nested.true;
+        const inactive = value === false ? nested.true : nested.false;
+        const result = active
+            ? await handleNestedFields(active, value, field, context)
+            : { valid: true, errors: [], warnings: [] };
+        // Register the inactive branch's names so a stale value left over from it does not become
+        // `Unknown field`, matching what the suppressed single-branch walk already achieves.
+        if (context.strict && inactive) {
+            await handleNestedFields(inactive, value, field, { ...context, registerOnly: true });
+        }
+        return result;
+    }
+
+    const active = field.reversedNested === true ? value === false : value === true;
+    return handleNestedFields(nested, value, field, active ? context : { ...context, suppressRequired: true });
 }
