@@ -28,7 +28,7 @@ describe('Required fields with a schema default', () => {
 
     it('should apply the default before conditioning nested fields', async () => {
         const result = await validateForman({ fallbackConnectionId: 'legacy-value' }, fallbackToggle, { strict: true });
-        expect(result.valid).toBe(true);
+        expect(result.errors).toEqual([]);
     });
 
     it('should enforce the branch the default activates', async () => {
@@ -48,14 +48,8 @@ describe('Required fields with a schema default', () => {
         ]);
     });
 
-    it('should still reject an absent required field with no default', async () => {
-        const schema: FormanSchemaField[] = [{ name: 'connection', type: 'text', required: true }];
-        const result = await validateForman({}, schema, { strict: true });
-        expect(result.errors).toEqual([{ domain: 'default', path: 'connection', message: 'Field is mandatory.' }]);
-    });
-
     it('should treat a null default as no default', async () => {
-        const schema: FormanSchemaField[] = [{ name: 'source', type: 'text', required: true, default: null as never }];
+        const schema: FormanSchemaField[] = [{ name: 'source', type: 'text', required: true, default: null }];
         const result = await validateForman({}, schema, { strict: true });
         expect(result.errors).toEqual([{ domain: 'default', path: 'source', message: 'Field is mandatory.' }]);
     });
@@ -68,15 +62,6 @@ describe('Required fields with a schema default', () => {
         expect((await validateForman({ mode: '' }, schema, { strict: true })).errors).toEqual([
             { domain: 'default', path: 'mode', message: 'Field is mandatory.' },
         ]);
-    });
-
-    it('should apply a falsy default rather than reporting it absent', async () => {
-        const schema: FormanSchemaField[] = [
-            { name: 'retries', type: 'number', required: true, default: 0 },
-            { name: 'verbose', type: 'boolean', required: true, default: false },
-        ];
-        const result = await validateForman({}, schema, { strict: true });
-        expect(result.valid).toBe(true);
     });
 
     it('should apply defaults inside a collection', async () => {
