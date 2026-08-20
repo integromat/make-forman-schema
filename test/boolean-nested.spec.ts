@@ -64,6 +64,76 @@ describe('Boolean nested conditioning', () => {
                 },
             ]);
         });
+
+        it('should still apply validate rules to nested values of a false toggle', async () => {
+            const boundedSchema: FormanSchemaField[] = [
+                {
+                    name: 'advanced',
+                    type: 'boolean',
+                    label: 'Advanced settings',
+                    nested: [
+                        {
+                            name: 'timeout',
+                            type: 'number',
+                            label: 'Timeout',
+                            required: true,
+                            validate: { max: 60 },
+                        },
+                    ],
+                },
+            ];
+            const result = await validateForman({ advanced: false, timeout: 120 }, boundedSchema, { strict: true });
+            expect(result.valid).toBe(false);
+            expect(result.errors).toEqual([
+                {
+                    domain: 'default',
+                    path: 'timeout',
+                    message: 'Value is too big. Maximum value is 60.',
+                },
+            ]);
+        });
+
+        it('should suppress required through the whole subtree of a false toggle', async () => {
+            const nestedToggleSchema: FormanSchemaField[] = [
+                {
+                    name: 'advanced',
+                    type: 'boolean',
+                    label: 'Advanced settings',
+                    nested: [
+                        {
+                            name: 'retries',
+                            type: 'boolean',
+                            label: 'Retries',
+                            nested: [
+                                {
+                                    name: 'attempts',
+                                    type: 'number',
+                                    label: 'Attempts',
+                                    required: true,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ];
+
+            const hidden = await validateForman({ advanced: false, retries: true }, nestedToggleSchema, {
+                strict: true,
+            });
+            expect(hidden.valid).toBe(true);
+
+            const visible = await validateForman({ advanced: true, retries: true }, nestedToggleSchema, {
+                strict: true,
+            });
+            expect(visible.valid).toBe(false);
+            expect(visible.errors).toEqual([
+                {
+                    domain: 'default',
+                    path: 'attempts',
+                    message: 'Field is mandatory.',
+                },
+            ]);
+        });
     });
 
     describe('reversedNested', () => {
@@ -199,6 +269,35 @@ describe('Boolean nested conditioning', () => {
             ];
             const result = await validateForman({ sendEmail: false }, singleBranchSchema, {});
             expect(result.valid).toBe(true);
+        });
+
+        it("should keep the inactive branch's values known to strict mode", async () => {
+            const result = await validateForman(
+                { sendEmail: false, skipReason: 'opted out', recipient: 'a@b.c' },
+                schema,
+                { strict: true },
+            );
+            expect(result.valid).toBe(true);
+            expect(result.errors).toEqual([]);
+        });
+
+        it("should not apply the inactive branch's rules to a stale value", async () => {
+            const collidingSchema: FormanSchemaField[] = [
+                {
+                    name: 'sendEmail',
+                    type: 'boolean',
+                    label: 'Send email',
+                    nested: {
+                        true: [{ name: 'target', type: 'number', label: 'Target', required: true }],
+                        false: [{ name: 'target', type: 'text', label: 'Target', required: true }],
+                    },
+                },
+            ];
+            const result = await validateForman({ sendEmail: false, target: 'a name' }, collidingSchema, {
+                strict: true,
+            });
+            expect(result.valid).toBe(true);
+            expect(result.errors).toEqual([]);
         });
     });
 

@@ -59,6 +59,7 @@ export interface ValidationContext {
     /** Unknown fields are not allowed when strict is true */
     strict: boolean;
     suppressRequired?: boolean;
+    registerOnly?: boolean;
     /** Maps domain names used in nested.domain to actual domain keys */
     domainAliases: Record<string, string>;
     /** Validate nested fields */
@@ -388,6 +389,17 @@ async function validateFormanValue(
     field: FormanSchemaField,
     context: ValidationContext,
 ): Promise<FormanValidationResult> {
+    // The caller has already registered this field's name for strict mode. Both branches of a
+    // two-branch boolean can carry the same name with different types, so the inactive branch's
+    // rules must not be applied to a value that belongs to the active one.
+    if (context.registerOnly) {
+        return {
+            valid: true,
+            errors: [],
+            warnings: [],
+        };
+    }
+
     if (isVisualType(field.type)) {
         return {
             valid: true,
@@ -611,7 +623,7 @@ async function handleCollectionType(
                             continue;
                         }
                         if (context.strict && !seen.has(subField.name)) seen.add(subField.name);
-                        if (path.length === 0) {
+                        if (path.length === 0 && !context.registerOnly) {
                             context.roots[context.domain]!.schemaFields.push(clampFieldForSchema(subField));
                         }
                         const result = await validateFormanValue(value[subField.name], subField, {
@@ -1411,15 +1423,17 @@ async function handleBooleanNestedFields(
     context: ValidationContext,
 ): Promise<FormanValidationResult> {
     if (isBooleanBranchNested(nested)) {
-        const branch = value === false ? nested.false : nested.true;
-        if (!branch) {
-            return {
-                valid: true,
-                errors: [],
-                warnings: [],
-            };
+        const active = value === false ? nested.false : nested.true;
+        const inactive = value === false ? nested.true : nested.false;
+        const result = active
+            ? await handleNestedFields(active, value, field, context)
+            : { valid: true, errors: [], warnings: [] };
+        // Register the inactive branch's names so a stale value left over from it does not become
+        // `Unknown field`, matching what the suppressed single-branch walk already achieves.
+        if (context.strict && inactive) {
+            await handleNestedFields(inactive, value, field, { ...context, registerOnly: true });
         }
-        return handleNestedFields(branch, value, field, context);
+        return result;
     }
 
     const active = field.reversedNested === true ? value === false : value === true;
