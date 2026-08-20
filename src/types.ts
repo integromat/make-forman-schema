@@ -283,12 +283,13 @@ export type FormanValidationResult = {
     }[];
     /** States of fields grouped by domain */
     states?: Record<string, FormanSchemaFieldState>;
-    /** Resolved schema fields per domain. Only present when validation succeeded. */
+    /** Resolved schema fields per domain. Requires `options.schemas`; only present when validation succeeded. */
     schemas?: Record<string, FormanSchemaField[]>;
     /**
-     * Resolved schema fields per domain, present whether or not validation succeeded — including
-     * fields revealed by a remote-resolved (`rpc://`) sub-form, which cannot be known from the
-     * static schema alone. Lets a caller report which fields it rejected.
+     * Resolved schema fields per domain. Requires `options.schemas`, and unlike {@link schemas} is
+     * present whether or not validation succeeded — including fields revealed by a remote-resolved
+     * (`rpc://`) sub-form, which cannot be known from the static schema alone. Lets a caller report
+     * which fields it rejected.
      */
     resolvedSchemas?: Record<string, FormanSchemaField[]>;
 };
