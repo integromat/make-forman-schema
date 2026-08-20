@@ -353,3 +353,70 @@ describe('schemas output', () => {
         expect(result.schemas!['default']![0]).not.toHaveProperty('schema');
     });
 });
+
+describe('resolvedSchemas on the failure path', () => {
+    // The reported bug (MAIA-1290): a module whose fields only exist once a parent
+    // selection is made. The validator resolves the sub-form, judges against it, and
+    // then discards it — leaving the caller unable to name the fields it rejected.
+    const scenarioPicker = [
+        {
+            name: 'scenario',
+            type: 'select',
+            label: 'Scenario',
+            required: true,
+            options: {
+                store: 'rpc://scenario-service/1/RpcListScenarios',
+                nested: 'rpc://scenario-service/1/RpcGetInputs',
+            },
+        },
+    ];
+
+    const resolveRemote = async (path: string) =>
+        path.includes('RpcGetInputs')
+            ? [
+                  { name: 'blueprint', type: 'text', label: 'Blueprint', required: true },
+                  { name: 'errorType', type: 'text', label: 'Error type' },
+              ]
+            : [{ value: 12345, label: 'T99 Lexoffice Master' }];
+
+    it('exposes the resolved sub-form when validation FAILS', async () => {
+        const result = await validateForman({ scenario: 12345 }, scenarioPicker, {
+            schemas: true,
+            resolveRemote,
+        });
+
+        expect(result.valid).toBe(false);
+        expect(result.errors).toContainEqual(
+            expect.objectContaining({ path: 'blueprint', message: 'Field is mandatory.' }),
+        );
+
+        // `schemas` stays success-only: callers treat its presence as a success signal.
+        expect(result.schemas).toBeUndefined();
+
+        // ...but the resolved spec, which the validator already built to reach the verdict
+        // above, is now reachable — so a caller can name `blueprint` instead of guessing.
+        expect(result.resolvedSchemas!.default).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ name: 'blueprint', type: 'text', required: true }),
+                expect.objectContaining({ name: 'errorType', type: 'text' }),
+            ]),
+        );
+    });
+
+    it('still exposes them when validation succeeds', async () => {
+        const result = await validateForman({ scenario: 12345, blueprint: 'x' }, scenarioPicker, {
+            schemas: true,
+            resolveRemote,
+        });
+
+        expect(result.valid).toBe(true);
+        expect(result.resolvedSchemas).toEqual(result.schemas);
+    });
+
+    it('is omitted when the schemas option is off', async () => {
+        const result = await validateForman({ scenario: 12345 }, scenarioPicker, { resolveRemote });
+
+        expect(result.valid).toBe(false);
+        expect(result.resolvedSchemas).toBeUndefined();
+    });
+});
