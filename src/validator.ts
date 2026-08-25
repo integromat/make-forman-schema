@@ -374,6 +374,13 @@ export async function validateFormanWithDomainsInternal(
             errors.length === 0 && options?.schemas
                 ? Object.fromEntries(Object.keys(domains).map(domain => [domain, roots[domain]!.schemaFields]))
                 : undefined,
+        // Same spec as `schemas`, but also on the failure path. Remote-resolved fields are
+        // built before the verdict, so a rejection can name the fields it rejected instead of
+        // leaving the caller to guess at a sub-form it never saw. `schemas` stays success-only:
+        // callers read its presence as a success signal.
+        resolvedSchemas: options?.schemas
+            ? Object.fromEntries(Object.keys(domains).map(domain => [domain, roots[domain]!.schemaFields]))
+            : undefined,
     };
 }
 
