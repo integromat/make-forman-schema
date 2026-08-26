@@ -277,6 +277,26 @@ describe('fillDefaults: requiredOnly', () => {
         expect(result.appliedDefaults).toEqual([{ domain: 'default', path: 'level', value: 'extreme' }]);
     });
 
+    it('clones a runtime object default instead of aliasing the schema instance', async () => {
+        // `default` is typed as a primitive, but JSON-sourced schemas can carry object defaults.
+        const objectDefault = { depth: 1 };
+        const schema: FormanSchemaField[] = [
+            {
+                name: 'options',
+                type: 'collection',
+                required: true,
+                default: objectDefault as unknown as FormanSchemaField['default'],
+                spec: [{ name: 'depth', type: 'number' }],
+            },
+        ];
+        const result = await validateForman({}, schema, { strict: true, fillDefaults: 'requiredOnly' });
+        expect(result.valid).toBe(true);
+        const filled = result.normalizedValues?.default?.options;
+        expect(filled).toEqual({ depth: 1 });
+        expect(filled).not.toBe(objectDefault);
+        expect(result.appliedDefaults?.[0]?.value).not.toBe(objectDefault);
+    });
+
     it('changes nothing when the option is off', async () => {
         const result = await validateForman({}, fallbackToggle, { strict: true });
         expect(result.valid).toBe(false);

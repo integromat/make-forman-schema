@@ -305,8 +305,10 @@ export type FormanValidationResult = {
         domain: string;
         /** Field path */
         path: string;
-        /** The default that was filled in */
-        value: FormanSchemaValue;
+        /** The default that was filled in. Loosely typed on purpose: `default` is declared as
+         *  `FormanSchemaValue`, but schemas are JSON at source and may carry object or array
+         *  defaults at runtime, which are filled as (cloned) values too. */
+        value: unknown;
     }[];
 };
 

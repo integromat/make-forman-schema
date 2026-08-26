@@ -102,7 +102,7 @@ export interface DomainRoot {
     /** Resolved schema fields collected during validation */
     schemaFields: FormanSchemaField[];
     /** Defaults filled during validation (`options.fillDefaults`), with raw path segments */
-    appliedDefaults: Array<{ path: Array<string | number>; value: FormanSchemaValue }>;
+    appliedDefaults: Array<{ path: Array<string | number>; value: unknown }>;
     /** Whether the domain allows dynamic values (IML expressions, unresolved RPC select options) */
     allowDynamicValues: boolean;
 }
@@ -482,7 +482,7 @@ async function validateFormanValue(
         }
         // `default` is typed as a primitive, but schemas are JSON at source: a runtime object or
         // array default is cloned so the result never aliases the schema's own default instance.
-        const filled = typeof fillable === 'object' ? structuredClone(fillable) : fillable;
+        const filled = isObject(fillable) || Array.isArray(fillable) ? structuredClone<unknown>(fillable) : fillable;
         value = filled;
         context.roots[context.domain]?.appliedDefaults.push({ path: [...context.path], value: filled });
     }
