@@ -29,6 +29,7 @@ import {
     IML_FILTER_OPERATORS,
     findValueInSelectOptions,
     pathToString,
+    setValueAtPath,
     stringToPath,
 } from './utils';
 import { udttypeExpand } from './composites/udttype';
@@ -58,6 +59,8 @@ export interface ValidationContext {
     path: (string | number)[];
     /** Unknown fields are not allowed when strict is true */
     strict: boolean;
+    /** Fill declared defaults for omitted required fields (see FormanValidationOptions.fillDefaults) */
+    fillDefaults?: 'requiredOnly';
     suppressRequired?: boolean;
     registerOnly?: boolean;
     /** Maps domain names used in nested.domain to actual domain keys */
@@ -98,6 +101,8 @@ export interface DomainRoot {
     }>;
     /** Resolved schema fields collected during validation */
     schemaFields: FormanSchemaField[];
+    /** Defaults filled during validation (`options.fillDefaults`), with raw path segments */
+    appliedDefaults: Array<{ path: Array<string | number>; value: FormanSchemaValue }>;
     /** Whether the domain allows dynamic values (IML expressions, unresolved RPC select options) */
     allowDynamicValues: boolean;
 }
@@ -251,6 +256,7 @@ export async function validateFormanWithDomainsInternal(
                 seenFields: new Set(),
                 fieldStates: [],
                 schemaFields: [],
+                appliedDefaults: [],
                 allowDynamicValues: domains[domain]!.allowDynamicValues ?? options?.allowDynamicValues ?? false,
                 validateFields: (fields: FormanSchemaField[], context: ValidationContext) => {
                     return validateFormanValue(
@@ -290,6 +296,7 @@ export async function validateFormanWithDomainsInternal(
                 path: [],
                 tail: [],
                 strict: options?.strict === true,
+                fillDefaults: options?.fillDefaults,
                 domainAliases: options?.domainAliases ?? {},
                 validateNestedFields: () => {
                     throw new Error('Cannot validate nested fields without parent field.');
@@ -381,6 +388,30 @@ export async function validateFormanWithDomainsInternal(
         resolvedSchemas: options?.schemas
             ? Object.fromEntries(Object.keys(domains).map(domain => [domain, roots[domain]!.schemaFields]))
             : undefined,
+        // Both fill outputs stay present on the failure path for the same reason: a filled default
+        // can arm nested requirements, and the caller repairing those needs the filled values the
+        // errors were computed against.
+        normalizedValues: options?.fillDefaults
+            ? Object.fromEntries(
+                  Object.keys(domains).map(domain => [
+                      domain,
+                      (roots[domain]?.appliedDefaults ?? []).reduce(
+                          (values, { path, value }) => setValueAtPath(values, path, value),
+                          domains[domain]?.values ?? {},
+                      ),
+                  ]),
+              )
+            : undefined,
+        appliedDefaults: options?.fillDefaults
+            ? Object.keys(domains).flatMap(
+                  domain =>
+                      roots[domain]?.appliedDefaults.map(({ path, value }) => ({
+                          domain,
+                          path: path.join('.'),
+                          value,
+                      })) ?? [],
+              )
+            : undefined,
     };
 }
 
@@ -435,17 +466,28 @@ async function validateFormanValue(
     const normalizedField = normalizeFormanFieldType(field);
 
     if (normalizedField.required && !context.suppressRequired && (value == null || value === '')) {
-        return {
-            valid: false,
-            errors: [
-                {
-                    domain: context.domain,
-                    path: context.path.join('.'),
-                    message: 'Field is mandatory.',
-                },
-            ],
-            warnings: [],
-        };
+        // With `fillDefaults`, an omitted required field validates as its declared default instead
+        // of failing. Only an absent value qualifies — an explicit `null`/`''` is a provided value,
+        // not an omission — and only a default that can itself satisfy the required check (`null`
+        // and `''` cannot) is filled. The filled value continues through the walk below, so a
+        // filled boolean arms its own nested branch and defaults under it fill recursively.
+        const fillable =
+            context.fillDefaults === 'requiredOnly' && value === undefined ? normalizedField.default : undefined;
+        if (fillable == null || fillable === '') {
+            return {
+                valid: false,
+                errors: [
+                    {
+                        domain: context.domain,
+                        path: context.path.join('.'),
+                        message: 'Field is mandatory.',
+                    },
+                ],
+                warnings: [],
+            };
+        }
+        value = fillable;
+        context.roots[context.domain]?.appliedDefaults.push({ path: [...context.path], value: fillable });
     }
 
     if (value == null || value === '') {

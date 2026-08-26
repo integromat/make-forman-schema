@@ -292,6 +292,22 @@ export type FormanValidationResult = {
      * which fields it rejected.
      */
     resolvedSchemas?: Record<string, FormanSchemaField[]>;
+    /**
+     * The input values with filled defaults applied, per domain. Requires `options.fillDefaults`,
+     * and is present whether or not validation succeeded, so a caller can persist or repair the
+     * filled configuration alongside any remaining errors. The input `values` are never mutated;
+     * subtrees no default was written into are shared with the input.
+     */
+    normalizedValues?: Record<string, Record<string, unknown>>;
+    /** The defaults that were filled, in walk order. Requires `options.fillDefaults`. */
+    appliedDefaults?: {
+        /** Field domain */
+        domain: string;
+        /** Field path */
+        path: string;
+        /** The default that was filled in */
+        value: FormanSchemaValue;
+    }[];
 };
 
 export type FormanSchemaFieldState = {
@@ -379,6 +395,15 @@ export type FormanValidationOptions = {
         schema: JSONSchema7,
         value: unknown,
     ): FormanExternalValidationResult | Promise<FormanExternalValidationResult>;
+    /** Fill declared defaults for required fields the caller omitted, instead of failing them as
+     *  mandatory. `'requiredOnly'` fills a required field whose value is absent and whose schema
+     *  declares a default that can satisfy the required check (`null` and `''` cannot). The filled
+     *  value flows through the rest of the walk, so a filled boolean arms its own nested branch
+     *  and defaults nested under it fill recursively, in the same single pass. The result then
+     *  carries `normalizedValues` and `appliedDefaults`. Values the caller provided are never
+     *  overwritten, and an explicit `null`/`''` still fails as mandatory — it is a provided
+     *  value, not an omission. Optional fields are never filled. */
+    fillDefaults?: 'requiredOnly';
     /** Maps domain names used in nested.domain to actual domain keys passed to validateFormanWithDomains */
     domainAliases?: Record<string, string>;
     /** Whether to allow dynamic values (IML expressions, unresolved RPC options).
