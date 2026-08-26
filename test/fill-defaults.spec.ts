@@ -239,6 +239,44 @@ describe('fillDefaults: requiredOnly', () => {
         expect(expectValues).toEqual({ message: 'hi' });
     });
 
+    it('records a cross-domain fill under the domain that owns the field', async () => {
+        const result = await validateFormanWithDomains(
+            {
+                source: {
+                    values: { host: 'localhost' },
+                    schema: [
+                        {
+                            name: 'host',
+                            type: 'text',
+                            nested: {
+                                store: [{ name: 'port', type: 'number', required: true, default: 8080 }],
+                                domain: 'default',
+                            },
+                        },
+                    ],
+                },
+                default: { values: {}, schema: [] },
+            },
+            { strict: true, fillDefaults: 'requiredOnly' },
+        );
+        expect(result.valid).toBe(true);
+        expect(result.normalizedValues).toEqual({ source: { host: 'localhost' }, default: { port: 8080 } });
+        expect(result.appliedDefaults).toEqual([{ domain: 'default', path: 'port', value: 8080 }]);
+    });
+
+    it('reports a filled default that fails its own validation, with the value it tried', async () => {
+        const schema: FormanSchemaField[] = [
+            { name: 'level', type: 'text', required: true, default: 'extreme', validate: { enum: ['low', 'high'] } },
+        ];
+        const result = await validateForman({}, schema, { strict: true, fillDefaults: 'requiredOnly' });
+        expect(result.valid).toBe(false);
+        expect(result.errors).toEqual([
+            { domain: 'default', path: 'level', message: 'Value must be one of the following: low, high' },
+        ]);
+        expect(result.normalizedValues).toEqual({ default: { level: 'extreme' } });
+        expect(result.appliedDefaults).toEqual([{ domain: 'default', path: 'level', value: 'extreme' }]);
+    });
+
     it('changes nothing when the option is off', async () => {
         const result = await validateForman({}, fallbackToggle, { strict: true });
         expect(result.valid).toBe(false);

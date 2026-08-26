@@ -388,9 +388,6 @@ export async function validateFormanWithDomainsInternal(
         resolvedSchemas: options?.schemas
             ? Object.fromEntries(Object.keys(domains).map(domain => [domain, roots[domain]!.schemaFields]))
             : undefined,
-        // Both fill outputs stay present on the failure path for the same reason: a filled default
-        // can arm nested requirements, and the caller repairing those needs the filled values the
-        // errors were computed against.
         normalizedValues: options?.fillDefaults
             ? Object.fromEntries(
                   Object.keys(domains).map(domain => [
@@ -466,11 +463,8 @@ async function validateFormanValue(
     const normalizedField = normalizeFormanFieldType(field);
 
     if (normalizedField.required && !context.suppressRequired && (value == null || value === '')) {
-        // With `fillDefaults`, an omitted required field validates as its declared default instead
-        // of failing. Only an absent value qualifies — an explicit `null`/`''` is a provided value,
-        // not an omission — and only a default that can itself satisfy the required check (`null`
-        // and `''` cannot) is filled. The filled value continues through the walk below, so a
-        // filled boolean arms its own nested branch and defaults under it fill recursively.
+        // Strictly `undefined`: an explicit `null`/`''` is a provided value, not an omission,
+        // and a `null`/`''` default could not satisfy the required check it is filling for.
         const fillable =
             context.fillDefaults === 'requiredOnly' && value === undefined ? normalizedField.default : undefined;
         if (fillable == null || fillable === '') {
@@ -486,8 +480,11 @@ async function validateFormanValue(
                 warnings: [],
             };
         }
-        value = fillable;
-        context.roots[context.domain]?.appliedDefaults.push({ path: [...context.path], value: fillable });
+        // `default` is typed as a primitive, but schemas are JSON at source: a runtime object or
+        // array default is cloned so the result never aliases the schema's own default instance.
+        const filled = typeof fillable === 'object' ? structuredClone(fillable) : fillable;
+        value = filled;
+        context.roots[context.domain]?.appliedDefaults.push({ path: [...context.path], value: filled });
     }
 
     if (value == null || value === '') {

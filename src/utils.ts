@@ -209,9 +209,6 @@ function setIn(container: unknown, path: Array<string | number>, value: unknown)
  * Returns a copy of `values` with `value` written at `path` (string segments for object keys,
  * numbers for array indices). Containers along the path are cloned (and created when missing);
  * everything off the path is shared with the input, which is never mutated.
- * @param values The object to write into
- * @param path The path to write at
- * @param value The value to write
  */
 export function setValueAtPath(
     values: Record<string, unknown>,

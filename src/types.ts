@@ -299,7 +299,7 @@ export type FormanValidationResult = {
      * subtrees no default was written into are shared with the input.
      */
     normalizedValues?: Record<string, Record<string, unknown>>;
-    /** The defaults that were filled, in walk order. Requires `options.fillDefaults`. */
+    /** The defaults that were filled, in walk order within each domain. Requires `options.fillDefaults`. */
     appliedDefaults?: {
         /** Field domain */
         domain: string;
