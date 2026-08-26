@@ -219,6 +219,37 @@ const result = await validateForman(values, schema, {
 });
 ```
 
+#### Filling required defaults
+
+With `fillDefaults: 'requiredOnly'`, an omitted required field whose schema declares a usable
+default (`null` and `''` cannot satisfy a required check) validates as that default instead of
+failing as mandatory. The filled value participates in the rest of the walk, so a filled boolean
+arms its own nested branch and required defaults under it fill recursively — including fields
+injected by `rpc://`-resolved specs. The result carries `normalizedValues` (the values with fills
+applied; the input is never mutated) and `appliedDefaults`, on the failure path too, so remaining
+errors can be repaired on top of the filled values. Values you provide are never overwritten, an
+explicit `null`/`''` still fails as mandatory, and optional fields are never filled.
+
+```typescript
+const schema = [
+    {
+        name: 'fallbackEnabled',
+        type: 'boolean',
+        required: true,
+        default: false,
+        nested: [{ name: 'fallbackConnectionId', type: 'text', required: true }],
+    },
+];
+
+const result = await validateForman({}, schema, { fillDefaults: 'requiredOnly' });
+// {
+//   valid: true,
+//   errors: [],
+//   normalizedValues: { default: { fallbackEnabled: false } },
+//   appliedDefaults: [{ domain: 'default', path: 'fallbackEnabled', value: false }]
+// }
+```
+
 #### Multi-domain validation
 
 Use `validateFormanWithDomains` to validate cross-domain schemas (e.g., `default` and `additional`).
