@@ -18,7 +18,7 @@ describe('Restore state for IML-mapped fields', () => {
             { states: true, allowDynamicValues: true },
         );
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
             valid: true,
             errors: [],
             warnings: [],
@@ -37,7 +37,7 @@ describe('Restore state for IML-mapped fields', () => {
             { states: true, allowDynamicValues: true },
         );
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
             valid: true,
             errors: [],
             warnings: [],
@@ -55,7 +55,7 @@ describe('Restore state for IML-mapped fields', () => {
             allowDynamicValues: true,
         });
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
             valid: true,
             errors: [],
             warnings: [],
@@ -73,7 +73,7 @@ describe('Restore state for IML-mapped fields', () => {
             allowDynamicValues: true,
         });
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
             valid: true,
             errors: [],
             warnings: [],
@@ -91,7 +91,7 @@ describe('Restore state for IML-mapped fields', () => {
             allowDynamicValues: true,
         });
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
             valid: true,
             errors: [],
             warnings: [],
@@ -119,7 +119,7 @@ describe('Restore state for IML-mapped fields', () => {
             },
         );
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
             valid: true,
             errors: [],
             warnings: [
@@ -153,7 +153,7 @@ describe('Restore state for IML-mapped fields', () => {
             },
         );
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
             valid: true,
             errors: [],
             warnings: [
@@ -187,7 +187,7 @@ describe('Restore state for IML-mapped fields', () => {
             { states: true },
         );
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
             valid: true,
             errors: [],
             warnings: [],

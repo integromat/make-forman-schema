@@ -194,9 +194,7 @@ describe('json type', () => {
             const result = await validateForman({ input: { name: 'Alice' } }, schema, { validateJson });
 
             expect(result.valid).toBe(false);
-            expect(result.errors).toEqual([
-                { domain: 'default', path: 'input', message: 'validator crashed' },
-            ]);
+            expect(result.errors).toEqual([{ domain: 'default', path: 'input', message: 'validator crashed' }]);
         });
 
         it('passes without a callback (schema cannot be enforced)', async () => {

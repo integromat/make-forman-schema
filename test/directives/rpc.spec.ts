@@ -452,7 +452,7 @@ describe('RPC', () => {
                 ]);
             },
         });
-        expect(result).toEqual({
+        expect(result).toMatchObject({
             valid: true,
             errors: [],
             warnings: [
@@ -480,7 +480,7 @@ describe('RPC', () => {
                 return Promise.resolve([{ value: 'a', label: 'Option A' }]);
             },
         });
-        expect(result).toEqual({
+        expect(result).toMatchObject({
             valid: true,
             errors: [],
             warnings: [

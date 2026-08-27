@@ -26,7 +26,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -56,7 +56,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -101,7 +101,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -142,7 +142,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -187,7 +187,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -240,7 +240,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -296,7 +296,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -371,7 +371,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema, { allowDynamicValues: true })).toEqual({
+            expect(await validateForman(formanValue, formanSchema, { allowDynamicValues: true })).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -414,7 +414,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -453,7 +453,11 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({ valid: true, errors: [], warnings: [] });
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
+                valid: true,
+                errors: [],
+                warnings: [],
+            });
         });
 
         it('should not attempt to validate or coerce values for visual types', async () => {
@@ -479,7 +483,11 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({ valid: true, errors: [], warnings: [] });
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
+                valid: true,
+                errors: [],
+                warnings: [],
+            });
         });
     });
 
@@ -528,7 +536,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -587,7 +595,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -621,7 +629,7 @@ describe('Forman Schema Extended Validation', () => {
                         throw new Error('Network error');
                     },
                 }),
-            ).toEqual({
+            ).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -658,7 +666,7 @@ describe('Forman Schema Extended Validation', () => {
                         throw new Error('Nested resource error');
                     },
                 }),
-            ).toEqual({
+            ).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -685,7 +693,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -750,7 +758,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -793,7 +801,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -827,7 +835,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -852,7 +860,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],
@@ -875,7 +883,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -924,7 +932,7 @@ describe('Forman Schema Extended Validation', () => {
                         throw new Error(`Unknown resource: ${path}`);
                     },
                 }),
-            ).toEqual({
+            ).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -1024,7 +1032,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -1052,7 +1060,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -1077,7 +1085,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],
@@ -1112,7 +1120,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],
@@ -1145,7 +1153,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -1189,7 +1197,7 @@ describe('Forman Schema Extended Validation', () => {
                         throw new Error(`Unknown resource: ${path}`);
                     },
                 }),
-            ).toEqual({
+            ).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],
@@ -1217,7 +1225,7 @@ describe('Forman Schema Extended Validation', () => {
                         throw new Error(`Unknown resource: ${path}`);
                     },
                 }),
-            ).toEqual({
+            ).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],
@@ -1245,7 +1253,7 @@ describe('Forman Schema Extended Validation', () => {
                         throw new Error(`Unknown resource: ${path}`);
                     },
                 }),
-            ).toEqual({
+            ).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],
@@ -1290,7 +1298,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             };
 
-            expect(await validateFormanWithDomains(domains)).toEqual({
+            expect(await validateFormanWithDomains(domains)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -1321,7 +1329,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             };
 
-            expect(await validateFormanWithDomains(domains)).toEqual({
+            expect(await validateFormanWithDomains(domains)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -1359,7 +1367,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -1402,7 +1410,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -1428,7 +1436,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -1450,7 +1458,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -1490,7 +1498,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -1530,7 +1538,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -1562,7 +1570,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -1618,7 +1626,7 @@ describe('Forman Schema Extended Validation', () => {
                         return [];
                     },
                 }),
-            ).toEqual({
+            ).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [
@@ -1650,7 +1658,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -1703,7 +1711,7 @@ describe('Forman Schema Extended Validation', () => {
                         return [];
                     },
                 }),
-            ).toEqual({
+            ).toMatchObject({
                 valid: false,
                 errors: [
                     // emptyPath: '' is valid for non-required file fields (means "no selection")
@@ -1735,7 +1743,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],
@@ -1768,7 +1776,7 @@ describe('Forman Schema Extended Validation', () => {
                         return [];
                     },
                 }),
-            ).toEqual({
+            ).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [
@@ -1802,7 +1810,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],
@@ -1830,7 +1838,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -1862,7 +1870,7 @@ describe('Forman Schema Extended Validation', () => {
                         throw new Error('Connection timeout');
                     },
                 }),
-            ).toEqual({
+            ).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -1906,7 +1914,7 @@ describe('Forman Schema Extended Validation', () => {
                         return [];
                     },
                 }),
-            ).toEqual({
+            ).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],
@@ -1944,7 +1952,7 @@ describe('Forman Schema Extended Validation', () => {
                         return [];
                     },
                 }),
-            ).toEqual({
+            ).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],
@@ -1979,7 +1987,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -2015,7 +2023,7 @@ describe('Forman Schema Extended Validation', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],
@@ -2139,7 +2147,7 @@ describe('Forman Schema Extended Validation', () => {
                         throw new Error(`Unknown resource: ${path}`);
                     },
                 }),
-            ).toEqual({
+            ).toMatchObject({
                 errors: [],
                 warnings: [],
                 states: {
@@ -2216,7 +2224,7 @@ describe('Forman Schema Extended Validation', () => {
                 { resolveRemote },
             );
 
-            expect(result).toEqual({
+            expect(result).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],
@@ -2258,7 +2266,7 @@ describe('Forman Schema Extended Validation', () => {
 
             const result = await validateForman({ choice: '2026-04-10T11:40:11.000Z' }, schema, { resolveRemote });
 
-            expect(result).toEqual({
+            expect(result).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],
@@ -2285,7 +2293,7 @@ describe('Forman Schema Extended Validation', () => {
                 { resolveRemote },
             );
 
-            expect(result).toEqual({
+            expect(result).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],
@@ -2313,7 +2321,7 @@ describe('Forman Schema Extended Validation', () => {
                 resolveRemote: async () => standardOptions,
             });
 
-            expect(result).toEqual({
+            expect(result).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],

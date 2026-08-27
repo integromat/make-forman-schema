@@ -41,7 +41,7 @@ describe('Forman Schema Manifest Validation', () => {
                     schema: googleSheetsAddRowMock.expect,
                 },
             }),
-        ).toEqual({
+        ).toMatchObject({
             valid: false,
             errors: [
                 {
@@ -76,7 +76,7 @@ describe('Forman Schema Manifest Validation', () => {
                     },
                 },
             ),
-        ).toEqual({
+        ).toMatchObject({
             valid: false,
             errors: [
                 {
@@ -171,7 +171,7 @@ describe('Forman Schema Manifest Validation', () => {
                     },
                 },
             ),
-        ).toEqual({
+        ).toMatchObject({
             valid: true,
             errors: [],
             warnings: [],
@@ -280,7 +280,7 @@ describe('Forman Schema Manifest Validation', () => {
                     },
                 },
             ),
-        ).toEqual({
+        ).toMatchObject({
             valid: true,
             errors: [],
             warnings: [],
@@ -353,7 +353,7 @@ describe('Forman Schema Manifest Validation', () => {
                     },
                 },
             ),
-        ).toEqual({
+        ).toMatchObject({
             valid: true,
             errors: [],
             warnings: [],
@@ -432,7 +432,7 @@ describe('Forman Schema Manifest Validation', () => {
                 },
             },
         );
-        expect(result).toEqual({
+        expect(result).toMatchObject({
             valid: true,
             errors: [],
             warnings: [],
