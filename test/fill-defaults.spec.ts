@@ -155,6 +155,25 @@ describe('fillDefaults: requiredOnly', () => {
         expect(result.appliedDefaults).toEqual([{ domain: 'default', path: 'advanced', value: false }]);
     });
 
+    it('conditions a reversedNested branch on the filled default', async () => {
+        const schema: FormanSchemaField[] = [
+            {
+                name: 'simple',
+                type: 'boolean',
+                required: true,
+                default: true,
+                reversedNested: true,
+                nested: [{ name: 'advancedConfig', type: 'text', required: true }],
+            },
+        ];
+        // With reversedNested the branch applies on `false`, so the filled `true` leaves it
+        // inactive and its requirement must not fire.
+        const result = await validateForman({}, schema, { strict: true, fillDefaults: 'requiredOnly' });
+        expect(result.valid).toBe(true);
+        expect(result.normalizedValues).toEqual({ default: { simple: true } });
+        expect(result.appliedDefaults).toEqual([{ domain: 'default', path: 'simple', value: true }]);
+    });
+
     it('routes a filled two-branch boolean to the matching branch', async () => {
         const schema: FormanSchemaField[] = [
             {
