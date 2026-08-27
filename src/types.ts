@@ -293,13 +293,18 @@ export type FormanValidationResult = {
      */
     resolvedSchemas?: Record<string, FormanSchemaField[]>;
     /**
-     * The input values with filled defaults applied, per domain. Requires `options.fillDefaults`,
-     * and is present whether or not validation succeeded, so a caller can persist or repair the
-     * filled configuration alongside any remaining errors. The input `values` are never mutated;
-     * subtrees no default was written into are shared with the input.
+     * The input values with filled defaults applied, per domain. Always present on results
+     * returned by `validateForman`/`validateFormanWithDomains` (see
+     * {@link FormanNormalizedValidationResult}), whether or not validation succeeded, so a caller
+     * can persist or repair the filled configuration alongside any remaining errors — and its
+     * usage does not change with `options.fillDefaults`: with no fills (or the option off) it
+     * passes the input values through as-is. The input `values` are never mutated; subtrees no
+     * default was written into are shared with the input.
      */
     normalizedValues?: Record<string, Record<string, unknown>>;
-    /** The defaults that were filled, in walk order within each domain. Requires `options.fillDefaults`. */
+    /** The defaults that were filled (`options.fillDefaults`), in walk order within each domain.
+     *  Always present on results returned by `validateForman`/`validateFormanWithDomains`; empty
+     *  when nothing was filled. */
     appliedDefaults?: {
         /** Field domain */
         domain: string;
@@ -311,6 +316,15 @@ export type FormanValidationResult = {
         value: unknown;
     }[];
 };
+
+/**
+ * A {@link FormanValidationResult} whose `normalizedValues` and `appliedDefaults` are guaranteed
+ * present — the type returned by `validateForman` and `validateFormanWithDomains`. The fields stay
+ * optional on the base type because intermediate results assembled during the walk do not carry
+ * them.
+ */
+export type FormanNormalizedValidationResult = FormanValidationResult &
+    Required<Pick<FormanValidationResult, 'normalizedValues' | 'appliedDefaults'>>;
 
 export type FormanSchemaFieldState = {
     mode?: 'chose' | 'edit';
@@ -397,16 +411,17 @@ export type FormanValidationOptions = {
         schema: JSONSchema7,
         value: unknown,
     ): FormanExternalValidationResult | Promise<FormanExternalValidationResult>;
-    /** Fill declared defaults for required fields the caller omitted, instead of failing them as
-     *  mandatory. `'requiredOnly'` fills a required field whose value is `undefined` or `''` and
-     *  whose schema declares a default that can satisfy the required check (`null` and `''`
-     *  cannot) — the same fillable predicate as BlueprintValidator's `useDefaults` and the
-     *  builder UI. The filled value flows through the rest of the walk, so a filled boolean arms
-     *  its own nested branch and defaults nested under it fill recursively, in the same single
-     *  pass. The result then carries `normalizedValues` and `appliedDefaults`. Real values the
-     *  caller provided are never overwritten, an explicit `null` still fails as mandatory, and
-     *  optional fields are never filled. */
-    fillDefaults?: 'requiredOnly';
+    /** Fill declared defaults for fields the caller omitted, mirroring BlueprintValidator's
+     *  `useDefaults` modes. `'requiredOnly'` fills only required fields (instead of failing them
+     *  as mandatory); `'always'` also fills omitted optional fields. A field is fillable when its
+     *  value is `undefined` or `''` and its schema declares a default that is not `null` or `''`
+     *  (a default that could not satisfy a required check) — the same fillable predicate as
+     *  BlueprintValidator and the builder UI. The filled value flows through the rest of the
+     *  walk, so a filled boolean arms its own nested branch and defaults nested under it fill
+     *  recursively, in the same single pass. Fills are reported on `normalizedValues` and
+     *  `appliedDefaults`. Real values the caller provided are never overwritten, an explicit
+     *  `null` still fails as mandatory, and inactive branches are never filled. */
+    fillDefaults?: 'requiredOnly' | 'always';
     /** Maps domain names used in nested.domain to actual domain keys passed to validateFormanWithDomains */
     domainAliases?: Record<string, string>;
     /** Whether to allow dynamic values (IML expressions, unresolved RPC options).

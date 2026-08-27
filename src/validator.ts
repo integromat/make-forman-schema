@@ -2,6 +2,7 @@ import type { JSONSchema7 } from 'json-schema';
 import type {
     FormanSchemaField,
     FormanValidationResult,
+    FormanNormalizedValidationResult,
     FormanExternalValidationResult,
     FormanSchemaExtendedNested,
     FormanSchemaExtendedOptions,
@@ -59,8 +60,8 @@ export interface ValidationContext {
     path: (string | number)[];
     /** Unknown fields are not allowed when strict is true */
     strict: boolean;
-    /** Fill declared defaults for omitted required fields (see FormanValidationOptions.fillDefaults) */
-    fillDefaults?: 'requiredOnly';
+    /** Fill declared defaults for omitted fields (see FormanValidationOptions.fillDefaults) */
+    fillDefaults?: 'requiredOnly' | 'always';
     suppressRequired?: boolean;
     registerOnly?: boolean;
     /** Maps domain names used in nested.domain to actual domain keys */
@@ -246,7 +247,7 @@ export async function validateFormanWithDomainsInternal(
         }
     >,
     options?: FormanValidationOptions,
-): Promise<FormanValidationResult> {
+): Promise<FormanNormalizedValidationResult> {
     const errors: FormanValidationResult['errors'] = [];
     const warnings: FormanValidationResult['warnings'] = [];
 
@@ -388,27 +389,26 @@ export async function validateFormanWithDomainsInternal(
         resolvedSchemas: options?.schemas
             ? Object.fromEntries(Object.keys(domains).map(domain => [domain, roots[domain]!.schemaFields]))
             : undefined,
-        normalizedValues: options?.fillDefaults
-            ? Object.fromEntries(
-                  Object.keys(domains).map(domain => [
-                      domain,
-                      (roots[domain]?.appliedDefaults ?? []).reduce(
-                          (values, { path, value }) => setValueAtPath(values, path, value),
-                          domains[domain]?.values ?? {},
-                      ),
-                  ]),
-              )
-            : undefined,
-        appliedDefaults: options?.fillDefaults
-            ? Object.keys(domains).flatMap(
-                  domain =>
-                      roots[domain]?.appliedDefaults.map(({ path, value }) => ({
-                          domain,
-                          path: path.join('.'),
-                          value,
-                      })) ?? [],
-              )
-            : undefined,
+        // Always present, `fillDefaults` or not, so the caller-side pattern
+        // (`if (valid) use(normalizedValues)`) is the same with and without the option. With no
+        // fills the input values are passed through as-is.
+        normalizedValues: Object.fromEntries(
+            Object.keys(domains).map(domain => [
+                domain,
+                (roots[domain]?.appliedDefaults ?? []).reduce(
+                    (values, { path, value }) => setValueAtPath(values, path, value),
+                    domains[domain]?.values ?? {},
+                ),
+            ]),
+        ),
+        appliedDefaults: Object.keys(domains).flatMap(
+            domain =>
+                roots[domain]?.appliedDefaults.map(({ path, value }) => ({
+                    domain,
+                    path: path.join('.'),
+                    value,
+                })) ?? [],
+        ),
     };
 }
 
@@ -462,32 +462,41 @@ async function validateFormanValue(
     // Normalize field type (handle prefixed types)
     const normalizedField = normalizeFormanFieldType(field);
 
-    if (normalizedField.required && !context.suppressRequired && (value == null || value === '')) {
-        // Same fillable predicate as BlueprintValidator's `useDefaults` (and the builder UI it
-        // cites): `undefined` and `''` fill, an explicit `null` stays a provided value. A
-        // `null`/`''` default could not satisfy the required check it is filling for.
-        const fillable =
-            context.fillDefaults === 'requiredOnly' && (value === undefined || value === '')
-                ? normalizedField.default
-                : undefined;
-        if (fillable == null || fillable === '') {
-            return {
-                valid: false,
-                errors: [
-                    {
-                        domain: context.domain,
-                        path: context.path.join('.'),
-                        message: 'Field is mandatory.',
-                    },
-                ],
-                warnings: [],
-            };
+    // Same fillable predicate as BlueprintValidator's `useDefaults` (and the builder UI it
+    // cites): `undefined` and `''` fill, an explicit `null` stays a provided value.
+    // `'requiredOnly'` fills required fields only, `'always'` fills optional ones too. A
+    // `null`/`''` default is never filled: it could not satisfy a required check, and on an
+    // optional field it is indistinguishable from the omission itself. Branches left inactive
+    // (`suppressRequired`) never fill.
+    if (
+        context.fillDefaults != null &&
+        !context.suppressRequired &&
+        (value === undefined || value === '') &&
+        (context.fillDefaults === 'always' || normalizedField.required)
+    ) {
+        const fillable = normalizedField.default;
+        if (fillable != null && fillable !== '') {
+            // `default` is typed as a primitive, but schemas are JSON at source: a runtime object or
+            // array default is cloned so the result never aliases the schema's own default instance.
+            const filled =
+                isObject(fillable) || Array.isArray(fillable) ? structuredClone<unknown>(fillable) : fillable;
+            value = filled;
+            context.roots[context.domain]?.appliedDefaults.push({ path: [...context.path], value: filled });
         }
-        // `default` is typed as a primitive, but schemas are JSON at source: a runtime object or
-        // array default is cloned so the result never aliases the schema's own default instance.
-        const filled = isObject(fillable) || Array.isArray(fillable) ? structuredClone<unknown>(fillable) : fillable;
-        value = filled;
-        context.roots[context.domain]?.appliedDefaults.push({ path: [...context.path], value: filled });
+    }
+
+    if (normalizedField.required && !context.suppressRequired && (value == null || value === '')) {
+        return {
+            valid: false,
+            errors: [
+                {
+                    domain: context.domain,
+                    path: context.path.join('.'),
+                    message: 'Field is mandatory.',
+                },
+            ],
+            warnings: [],
+        };
     }
 
     if (value == null || value === '') {
