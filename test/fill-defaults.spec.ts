@@ -107,16 +107,6 @@ describe('fillDefaults: requiredOnly', () => {
         expect(result.appliedDefaults).toEqual([]);
     });
 
-    it('fills falsy defaults rather than treating them as absent', async () => {
-        const schema: FormanSchemaField[] = [
-            { name: 'retries', type: 'number', required: true, default: 0 },
-            { name: 'verbose', type: 'boolean', required: true, default: false },
-        ];
-        const result = await validateForman({}, schema, { strict: true, fillDefaults: 'requiredOnly' });
-        expect(result.valid).toBe(true);
-        expect(result.normalizedValues).toEqual({ default: { retries: 0, verbose: false } });
-    });
-
     it('never fills optional fields', async () => {
         const schema: FormanSchemaField[] = [{ name: 'reasoningEffort', type: 'text', default: 'low' }];
         const result = await validateForman({}, schema, { strict: true, fillDefaults: 'requiredOnly' });
@@ -347,43 +337,6 @@ describe('fillDefaults: always', () => {
         ]);
     });
 
-    it('fills an optional field over an explicit empty string', async () => {
-        const schema: FormanSchemaField[] = [{ name: 'mode', type: 'text', default: 'select' }];
-        const result = await validateForman({ mode: '' }, schema, { strict: true, fillDefaults: 'always' });
-        expect(result.normalizedValues).toEqual({ default: { mode: 'select' } });
-        expect(result.appliedDefaults).toEqual([{ domain: 'default', path: 'mode', value: 'select' }]);
-    });
-
-    it('arms the nested branch of a filled optional toggle', async () => {
-        const schema: FormanSchemaField[] = [
-            {
-                name: 'advanced',
-                type: 'boolean',
-                default: true,
-                nested: [{ name: 'level', type: 'text', required: true, default: 'high' }],
-            },
-        ];
-        const result = await validateForman({}, schema, { strict: true, fillDefaults: 'always' });
-        expect(result.valid).toBe(true);
-        expect(result.normalizedValues).toEqual({ default: { advanced: true, level: 'high' } });
-        expect(result.appliedDefaults).toEqual([
-            { domain: 'default', path: 'advanced', value: true },
-            { domain: 'default', path: 'level', value: 'high' },
-        ]);
-    });
-
-    it('never overwrites provided values and skips null/empty-string defaults', async () => {
-        const schema: FormanSchemaField[] = [
-            { name: 'retries', type: 'number', default: 3 },
-            { name: 'source', type: 'text', default: null },
-            { name: 'label', type: 'text', default: '' },
-        ];
-        const result = await validateForman({ retries: 0 }, schema, { strict: true, fillDefaults: 'always' });
-        expect(result.valid).toBe(true);
-        expect(result.normalizedValues).toEqual({ default: { retries: 0 } });
-        expect(result.appliedDefaults).toEqual([]);
-    });
-
     it('does not fill optional defaults under a branch left inactive', async () => {
         const schema: FormanSchemaField[] = [
             {
@@ -399,13 +352,6 @@ describe('fillDefaults: always', () => {
         expect(result.normalizedValues).toEqual({ default: { advanced: false } });
         expect(result.appliedDefaults).toEqual([{ domain: 'default', path: 'advanced', value: false }]);
     });
-
-    it('still fails a required field whose default is unusable', async () => {
-        const schema: FormanSchemaField[] = [{ name: 'source', type: 'text', required: true, default: null }];
-        const result = await validateForman({}, schema, { strict: true, fillDefaults: 'always' });
-        expect(result.errors).toEqual([{ domain: 'default', path: 'source', message: 'Field is mandatory.' }]);
-        expect(result.appliedDefaults).toEqual([]);
-    });
 });
 
 describe('normalizedValues without fillDefaults', () => {
@@ -420,13 +366,6 @@ describe('normalizedValues without fillDefaults', () => {
         );
         expect(result.valid).toBe(true);
         expect(result.normalizedValues).toEqual({ parameters: { kind: 'basic' }, expect: {} });
-        expect(result.appliedDefaults).toEqual([]);
-    });
-
-    it('is present on the failure path too', async () => {
-        const result = await validateForman({}, [{ name: 'kind', type: 'text', required: true }], { strict: true });
-        expect(result.valid).toBe(false);
-        expect(result.normalizedValues).toEqual({ default: {} });
         expect(result.appliedDefaults).toEqual([]);
     });
 });

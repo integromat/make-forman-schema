@@ -4,18 +4,12 @@ Conversion and validation utilities for Forman Schema.
 
 ## v2.0.0 — validated values on every result
 
-Breaking in practice, though nothing was removed or renamed: `validateForman` and
-`validateFormanWithDomains` now always return `normalizedValues` (the values per domain, with any
-filled defaults applied) and `appliedDefaults`, whether or not default filling is enabled. Reads of
-`valid`/`errors`/`warnings` are unaffected, but a caller that deep-compares the whole result object,
-or forwards it verbatim into a fixed-shape response, will see the two new keys.
+`validateForman` and `validateFormanWithDomains` now always return `normalizedValues` and
+`appliedDefaults`. Nothing was removed or renamed and `valid`/`errors`/`warnings` are unaffected,
+but a caller that deep-compares the whole result, or forwards it into a fixed-shape response, will
+see two new keys — assert on the fields you care about, or drop the keys before forwarding.
 
-Also in this release: `fillDefaults` accepts `'always'` alongside `'requiredOnly'`, matching the
-modes of the platform's BlueprintValidator `useDefaults` option. See
-[Filling defaults](#filling-defaults).
-
-To migrate, assert on the fields you care about (`toMatchObject` rather than `toEqual` in tests), or
-drop the two keys before forwarding the result where a downstream shape is fixed.
+Also new: `fillDefaults: 'always'`. See [Filling defaults](#filling-defaults).
 
 ## v1.14.0 — advanced field tracking
 
@@ -249,11 +243,12 @@ With `fillDefaults: 'requiredOnly'`, an omitted required field whose schema decl
 default (`null` and `''` cannot satisfy a required check) validates as that default instead of
 failing as mandatory. With `fillDefaults: 'always'`, omitted optional fields with usable defaults
 are filled too — the same modes as the platform's BlueprintValidator `useDefaults` option. The
-filled value participates in the rest of the walk, so a filled boolean arms its own nested branch
-and defaults under it fill recursively — including fields injected by `rpc://`-resolved specs.
-Fills land in `normalizedValues` (the values with fills applied; the input is never mutated) and
-are itemized in `appliedDefaults`, on the failure path too, so remaining errors can be repaired on
-top of the filled values. Values you provide are never overwritten, an explicit `null` still fails
+filled value participates in the rest of the walk, so a filled boolean conditions its nested branch
+exactly as a provided one would, and defaults under an armed branch fill recursively — including
+fields injected by `rpc://`-resolved specs. Fills land in `normalizedValues` (the values with fills
+applied; the input is never mutated, though subtrees nothing was written into are shared with it)
+and are itemized in `appliedDefaults`, on the failure path too, so remaining errors can be repaired
+on top of the filled values. Values you provide are never overwritten, an explicit `null` still fails
 as mandatory, and inactive nested branches are never filled. `''` counts as an omission and fills,
 matching blueprint validation and the builder UI.
 

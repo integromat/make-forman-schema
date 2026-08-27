@@ -389,9 +389,6 @@ export async function validateFormanWithDomainsInternal(
         resolvedSchemas: options?.schemas
             ? Object.fromEntries(Object.keys(domains).map(domain => [domain, roots[domain]!.schemaFields]))
             : undefined,
-        // Always present, `fillDefaults` or not, so the caller-side pattern
-        // (`if (valid) use(normalizedValues)`) is the same with and without the option. With no
-        // fills the input values are passed through as-is.
         normalizedValues: Object.fromEntries(
             Object.keys(domains).map(domain => [
                 domain,
@@ -462,12 +459,10 @@ async function validateFormanValue(
     // Normalize field type (handle prefixed types)
     const normalizedField = normalizeFormanFieldType(field);
 
-    // Same fillable predicate as BlueprintValidator's `useDefaults` (and the builder UI it
-    // cites): `undefined` and `''` fill, an explicit `null` stays a provided value.
-    // `'requiredOnly'` fills required fields only, `'always'` fills optional ones too. A
-    // `null`/`''` default is never filled: it could not satisfy a required check, and on an
-    // optional field it is indistinguishable from the omission itself. Branches left inactive
-    // (`suppressRequired`) never fill.
+    // Same fillable predicate as BlueprintValidator's `useDefaults` (and the builder UI it cites),
+    // hence `=== undefined` rather than `== null`: an explicit `null` stays a provided value. A
+    // `null`/`''` default could not satisfy a required check, and on an optional field it is
+    // indistinguishable from the omission itself.
     if (
         context.fillDefaults != null &&
         !context.suppressRequired &&
