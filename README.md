@@ -2,6 +2,21 @@
 
 Conversion and validation utilities for Forman Schema.
 
+## v2.0.0 — validated values on every result
+
+Breaking in practice, though nothing was removed or renamed: `validateForman` and
+`validateFormanWithDomains` now always return `normalizedValues` (the values per domain, with any
+filled defaults applied) and `appliedDefaults`, whether or not default filling is enabled. Reads of
+`valid`/`errors`/`warnings` are unaffected, but a caller that deep-compares the whole result object,
+or forwards it verbatim into a fixed-shape response, will see the two new keys.
+
+Also in this release: `fillDefaults` accepts `'always'` alongside `'requiredOnly'`, matching the
+modes of the platform's BlueprintValidator `useDefaults` option. See
+[Filling defaults](#filling-defaults).
+
+To migrate, assert on the fields you care about (`toMatchObject` rather than `toEqual` in tests), or
+drop the two keys before forwarding the result where a downstream shape is fixed.
+
 ## v1.14.0 — advanced field tracking
 
 Non-breaking minor release. New surface for working with `advanced: true` Forman fields:
@@ -137,7 +152,16 @@ Validate Forman values against a Forman Schema. Two entry points are available:
 - `validateForman(values, schema, options?)` — validate without domains.
 - `validateFormanWithDomains(domains, options?)` — validate multiple domains at once.
 
-Both return `{ valid: boolean, errors: { path: string, message: string }[] }`.
+Both return `{ valid: boolean, errors: { path: string, message: string }[] }`, plus
+`normalizedValues` (the input values per domain, with any filled defaults applied — see
+[Filling defaults](#filling-defaults)) and `appliedDefaults` (what was filled, empty when
+nothing was). The two are always present, so the consuming pattern is the same whether or
+not default filling is enabled:
+
+```typescript
+const { valid, errors, normalizedValues } = await validateForman(values, schema);
+if (valid) persist(normalizedValues.default);
+```
 
 #### Basic validation
 
@@ -219,17 +243,19 @@ const result = await validateForman(values, schema, {
 });
 ```
 
-#### Filling required defaults
+#### Filling defaults
 
 With `fillDefaults: 'requiredOnly'`, an omitted required field whose schema declares a usable
 default (`null` and `''` cannot satisfy a required check) validates as that default instead of
-failing as mandatory. The filled value participates in the rest of the walk, so a filled boolean
-arms its own nested branch and required defaults under it fill recursively — including fields
-injected by `rpc://`-resolved specs. The result carries `normalizedValues` (the values with fills
-applied; the input is never mutated) and `appliedDefaults`, on the failure path too, so remaining
-errors can be repaired on top of the filled values. Values you provide are never overwritten, an
-explicit `null` still fails as mandatory, and optional fields are never filled. `''` counts as an
-omission and fills, matching the platform's blueprint validation and the builder UI.
+failing as mandatory. With `fillDefaults: 'always'`, omitted optional fields with usable defaults
+are filled too — the same modes as the platform's BlueprintValidator `useDefaults` option. The
+filled value participates in the rest of the walk, so a filled boolean arms its own nested branch
+and defaults under it fill recursively — including fields injected by `rpc://`-resolved specs.
+Fills land in `normalizedValues` (the values with fills applied; the input is never mutated) and
+are itemized in `appliedDefaults`, on the failure path too, so remaining errors can be repaired on
+top of the filled values. Values you provide are never overwritten, an explicit `null` still fails
+as mandatory, and inactive nested branches are never filled. `''` counts as an omission and fills,
+matching blueprint validation and the builder UI.
 
 ```typescript
 const schema = [
