@@ -463,10 +463,13 @@ async function validateFormanValue(
     const normalizedField = normalizeFormanFieldType(field);
 
     if (normalizedField.required && !context.suppressRequired && (value == null || value === '')) {
-        // Strictly `undefined`: an explicit `null`/`''` is a provided value, not an omission,
-        // and a `null`/`''` default could not satisfy the required check it is filling for.
+        // Same fillable predicate as BlueprintValidator's `useDefaults` (and the builder UI it
+        // cites): `undefined` and `''` fill, an explicit `null` stays a provided value. A
+        // `null`/`''` default could not satisfy the required check it is filling for.
         const fillable =
-            context.fillDefaults === 'requiredOnly' && value === undefined ? normalizedField.default : undefined;
+            context.fillDefaults === 'requiredOnly' && (value === undefined || value === '')
+                ? normalizedField.default
+                : undefined;
         if (fillable == null || fillable === '') {
             return {
                 valid: false,

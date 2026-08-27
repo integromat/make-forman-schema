@@ -228,7 +228,8 @@ arms its own nested branch and required defaults under it fill recursively — i
 injected by `rpc://`-resolved specs. The result carries `normalizedValues` (the values with fills
 applied; the input is never mutated) and `appliedDefaults`, on the failure path too, so remaining
 errors can be repaired on top of the filled values. Values you provide are never overwritten, an
-explicit `null`/`''` still fails as mandatory, and optional fields are never filled.
+explicit `null` still fails as mandatory, and optional fields are never filled. `''` counts as an
+omission and fills, matching the platform's blueprint validation and the builder UI.
 
 ```typescript
 const schema = [

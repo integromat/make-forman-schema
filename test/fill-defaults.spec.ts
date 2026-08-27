@@ -74,16 +74,24 @@ describe('fillDefaults: requiredOnly', () => {
         expect(result.appliedDefaults).toEqual([]);
     });
 
-    it('still fails a value the caller explicitly cleared', async () => {
+    it('fills over an explicit empty string, matching the BlueprintValidator predicate', async () => {
         const schema: FormanSchemaField[] = [{ name: 'mode', type: 'text', required: true, default: 'select' }];
-        for (const cleared of [null, '']) {
-            const result = await validateForman({ mode: cleared }, schema, {
-                strict: true,
-                fillDefaults: 'requiredOnly',
-            });
-            expect(result.errors).toEqual([{ domain: 'default', path: 'mode', message: 'Field is mandatory.' }]);
-            expect(result.appliedDefaults).toEqual([]);
-        }
+        const input = { mode: '' };
+        const result = await validateForman(input, schema, { strict: true, fillDefaults: 'requiredOnly' });
+        expect(result.valid).toBe(true);
+        expect(result.normalizedValues).toEqual({ default: { mode: 'select' } });
+        expect(result.appliedDefaults).toEqual([{ domain: 'default', path: 'mode', value: 'select' }]);
+        expect(input).toEqual({ mode: '' });
+    });
+
+    it('still fails an explicit null, which is a provided value', async () => {
+        const schema: FormanSchemaField[] = [{ name: 'mode', type: 'text', required: true, default: 'select' }];
+        const result = await validateForman({ mode: null }, schema, {
+            strict: true,
+            fillDefaults: 'requiredOnly',
+        });
+        expect(result.errors).toEqual([{ domain: 'default', path: 'mode', message: 'Field is mandatory.' }]);
+        expect(result.appliedDefaults).toEqual([]);
     });
 
     it('treats null and empty-string defaults as no default', async () => {

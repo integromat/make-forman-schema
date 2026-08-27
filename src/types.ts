@@ -398,13 +398,14 @@ export type FormanValidationOptions = {
         value: unknown,
     ): FormanExternalValidationResult | Promise<FormanExternalValidationResult>;
     /** Fill declared defaults for required fields the caller omitted, instead of failing them as
-     *  mandatory. `'requiredOnly'` fills a required field whose value is absent and whose schema
-     *  declares a default that can satisfy the required check (`null` and `''` cannot). The filled
-     *  value flows through the rest of the walk, so a filled boolean arms its own nested branch
-     *  and defaults nested under it fill recursively, in the same single pass. The result then
-     *  carries `normalizedValues` and `appliedDefaults`. Values the caller provided are never
-     *  overwritten, and an explicit `null`/`''` still fails as mandatory — it is a provided
-     *  value, not an omission. Optional fields are never filled. */
+     *  mandatory. `'requiredOnly'` fills a required field whose value is `undefined` or `''` and
+     *  whose schema declares a default that can satisfy the required check (`null` and `''`
+     *  cannot) — the same fillable predicate as BlueprintValidator's `useDefaults` and the
+     *  builder UI. The filled value flows through the rest of the walk, so a filled boolean arms
+     *  its own nested branch and defaults nested under it fill recursively, in the same single
+     *  pass. The result then carries `normalizedValues` and `appliedDefaults`. Real values the
+     *  caller provided are never overwritten, an explicit `null` still fails as mandatory, and
+     *  optional fields are never filled. */
     fillDefaults?: 'requiredOnly';
     /** Maps domain names used in nested.domain to actual domain keys passed to validateFormanWithDomains */
     domainAliases?: Record<string, string>;
