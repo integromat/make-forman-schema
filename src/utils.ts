@@ -216,7 +216,12 @@ export function setValueAtPath(
     value: unknown,
 ): Record<string, unknown> {
     const [head] = path;
-    if (typeof head !== 'string') return values;
+    // Unreachable by construction: a domain root is a named collection, so every recorded fill
+    // path starts with a field name. Loud rather than silent, because returning `values` here
+    // would leave a fill reported in `appliedDefaults` that `normalizedValues` does not contain.
+    if (typeof head !== 'string') {
+        throw new Error(`Cannot write a value at path '${path.join('.')}': the first segment must be a field name.`);
+    }
     const record = { ...values };
     record[head] = setIn(record[head], path.slice(1), value);
     return record;

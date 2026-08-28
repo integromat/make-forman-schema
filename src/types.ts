@@ -411,8 +411,10 @@ export type FormanValidationOptions = {
      *  walk, so a filled boolean conditions its nested branch exactly as a provided one would
      *  (`false` leaves the branch inactive), and defaults under an armed branch fill
      *  recursively, in the same single pass. Fills are reported on `normalizedValues` and
-     *  `appliedDefaults`. Real values the caller provided are never overwritten, an explicit
-     *  `null` still fails as mandatory, and inactive branches are never filled. */
+     *  `appliedDefaults`. Values the caller provided are never overwritten, except `''`, which
+     *  counts as an omission and fills — so under `'always'` a deliberately cleared optional
+     *  field comes back with its default. An explicit `null` is a provided value: it never fills
+     *  and still fails as mandatory. Inactive branches are never filled. */
     fillDefaults?: 'requiredOnly' | 'always';
     /** Maps domain names used in nested.domain to actual domain keys passed to validateFormanWithDomains */
     domainAliases?: Record<string, string>;

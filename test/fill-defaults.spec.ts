@@ -337,6 +337,21 @@ describe('fillDefaults: always', () => {
         ]);
     });
 
+    // Pins the one case where a fill overrides caller intent: `''` counts as an omission (the
+    // BlueprintValidator predicate), so under `'always'` a deliberately cleared optional field
+    // comes back with its default. Documented in the README and the `fillDefaults` JSDoc.
+    it('fills a deliberately cleared optional field, per the blueprint predicate', async () => {
+        const schema: FormanSchemaField[] = [{ name: 'note', type: 'text', default: 'Hello' }];
+        const cleared = { note: '' };
+        expect((await validateForman(cleared, schema, { fillDefaults: 'always' })).normalizedValues).toEqual({
+            default: { note: 'Hello' },
+        });
+        // `'requiredOnly'` leaves it alone, which is the escape hatch the docs point at.
+        expect((await validateForman(cleared, schema, { fillDefaults: 'requiredOnly' })).normalizedValues).toEqual({
+            default: { note: '' },
+        });
+    });
+
     it('does not fill optional defaults under a branch left inactive', async () => {
         const schema: FormanSchemaField[] = [
             {

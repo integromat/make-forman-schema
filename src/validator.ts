@@ -476,7 +476,7 @@ async function validateFormanValue(
             const filled =
                 isObject(fillable) || Array.isArray(fillable) ? structuredClone<unknown>(fillable) : fillable;
             value = filled;
-            context.roots[context.domain]?.appliedDefaults.push({ path: [...context.path], value: filled });
+            context.roots[context.domain]!.appliedDefaults.push({ path: [...context.path], value: filled });
         }
     }
 

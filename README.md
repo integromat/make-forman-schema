@@ -248,9 +248,11 @@ exactly as a provided one would, and defaults under an armed branch fill recursi
 fields injected by `rpc://`-resolved specs. Fills land in `normalizedValues` (the values with fills
 applied; the input is never mutated, though subtrees nothing was written into are shared with it)
 and are itemized in `appliedDefaults`, on the failure path too, so remaining errors can be repaired
-on top of the filled values. Values you provide are never overwritten, an explicit `null` still fails
-as mandatory, and inactive nested branches are never filled. `''` counts as an omission and fills,
-matching blueprint validation and the builder UI.
+on top of the filled values. Values you provide are never overwritten, **except `''`, which counts as
+an omission and fills** — matching blueprint validation and the builder UI. Under `'always'` that
+means an optional field you deliberately cleared comes back with its default; pass `'requiredOnly'`
+if you need a cleared optional field left alone. An explicit `null` is a provided value: it never
+fills and still fails as mandatory. Inactive nested branches are never filled.
 
 ```typescript
 const schema = [
