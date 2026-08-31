@@ -62,9 +62,11 @@ describe('scenario type', () => {
         const valid = await validateForman({ scenario: 'SCN_34174' }, prodSchema, { resolveRemote });
         expect(valid.valid).toBe(true);
 
-        const invalid = await validateForman({ scenario: 'SCN_00000' }, prodSchema, { resolveRemote });
-        expect(invalid.valid).toBe(false);
-        expect(invalid.errors[0]!.message).toBe("Value 'SCN_00000' not found in options.");
+        // The validator resolves this store without the `scenarioId` the picker supplies, so a real
+        // scenario can be absent from the list it sees. Warn rather than block (MAIA-1311).
+        const unseen = await validateForman({ scenario: 'SCN_00000' }, prodSchema, { resolveRemote });
+        expect(unseen.valid).toBe(true);
+        expect(unseen.warnings[0]!.message).toBe("Value 'SCN_00000' not found in options.");
 
         // Conversion carries rpc:// URL and custom keys
         const jsonSchema = toJSONSchema({ type: 'collection', spec: prodSchema });
@@ -77,5 +79,19 @@ describe('scenario type', () => {
             value: 'value',
             label: 'label',
         });
+    });
+    it('should still hard-error for a non-reference select resolved from the same RPC', async () => {
+        const schema: FormanSchemaField[] = [
+            {
+                name: 'mode',
+                type: 'select',
+                options: { store: 'rpc://scenario-service/2.15.6/GetModes?teamId={{teamId}}' },
+            },
+        ];
+        const resolveRemote = async () => [{ value: 'fast', label: 'Fast' }];
+
+        const invalid = await validateForman({ mode: 'nope' }, schema, { resolveRemote });
+        expect(invalid.valid).toBe(false);
+        expect(invalid.errors[0]!.message).toBe("Value 'nope' not found in options.");
     });
 });
