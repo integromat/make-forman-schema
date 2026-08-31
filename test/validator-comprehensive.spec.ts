@@ -52,7 +52,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                 { name: 'checkbox', type: 'checkbox' },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],
@@ -74,7 +74,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                 { name: 'email', type: 'email' },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -116,7 +116,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                 { name: 'invalidFiles', type: 'upload' },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -162,7 +162,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                 { name: 'invalidFlatFilter', type: 'filter', logic: 'or' as const },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 errors: [
                     {
                         domain: 'default',
@@ -225,7 +225,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],
@@ -254,7 +254,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -294,7 +294,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema, { states: true })).toEqual({
+            expect(await validateForman(formanValue, formanSchema, { states: true })).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],
@@ -378,7 +378,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                         throw new Error(`Unknown path: ${path}`);
                     },
                 }),
-            ).toEqual({
+            ).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],
@@ -421,7 +421,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -453,7 +453,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
 
             const wrappedValue = { data: formanValue };
 
-            expect(await validateForman(wrappedValue, formanSchema)).toEqual({
+            expect(await validateForman(wrappedValue, formanSchema)).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],
@@ -512,7 +512,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                         throw new Error(`Unknown path: ${path}`);
                     },
                 }),
-            ).toEqual({
+            ).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],
@@ -559,7 +559,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                 },
             };
 
-            expect(await validateFormanWithDomains(domains)).toEqual({
+            expect(await validateFormanWithDomains(domains)).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -607,7 +607,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],
@@ -640,7 +640,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                 },
             ];
 
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],
@@ -684,7 +684,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
             ];
 
             // The specific option's nested should override global nested
-            expect(await validateForman(formanValue, formanSchema)).toEqual({
+            expect(await validateForman(formanValue, formanSchema)).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],
@@ -695,17 +695,17 @@ describe('Forman Schema Comprehensive Coverage', () => {
     describe('Checkbox Type', () => {
         it('should validate checkbox with true value', async () => {
             const result = await validateForman({ enabled: true }, [{ name: 'enabled', type: 'checkbox' }]);
-            expect(result).toEqual({ valid: true, errors: [], warnings: [] });
+            expect(result).toMatchObject({ valid: true, errors: [], warnings: [] });
         });
 
         it('should validate checkbox with false value', async () => {
             const result = await validateForman({ disabled: false }, [{ name: 'disabled', type: 'checkbox' }]);
-            expect(result).toEqual({ valid: true, errors: [], warnings: [] });
+            expect(result).toMatchObject({ valid: true, errors: [], warnings: [] });
         });
 
         it('should reject non-boolean values for checkbox', async () => {
             const result = await validateForman({ enabled: 'true' }, [{ name: 'enabled', type: 'checkbox' }]);
-            expect(result).toEqual({
+            expect(result).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -720,7 +720,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
 
         it('should reject number values for checkbox', async () => {
             const result = await validateForman({ enabled: 1 }, [{ name: 'enabled', type: 'checkbox' }]);
-            expect(result).toEqual({
+            expect(result).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -737,7 +737,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
             const result = await validateForman({ enabled: null }, [
                 { name: 'enabled', type: 'checkbox', required: true },
             ]);
-            expect(result).toEqual({
+            expect(result).toMatchObject({
                 valid: false,
                 errors: [
                     {
@@ -752,12 +752,12 @@ describe('Forman Schema Comprehensive Coverage', () => {
 
         it('should allow null for optional checkbox', async () => {
             const result = await validateForman({ enabled: null }, [{ name: 'enabled', type: 'checkbox' }]);
-            expect(result).toEqual({ valid: true, errors: [], warnings: [] });
+            expect(result).toMatchObject({ valid: true, errors: [], warnings: [] });
         });
 
         it('should support default value for checkbox', async () => {
             const result = await validateForman({}, [{ name: 'enabled', type: 'checkbox', default: true }]);
-            expect(result).toEqual({ valid: true, errors: [], warnings: [] });
+            expect(result).toMatchObject({ valid: true, errors: [], warnings: [] });
         });
 
         it('should validate checkbox in nested objects', async () => {
@@ -768,7 +768,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                     spec: [{ name: 'notifications', type: 'checkbox' }],
                 },
             ]);
-            expect(result).toEqual({ valid: true, errors: [], warnings: [] });
+            expect(result).toMatchObject({ valid: true, errors: [], warnings: [] });
         });
 
         it('should validate checkbox in arrays', async () => {
@@ -779,7 +779,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
                     spec: { type: 'collection', spec: [{ name: 'active', type: 'checkbox' }] },
                 },
             ]);
-            expect(result).toEqual({ valid: true, errors: [], warnings: [] });
+            expect(result).toMatchObject({ valid: true, errors: [], warnings: [] });
         });
     });
 
@@ -789,7 +789,7 @@ describe('Forman Schema Comprehensive Coverage', () => {
             // from `normalizeFormanFieldType`. Same production data that broke schema conversion.
             const result = await validateForman({ f: 'x' }, [{ name: 'f' } as never]);
 
-            expect(result).toEqual({
+            expect(result).toMatchObject({
                 valid: false,
                 errors: [{ domain: 'default', path: 'f', message: 'Field type is required.' }],
                 warnings: [],
@@ -801,13 +801,13 @@ describe('Forman Schema Comprehensive Coverage', () => {
             // JSON type, so the type check is skipped rather than failing. The converter now matches.
             const result = await validateForman({ f: 'x' }, [{ name: 'f', type: 'bogusType' }]);
 
-            expect(result).toEqual({ valid: true, errors: [], warnings: [] });
+            expect(result).toMatchObject({ valid: true, errors: [], warnings: [] });
         });
 
         it('should still enforce required on a field with an unknown type', async () => {
             const result = await validateForman({ f: '' }, [{ name: 'f', type: 'bogusType', required: true }]);
 
-            expect(result).toEqual({
+            expect(result).toMatchObject({
                 valid: false,
                 errors: [{ domain: 'default', path: 'f', message: 'Field is mandatory.' }],
                 warnings: [],

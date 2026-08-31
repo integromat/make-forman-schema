@@ -2,7 +2,7 @@ import type { JSONSchema7 } from 'json-schema';
 import { toJSONSchemaInternal, createDefaultContext } from './forman';
 import type {
     FormanSchemaField,
-    FormanValidationResult,
+    FormanNormalizedValidationResult,
     FormanValidationOptions,
     FormanJsonSchemaOptions,
     FormanJsonSchemaResult,
@@ -24,6 +24,7 @@ export type {
     FormanSchemaRPCButton,
     FormanValidationOptions,
     FormanValidationResult,
+    FormanNormalizedValidationResult,
     FormanExternalValidationResult,
     FormanJsonSchemaOptions,
     FormanJsonSchemaResult,
@@ -130,7 +131,7 @@ export function validateFormanWithDomains(
         }
     >,
     options?: FormanValidationOptions,
-): Promise<FormanValidationResult> {
+): Promise<FormanNormalizedValidationResult> {
     return validateFormanWithDomainsInternal(domains, options);
 }
 
@@ -149,7 +150,7 @@ export function validateForman(
     schema: FormanSchemaField[],
     options?: FormanValidationOptions,
     restoreExtras?: Record<string, Record<string, unknown>>,
-): Promise<FormanValidationResult> {
+): Promise<FormanNormalizedValidationResult> {
     return validateFormanWithDomains(
         { default: { values, schema, restoreExtras, allowDynamicValues: options?.allowDynamicValues } },
         options,

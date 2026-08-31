@@ -1,6 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 import {
     noEmpty,
+    setValueAtPath,
     isObject,
     isOptionGroup,
     containsIMLExpression,
@@ -562,5 +563,22 @@ describe('Utils Functions', () => {
                 },
             });
         });
+    });
+});
+
+describe('setValueAtPath', () => {
+    it('writes copy-on-write, sharing subtrees it did not touch', () => {
+        const input = { kept: { deep: 1 }, rows: [{ mode: 'a' }, { mode: 'b' }] };
+        const out = setValueAtPath(input, ['rows', 1, 'mode'], 'filled');
+        expect(out).toEqual({ kept: { deep: 1 }, rows: [{ mode: 'a' }, { mode: 'filled' }] });
+        expect(input.rows[1]!.mode).toBe('b');
+        expect(out.kept).toBe(input.kept);
+    });
+
+    it('throws rather than silently declining a path it cannot write', () => {
+        // Unreachable by construction, but a silent no-op would report a fill in
+        // `appliedDefaults` that `normalizedValues` does not contain.
+        expect(() => setValueAtPath({ a: 1 }, [], 'X')).toThrow(/must be a field name/);
+        expect(() => setValueAtPath({ a: 1 }, [0], 'X')).toThrow(/must be a field name/);
     });
 });
