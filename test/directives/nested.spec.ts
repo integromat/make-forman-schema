@@ -124,7 +124,7 @@ describe('Nested', () => {
                     },
                 },
             );
-            expect(result).toEqual({
+            expect(result).toMatchObject({
                 valid: true,
                 errors: [],
                 warnings: [],

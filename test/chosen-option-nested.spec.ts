@@ -36,7 +36,7 @@ describe('Chosen option nested spec in field states', () => {
             },
         );
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
             valid: true,
             errors: [],
             warnings: [],
@@ -64,7 +64,7 @@ describe('Chosen option nested spec in field states', () => {
             { states: true },
         );
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
             valid: true,
             errors: [],
             warnings: [],
@@ -92,7 +92,7 @@ describe('Chosen option nested spec in field states', () => {
             { states: true },
         );
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
             valid: true,
             errors: [],
             warnings: [],
@@ -127,7 +127,7 @@ describe('Chosen option nested spec in field states', () => {
             { states: true },
         );
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
             valid: true,
             errors: [],
             warnings: [],
@@ -164,7 +164,7 @@ describe('Chosen option nested spec in field states', () => {
 
         // Dependent field states are siblings of the select state; the spec array on the
         // select's state must survive buildRestoreStructure untouched.
-        expect(result).toEqual({
+        expect(result).toMatchObject({
             valid: true,
             errors: [],
             warnings: [],

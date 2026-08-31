@@ -192,6 +192,41 @@ export function findValueInSelectOptions(
     return found as FormanSchemaOption | undefined; // If there was a value, then it has to be an option, because option groups don't have values
 }
 
+function setIn(container: unknown, path: Array<string | number>, value: unknown): unknown {
+    const [head, ...rest] = path;
+    if (head === undefined) return value;
+    if (typeof head === 'number') {
+        const items = Array.isArray(container) ? container.slice() : [];
+        items[head] = setIn(items[head], rest, value);
+        return items;
+    }
+    const record: Record<string, unknown> = isObject<Record<string, unknown>>(container) ? { ...container } : {};
+    record[head] = setIn(record[head], rest, value);
+    return record;
+}
+
+/**
+ * Returns a copy of `values` with `value` written at `path` (string segments for object keys,
+ * numbers for array indices). Containers along the path are cloned (and created when missing);
+ * everything off the path is shared with the input, which is never mutated.
+ */
+export function setValueAtPath(
+    values: Record<string, unknown>,
+    path: Array<string | number>,
+    value: unknown,
+): Record<string, unknown> {
+    const [head] = path;
+    // Unreachable by construction: a domain root is a named collection, so every recorded fill
+    // path starts with a field name. Loud rather than silent, because returning `values` here
+    // would leave a fill reported in `appliedDefaults` that `normalizedValues` does not contain.
+    if (typeof head !== 'string') {
+        throw new Error(`Cannot write a value at path '${path.join('.')}': the first segment must be a field name.`);
+    }
+    const record = { ...values };
+    record[head] = setIn(record[head], path.slice(1), value);
+    return record;
+}
+
 /**
  * Converts a path array to a string representation, joining elements with dots and using brackets for numeric indices.
  * @param path

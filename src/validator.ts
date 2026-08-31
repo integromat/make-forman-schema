@@ -2,6 +2,7 @@ import type { JSONSchema7 } from 'json-schema';
 import type {
     FormanSchemaField,
     FormanValidationResult,
+    FormanNormalizedValidationResult,
     FormanExternalValidationResult,
     FormanSchemaExtendedNested,
     FormanSchemaExtendedOptions,
@@ -29,6 +30,7 @@ import {
     IML_FILTER_OPERATORS,
     findValueInSelectOptions,
     pathToString,
+    setValueAtPath,
     stringToPath,
 } from './utils';
 import { udttypeExpand } from './composites/udttype';
@@ -71,6 +73,8 @@ export interface ValidationContext {
     path: (string | number)[];
     /** Unknown fields are not allowed when strict is true */
     strict: boolean;
+    /** Fill declared defaults for omitted fields (see FormanValidationOptions.fillDefaults) */
+    fillDefaults?: 'requiredOnly' | 'always';
     suppressRequired?: boolean;
     registerOnly?: boolean;
     /** Maps domain names used in nested.domain to actual domain keys */
@@ -111,6 +115,8 @@ export interface DomainRoot {
     }>;
     /** Resolved schema fields collected during validation */
     schemaFields: FormanSchemaField[];
+    /** Defaults filled during validation (`options.fillDefaults`), with raw path segments */
+    appliedDefaults: Array<{ path: Array<string | number>; value: unknown }>;
     /** Whether the domain allows dynamic values (IML expressions, unresolved RPC select options) */
     allowDynamicValues: boolean;
 }
@@ -254,7 +260,7 @@ export async function validateFormanWithDomainsInternal(
         }
     >,
     options?: FormanValidationOptions,
-): Promise<FormanValidationResult> {
+): Promise<FormanNormalizedValidationResult> {
     const errors: FormanValidationResult['errors'] = [];
     const warnings: FormanValidationResult['warnings'] = [];
 
@@ -264,6 +270,7 @@ export async function validateFormanWithDomainsInternal(
                 seenFields: new Set(),
                 fieldStates: [],
                 schemaFields: [],
+                appliedDefaults: [],
                 allowDynamicValues: domains[domain]!.allowDynamicValues ?? options?.allowDynamicValues ?? false,
                 validateFields: (fields: FormanSchemaField[], context: ValidationContext) => {
                     return validateFormanValue(
@@ -303,6 +310,7 @@ export async function validateFormanWithDomainsInternal(
                 path: [],
                 tail: [],
                 strict: options?.strict === true,
+                fillDefaults: options?.fillDefaults,
                 domainAliases: options?.domainAliases ?? {},
                 validateNestedFields: () => {
                     throw new Error('Cannot validate nested fields without parent field.');
@@ -394,6 +402,23 @@ export async function validateFormanWithDomainsInternal(
         resolvedSchemas: options?.schemas
             ? Object.fromEntries(Object.keys(domains).map(domain => [domain, roots[domain]!.schemaFields]))
             : undefined,
+        normalizedValues: Object.fromEntries(
+            Object.keys(domains).map(domain => [
+                domain,
+                (roots[domain]?.appliedDefaults ?? []).reduce(
+                    (values, { path, value }) => setValueAtPath(values, path, value),
+                    domains[domain]?.values ?? {},
+                ),
+            ]),
+        ),
+        appliedDefaults: Object.keys(domains).flatMap(
+            domain =>
+                roots[domain]?.appliedDefaults.map(({ path, value }) => ({
+                    domain,
+                    path: path.join('.'),
+                    value,
+                })) ?? [],
+        ),
     };
 }
 
@@ -446,6 +471,27 @@ async function validateFormanValue(
 
     // Normalize field type (handle prefixed types)
     const normalizedField = normalizeFormanFieldType(field);
+
+    // Same fillable predicate as BlueprintValidator's `useDefaults` (and the builder UI it cites),
+    // hence `=== undefined` rather than `== null`: an explicit `null` stays a provided value. A
+    // `null`/`''` default could not satisfy a required check, and on an optional field it is
+    // indistinguishable from the omission itself.
+    if (
+        context.fillDefaults != null &&
+        !context.suppressRequired &&
+        (value === undefined || value === '') &&
+        (context.fillDefaults === 'always' || normalizedField.required)
+    ) {
+        const fillable = normalizedField.default;
+        if (fillable != null && fillable !== '') {
+            // `default` is typed as a primitive, but schemas are JSON at source: a runtime object or
+            // array default is cloned so the result never aliases the schema's own default instance.
+            const filled =
+                isObject(fillable) || Array.isArray(fillable) ? structuredClone<unknown>(fillable) : fillable;
+            value = filled;
+            context.roots[context.domain]!.appliedDefaults.push({ path: [...context.path], value: filled });
+        }
+    }
 
     if (normalizedField.required && !context.suppressRequired && (value == null || value === '')) {
         return {
