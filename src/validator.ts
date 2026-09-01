@@ -42,6 +42,19 @@ function fieldAllowsCustomValue(field: FormanSchemaField): boolean {
 }
 
 /**
+ * Whether a value missing from an RPC-resolved option list should warn instead of fail.
+ *
+ * Reference types are included because the caller cannot be relied on to hold every placeholder a
+ * store URL interpolates: `GetScenarios?teamId={{teamId}}&scenarioId={{scenarioId}}` resolves
+ * against whatever context the caller has, so a validator lacking `scenarioId` asks a narrower
+ * question than the picker that offered the value and legitimately fails to see it (MAIA-1311).
+ * Rejecting there is unrecoverable for the user; a warning still surfaces as a setup error.
+ */
+function unresolvedOptionIsTolerable(field: FormanSchemaField, root: DomainRoot): boolean {
+    return root.allowDynamicValues || fieldAllowsCustomValue(field) || isReferenceType(field.type);
+}
+
+/**
  * Context for schema validation operations
  */
 export interface ValidationContext {
@@ -995,7 +1008,7 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
         if (!selectedOption) {
             if (
                 optionsFromRPC &&
-                (context.roots[context.domain]!.allowDynamicValues || fieldAllowsCustomValue(field))
+                unresolvedOptionIsTolerable(field, context.roots[context.domain]!)
             ) {
                 warnings.push({
                     domain: context.domain,
@@ -1124,7 +1137,7 @@ async function handleSelectType(
                 optionsOrGroups as FormanSchemaSelectOptionsStore,
             );
             if (!found) {
-                (optionsFromRPC && (context.roots[context.domain]!.allowDynamicValues || fieldAllowsCustomValue(field))
+                (optionsFromRPC && unresolvedOptionIsTolerable(field, context.roots[context.domain]!)
                     ? warnings
                     : errors
                 ).push({
@@ -1138,7 +1151,7 @@ async function handleSelectType(
 
         if (
             optionsFromRPC &&
-            (context.roots[context.domain]!.allowDynamicValues || fieldAllowsCustomValue(field)) &&
+            unresolvedOptionIsTolerable(field, context.roots[context.domain]!) &&
             hasUnresolvedValue
         ) {
             context.roots[context.domain]!.fieldStates.push({
@@ -1189,7 +1202,7 @@ async function handleSelectType(
         if (!item) {
             if (
                 optionsFromRPC &&
-                (context.roots[context.domain]!.allowDynamicValues || fieldAllowsCustomValue(field))
+                unresolvedOptionIsTolerable(field, context.roots[context.domain]!)
             ) {
                 warnings.push({
                     domain: context.domain,
