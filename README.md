@@ -2,6 +2,14 @@
 
 Conversion and validation utilities for Forman Schema.
 
+## v2.0.1 (patch): inactive branches stay out of `schemas`
+
+The fields nested under a boolean toggle that is `false` (or absent and filled to `false` by
+`fillDefaults`) are no longer reported in `schemas` / `resolvedSchemas`. They were listed flat with
+`required: true`, so a consumer persisting that list as the resolved form would later demand a field
+the form never showed. Validation outcomes are unchanged. Also in this release: an RPC-backed option
+list that cannot see a reference value now warns instead of failing (#66).
+
 ## v2.0.0 — validated values on every result
 
 `validateForman` and `validateFormanWithDomains` now always return `normalizedValues` and
