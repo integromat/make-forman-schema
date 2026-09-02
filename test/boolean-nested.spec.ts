@@ -48,6 +48,30 @@ describe('Boolean nested conditioning', () => {
             expect(result.valid).toBe(true);
         });
 
+        it('should leave the inactive branch out of schemas', async () => {
+            const result = await validateForman({ advanced: false }, schema, { strict: true, schemas: true });
+            expect(result.valid).toBe(true);
+            expect(result.schemas?.default?.map(field => field.name)).toEqual(['advanced']);
+        });
+
+        it('should keep the active branch in schemas', async () => {
+            const result = await validateForman({ advanced: true, timeout: 30 }, schema, { strict: true, schemas: true });
+            expect(result.valid).toBe(true);
+            expect(result.schemas?.default?.map(field => field.name)).toEqual(['advanced', 'timeout']);
+        });
+
+        it('should leave a branch its own filled default left inactive out of schemas', async () => {
+            const toggleWithDefault: FormanSchemaField[] = [{ ...schema[0]!, required: true, default: false }];
+            const result = await validateForman({}, toggleWithDefault, {
+                strict: true,
+                schemas: true,
+                fillDefaults: 'requiredOnly',
+            });
+            expect(result.valid).toBe(true);
+            expect(result.appliedDefaults).toEqual([{ domain: 'default', path: 'advanced', value: false }]);
+            expect(result.schemas?.default?.map(field => field.name)).toEqual(['advanced']);
+        });
+
         it('should keep nested values of a false toggle known to strict mode', async () => {
             const result = await validateForman({ advanced: false, timeout: 30 }, schema, { strict: true });
             expect(result.valid).toBe(true);

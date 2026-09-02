@@ -669,7 +669,11 @@ async function handleCollectionType(
                 continue;
             }
             if (context.strict && !seen.has(subField.name)) seen.add(subField.name);
-            if (path.length === 0) {
+            // A boolean's inactive branch is still walked so stale values keep their type rules, but
+            // it contributes nothing to `schemas`: consumers persist that list as the module's
+            // resolved form, and a required field leaked from a branch the toggle left inactive
+            // would be demanded at runtime by validators that never see the toggle.
+            if (path.length === 0 && !context.registerOnly && !context.suppressRequired) {
                 context.roots[context.domain]!.schemaFields.push(clampFieldForSchema(subField));
             }
             const result = await validateFormanValue(value[subField.name], subField, {
@@ -689,7 +693,7 @@ async function handleCollectionType(
                             continue;
                         }
                         if (context.strict && !seen.has(subField.name)) seen.add(subField.name);
-                        if (path.length === 0 && !context.registerOnly) {
+                        if (path.length === 0 && !context.registerOnly && !context.suppressRequired) {
                             context.roots[context.domain]!.schemaFields.push(clampFieldForSchema(subField));
                         }
                         const result = await validateFormanValue(value[subField.name], subField, {
