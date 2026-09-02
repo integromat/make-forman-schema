@@ -673,7 +673,7 @@ async function handleCollectionType(
             // it contributes nothing to `schemas`: consumers persist that list as the module's
             // resolved form, and a required field leaked from a branch the toggle left inactive
             // would be demanded at runtime by validators that never see the toggle.
-            if (path.length === 0 && !context.registerOnly && !context.suppressRequired) {
+            if (path.length === 0 && !context.suppressRequired) {
                 context.roots[context.domain]!.schemaFields.push(clampFieldForSchema(subField));
             }
             const result = await validateFormanValue(value[subField.name], subField, {
