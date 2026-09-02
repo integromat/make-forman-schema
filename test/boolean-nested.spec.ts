@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import type { FormanSchemaField } from '../src/index.js';
-import { validateForman } from '../src/index.js';
+import { validateForman, validateFormanWithDomains } from '../src/index.js';
 
 describe('Boolean nested conditioning', () => {
     describe('single-branch nested (applies when true)', () => {
@@ -46,6 +46,58 @@ describe('Boolean nested conditioning', () => {
         it('should keep an absent toggle valid', async () => {
             const result = await validateForman({}, schema, { strict: true });
             expect(result.valid).toBe(true);
+        });
+
+        it('should leave the inactive branch out of schemas', async () => {
+            const result = await validateForman({ advanced: false }, schema, { strict: true, schemas: true });
+            expect(result.valid).toBe(true);
+            expect(result.schemas?.default?.map(field => field.name)).toEqual(['advanced']);
+        });
+
+        it('should keep the active branch in schemas', async () => {
+            const result = await validateForman({ advanced: true, timeout: 30 }, schema, {
+                strict: true,
+                schemas: true,
+            });
+            expect(result.valid).toBe(true);
+            expect(result.schemas?.default?.map(field => field.name)).toEqual(['advanced', 'timeout']);
+        });
+
+        it('should leave out of schemas a branch that a filled default left inactive', async () => {
+            const toggleWithDefault: FormanSchemaField[] = [{ ...schema[0]!, required: true, default: false }];
+            const result = await validateForman({}, toggleWithDefault, {
+                strict: true,
+                schemas: true,
+                fillDefaults: 'requiredOnly',
+            });
+            expect(result.valid).toBe(true);
+            expect(result.appliedDefaults).toEqual([{ domain: 'default', path: 'advanced', value: false }]);
+            expect(result.schemas?.default?.map(field => field.name)).toEqual(['advanced']);
+        });
+
+        it("should leave a cross-domain inactive branch out of that domain's schemas", async () => {
+            const result = await validateFormanWithDomains(
+                {
+                    default: {
+                        values: { advanced: false },
+                        schema: [
+                            {
+                                name: 'advanced',
+                                type: 'boolean',
+                                label: 'Advanced settings',
+                                nested: {
+                                    domain: 'expect',
+                                    store: [{ name: 'timeout', type: 'number', label: 'Timeout', required: true }],
+                                },
+                            },
+                        ],
+                    },
+                    expect: { values: {}, schema: [{ name: 'message', type: 'text', label: 'Message' }] },
+                },
+                { strict: true, schemas: true },
+            );
+            expect(result.valid).toBe(true);
+            expect(result.schemas?.expect?.map(field => field.name)).toEqual(['message']);
         });
 
         it('should keep nested values of a false toggle known to strict mode', async () => {
@@ -269,6 +321,15 @@ describe('Boolean nested conditioning', () => {
             ];
             const result = await validateForman({ sendEmail: false }, singleBranchSchema, {});
             expect(result.valid).toBe(true);
+        });
+
+        it('should report only the active branch in schemas', async () => {
+            const result = await validateForman({ sendEmail: false, skipReason: 'opted out' }, schema, {
+                strict: true,
+                schemas: true,
+            });
+            expect(result.valid).toBe(true);
+            expect(result.schemas?.default?.map(field => field.name)).toEqual(['sendEmail', 'skipReason']);
         });
 
         it("should keep the inactive branch's values known to strict mode", async () => {
