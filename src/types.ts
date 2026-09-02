@@ -414,7 +414,12 @@ export type FormanValidationOptions = {
      *  `appliedDefaults`. Values the caller provided are never overwritten, except `''`, which
      *  counts as an omission and fills — so under `'always'` a deliberately cleared optional
      *  field comes back with its default. An explicit `null` is a provided value: it never fills
-     *  and still fails as mandatory. Inactive branches are never filled. */
+     *  and still fails as mandatory. Inactive branches are never filled.
+     *
+     *  BlueprintValidator's option also accepts `boolean`; that arm is deliberately not carried
+     *  over. `useDefaults: true` is a legacy alias for `'always'` rather than a third behaviour,
+     *  and the platform's own public validation parameter already exposes just the two named
+     *  modes, so there is nothing behind the boolean for a new library to inherit. */
     fillDefaults?: 'requiredOnly' | 'always';
     /** Maps domain names used in nested.domain to actual domain keys passed to validateFormanWithDomains */
     domainAliases?: Record<string, string>;
