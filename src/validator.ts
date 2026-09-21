@@ -1035,7 +1035,10 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
 
         const selectedOption = selectableOptions.find(candidate => candidate.value === levelSelectedValue);
         if (!selectedOption) {
-            if (optionsFromRPC && unresolvedOptionIsTolerable(field, context.roots[context.domain]!)) {
+            if (
+                optionsFromRPC &&
+                unresolvedOptionIsTolerable(field, context.roots[context.domain]!)
+            ) {
                 warnings.push({
                     domain: context.domain,
                     path: context.path.join('.'),
@@ -1226,7 +1229,10 @@ async function handleSelectType(
         const item = findValueInSelectOptions(field, value, optionsOrGroups as FormanSchemaSelectOptionsStore);
 
         if (!item) {
-            if (optionsFromRPC && unresolvedOptionIsTolerable(field, context.roots[context.domain]!)) {
+            if (
+                optionsFromRPC &&
+                unresolvedOptionIsTolerable(field, context.roots[context.domain]!)
+            ) {
                 warnings.push({
                     domain: context.domain,
                     path: context.path.join('.'),
