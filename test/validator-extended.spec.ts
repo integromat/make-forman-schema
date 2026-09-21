@@ -1047,7 +1047,7 @@ describe('Forman Schema Extended Validation', () => {
     });
 
     describe('Collection Type Edge Cases', () => {
-        it('should handle collection with field without name', async () => {
+        it('should skip a nameless field inside a collection with a warning instead of rejecting the object', async () => {
             const formanValue = {
                 collection: { field1: 'value1' },
             };
@@ -1056,20 +1056,20 @@ describe('Forman Schema Extended Validation', () => {
                 {
                     name: 'collection',
                     type: 'collection',
-                    spec: [{ type: 'text' }], // Field without name
+                    spec: [{ type: 'text' }, { name: 'field1', type: 'text' }], // First field has no name
                 },
             ];
 
             expect(await validateForman(formanValue, formanSchema)).toMatchObject({
-                valid: false,
-                errors: [
+                valid: true,
+                errors: [],
+                warnings: [
                     {
                         domain: 'default',
                         path: 'collection',
-                        message: 'Object contains field with unknown name.',
+                        message: "Schema declares a field without a name (type 'text'); it was skipped.",
                     },
                 ],
-                warnings: [],
             });
         });
 
@@ -1449,7 +1449,7 @@ describe('Forman Schema Extended Validation', () => {
             });
         });
 
-        it('should handle fields without name in root level', async () => {
+        it('should skip a nameless field in root level with a warning', async () => {
             const formanValue = {};
 
             const formanSchema = [
@@ -1459,14 +1459,31 @@ describe('Forman Schema Extended Validation', () => {
             ];
 
             expect(await validateForman(formanValue, formanSchema)).toMatchObject({
-                valid: false,
-                errors: [
+                valid: true,
+                errors: [],
+                warnings: [
                     {
                         domain: 'default',
                         path: '',
-                        message: 'Object contains field with unknown name.',
+                        message: "Schema declares a field without a name (type 'text'); it was skipped.",
                     },
                 ],
+            });
+        });
+
+        // Google Sheets' addMultipleRows ships `{ type: 'hidden' }` with no name in its `expect`;
+        // it must neither reject the write nor add noise (MAIA-1317).
+        it('should silently skip a nameless hidden field and still validate its named siblings', async () => {
+            const formanSchema = [{ type: 'hidden' }, { name: 'rows', type: 'text', required: true }];
+
+            expect(await validateForman({ rows: 'a' }, formanSchema)).toMatchObject({
+                valid: true,
+                errors: [],
+                warnings: [],
+            });
+            expect(await validateForman({}, formanSchema)).toMatchObject({
+                valid: false,
+                errors: [{ domain: 'default', path: 'rows', message: 'Field is mandatory.' }],
                 warnings: [],
             });
         });

@@ -610,6 +610,28 @@ async function validateFormanValue(
 }
 
 /**
+ * A schema field without a `name` cannot be addressed by any value, so there is nothing to validate
+ * against it — it is a defect of the schema, not of the value. Rejecting the whole object for it
+ * blocked every write to the module for as long as the schema carried it: Google Sheets'
+ * `addMultipleRows` ships a nameless `{ type: 'hidden' }` in its `expect`, and the resulting
+ * "Object contains field with unknown name." named nothing the caller could change (MAIA-1317).
+ * A nameless hidden field is an ordinary no-op; any other type is skipped with a warning so the
+ * schema defect stays visible.
+ */
+function skipNamelessField(
+    field: FormanSchemaField,
+    context: ValidationContext,
+    warnings: FormanValidationResult['warnings'],
+): void {
+    if (field.type === 'hidden') return;
+    warnings.push({
+        domain: context.domain,
+        path: context.path.join('.'),
+        message: `Schema declares a field without a name (type '${field.type}'); it was skipped.`,
+    });
+}
+
+/**
  * Handles collection type validation
  * @param field The field to convert
  * @param object The object to validate
@@ -661,11 +683,7 @@ async function handleCollectionType(
                 continue;
             }
             if (!subField.name) {
-                errors.push({
-                    domain: context.domain,
-                    path: context.path.join('.'),
-                    message: 'Object contains field with unknown name.',
-                });
+                skipNamelessField(subField, context, warnings);
                 continue;
             }
             if (context.strict && !seen.has(subField.name)) seen.add(subField.name);
@@ -685,11 +703,7 @@ async function handleCollectionType(
                             continue;
                         }
                         if (!subField.name) {
-                            errors.push({
-                                domain: context.domain,
-                                path: context.path.join('.'),
-                                message: 'Object contains field with unknown name.',
-                            });
+                            skipNamelessField(subField, context, warnings);
                             continue;
                         }
                         if (context.strict && !seen.has(subField.name)) seen.add(subField.name);
@@ -1010,10 +1024,7 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
 
         const selectedOption = selectableOptions.find(candidate => candidate.value === levelSelectedValue);
         if (!selectedOption) {
-            if (
-                optionsFromRPC &&
-                unresolvedOptionIsTolerable(field, context.roots[context.domain]!)
-            ) {
+            if (optionsFromRPC && unresolvedOptionIsTolerable(field, context.roots[context.domain]!)) {
                 warnings.push({
                     domain: context.domain,
                     path: context.path.join('.'),
@@ -1204,10 +1215,7 @@ async function handleSelectType(
         const item = findValueInSelectOptions(field, value, optionsOrGroups as FormanSchemaSelectOptionsStore);
 
         if (!item) {
-            if (
-                optionsFromRPC &&
-                unresolvedOptionIsTolerable(field, context.roots[context.domain]!)
-            ) {
+            if (optionsFromRPC && unresolvedOptionIsTolerable(field, context.roots[context.domain]!)) {
                 warnings.push({
                     domain: context.domain,
                     path: context.path.join('.'),
