@@ -616,13 +616,24 @@ async function validateFormanValue(
  * `addMultipleRows` ships a nameless `{ type: 'hidden' }` in its `expect`, and the resulting
  * "Object contains field with unknown name." named nothing the caller could change (MAIA-1317).
  * A nameless hidden field is an ordinary no-op; any other type is skipped with a warning so the
- * schema defect stays visible.
+ * schema defect stays visible. A field with neither name nor type is not a nameless field but a
+ * malformed one, and keeps the same structured error `validateFormanValue` reports for a named
+ * typeless field — the skip must not turn `{}` into an accepted schema.
  */
 function skipNamelessField(
     field: FormanSchemaField,
     context: ValidationContext,
+    errors: FormanValidationResult['errors'],
     warnings: FormanValidationResult['warnings'],
 ): void {
+    if (!field.type) {
+        errors.push({
+            domain: context.domain,
+            path: context.path.join('.'),
+            message: 'Field type is required.',
+        });
+        return;
+    }
     if (field.type === 'hidden') return;
     warnings.push({
         domain: context.domain,
@@ -683,7 +694,7 @@ async function handleCollectionType(
                 continue;
             }
             if (!subField.name) {
-                skipNamelessField(subField, context, warnings);
+                skipNamelessField(subField, context, errors, warnings);
                 continue;
             }
             if (context.strict && !seen.has(subField.name)) seen.add(subField.name);
@@ -703,7 +714,7 @@ async function handleCollectionType(
                             continue;
                         }
                         if (!subField.name) {
-                            skipNamelessField(subField, context, warnings);
+                            skipNamelessField(subField, context, errors, warnings);
                             continue;
                         }
                         if (context.strict && !seen.has(subField.name)) seen.add(subField.name);

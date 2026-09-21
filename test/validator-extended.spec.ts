@@ -1487,6 +1487,16 @@ describe('Forman Schema Extended Validation', () => {
                 warnings: [],
             });
         });
+
+        it('should still reject a field with neither name nor type as malformed', async () => {
+            const formanSchema = [{} as never, { name: 'rows', type: 'text' }];
+
+            expect(await validateForman({ rows: 'a' }, formanSchema)).toMatchObject({
+                valid: false,
+                errors: [{ domain: 'default', path: '', message: 'Field type is required.' }],
+                warnings: [],
+            });
+        });
     });
 
     describe('File and Folder Path Validation', () => {
