@@ -422,6 +422,8 @@ export async function validateFormanWithDomainsInternal(
     };
 }
 
+const MSG_FIELD_TYPE_REQUIRED = 'Field type is required.';
+
 /**
  * Validates a Forman value against a schema
  * @param value The value to validate
@@ -462,7 +464,7 @@ async function validateFormanValue(
                 {
                     domain: context.domain,
                     path: context.path.join('.'),
-                    message: 'Field type is required.',
+                    message: MSG_FIELD_TYPE_REQUIRED,
                 },
             ],
             warnings: [],
@@ -610,15 +612,11 @@ async function validateFormanValue(
 }
 
 /**
- * A schema field without a `name` cannot be addressed by any value, so there is nothing to validate
- * against it — it is a defect of the schema, not of the value. Rejecting the whole object for it
- * blocked every write to the module for as long as the schema carried it: Google Sheets'
- * `addMultipleRows` ships a nameless `{ type: 'hidden' }` in its `expect`, and the resulting
- * "Object contains field with unknown name." named nothing the caller could change (MAIA-1317).
- * A nameless hidden field is an ordinary no-op; any other type is skipped with a warning so the
- * schema defect stays visible. A field with neither name nor type is not a nameless field but a
- * malformed one, and keeps the same structured error `validateFormanValue` reports for a named
- * typeless field — the skip must not turn `{}` into an accepted schema.
+ * A schema field with no `name` is a defect of the schema, not of the value, so it is skipped rather
+ * than failing the whole object (MAIA-1317 — Google Sheets' `addMultipleRows` ships a nameless
+ * `{ type: 'hidden' }`). Hidden: silent, it is an ordinary no-op. Any other type: a warning, so the
+ * defect stays visible. No type at all: not a nameless field but a malformed one, and it keeps the
+ * same error `validateFormanValue` reports for a named typeless field.
  */
 function skipNamelessField(
     field: FormanSchemaField,
@@ -630,7 +628,7 @@ function skipNamelessField(
         errors.push({
             domain: context.domain,
             path: context.path.join('.'),
-            message: 'Field type is required.',
+            message: MSG_FIELD_TYPE_REQUIRED,
         });
         return;
     }
