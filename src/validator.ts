@@ -422,6 +422,8 @@ export async function validateFormanWithDomainsInternal(
     };
 }
 
+const MSG_FIELD_TYPE_REQUIRED = 'Field type is required.';
+
 /**
  * Validates a Forman value against a schema
  * @param value The value to validate
@@ -462,7 +464,7 @@ async function validateFormanValue(
                 {
                     domain: context.domain,
                     path: context.path.join('.'),
-                    message: 'Field type is required.',
+                    message: MSG_FIELD_TYPE_REQUIRED,
                 },
             ],
             warnings: [],
@@ -610,6 +612,35 @@ async function validateFormanValue(
 }
 
 /**
+ * A schema field with no `name` is a defect of the schema, not of the value, so it is skipped rather
+ * than failing the whole object (MAIA-1317 — Google Sheets' `addMultipleRows` ships a nameless
+ * `{ type: 'hidden' }`). Hidden: silent, it is an ordinary no-op. Any other type: a warning, so the
+ * defect stays visible. No type at all: not a nameless field but a malformed one, and it keeps the
+ * same error `validateFormanValue` reports for a named typeless field.
+ */
+function skipNamelessField(
+    field: FormanSchemaField,
+    context: ValidationContext,
+    errors: FormanValidationResult['errors'],
+    warnings: FormanValidationResult['warnings'],
+): void {
+    if (!field.type) {
+        errors.push({
+            domain: context.domain,
+            path: context.path.join('.'),
+            message: MSG_FIELD_TYPE_REQUIRED,
+        });
+        return;
+    }
+    if (field.type === 'hidden') return;
+    warnings.push({
+        domain: context.domain,
+        path: context.path.join('.'),
+        message: `Schema declares a field without a name (type '${field.type}'); it was skipped.`,
+    });
+}
+
+/**
  * Handles collection type validation
  * @param field The field to convert
  * @param object The object to validate
@@ -661,11 +692,7 @@ async function handleCollectionType(
                 continue;
             }
             if (!subField.name) {
-                errors.push({
-                    domain: context.domain,
-                    path: context.path.join('.'),
-                    message: 'Object contains field with unknown name.',
-                });
+                skipNamelessField(subField, context, errors, warnings);
                 continue;
             }
             if (context.strict && !seen.has(subField.name)) seen.add(subField.name);
@@ -685,11 +712,7 @@ async function handleCollectionType(
                             continue;
                         }
                         if (!subField.name) {
-                            errors.push({
-                                domain: context.domain,
-                                path: context.path.join('.'),
-                                message: 'Object contains field with unknown name.',
-                            });
+                            skipNamelessField(subField, context, errors, warnings);
                             continue;
                         }
                         if (context.strict && !seen.has(subField.name)) seen.add(subField.name);
