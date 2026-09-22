@@ -2,9 +2,10 @@
 
 Conversion and validation utilities for Forman Schema.
 
-## Unreleased — field edges, editor markers, remote fragment omission
+## v2.1.0 — field edges, editor markers, remote fragment exclusion
 
-Non-breaking minor release.
+Non-breaking minor release: new exports, new markers and a new opt-in conversion option; nothing
+existing is renamed or changes behaviour.
 
 - New `fieldEdges(field)` and `activeFieldEdges(field, value)` expose every way a field reveals child
   fields as one normalized list of edges — see [Reading child fields](#reading-child-fields).
