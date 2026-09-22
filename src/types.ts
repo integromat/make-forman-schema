@@ -221,7 +221,7 @@ export type FormanSchemaSelectOptionsStore = (FormanSchemaOption | FormanSchemaO
  * Extended options for a select field
  */
 export type FormanSchemaExtendedOptions = {
-    /** Store for the options. Absent when the wrapper only carries `nested` — a field whose value has no option list but reveals children (a connection with its form hanging below it). */
+    /** Store for the options; absent when the wrapper only carries `nested` */
     store?: FormanSchemaSelectOptionsStore | string;
     /** Nested fields for every option */
     nested?: FormanSchemaNested;
@@ -260,23 +260,15 @@ export type FormanSchemaBooleanNested = {
     false?: (FormanSchemaField | string)[] | string;
 };
 
-/**
- * One way a field reveals child fields, as read by {@link fieldEdges}. Every spelling of children the
- * schema supports — per-option `nested`, `options.nested`, `options.placeholder.nested`, field-level
- * `nested`, the boolean `{ true, false }` form, and the `{ store, domain }` wrapper around any of them —
- * is normalized into edges of this shape, so a consumer walking a form reads children from one place.
- */
+/** One way a field reveals child fields, whichever spelling the schema used — see {@link fieldEdges}. */
 export type FormanFieldEdge = {
-    /**
-     * Present on a conditional edge: the parent field's value that reveals these children. Absent on an
-     * edge whose children apply whatever the parent's value is.
-     */
+    /** The parent's value that reveals these children; absent when they apply for any value. */
     gate?: { name: string; value: FormanSchemaValue };
     /** Domain the children belong to when it differs from the parent's (`nested.domain`). */
     domain?: string;
-    /** Static children. Bare `rpc://` strings in the list are kept verbatim — they are form fragments resolved remotely. */
+    /** Static children, remote fragment strings kept verbatim. */
     children?: (FormanSchemaField | string)[];
-    /** The whole child list is resolved remotely (`nested: "rpc://…"`, in any of the wrappers). */
+    /** The whole child list is fetched remotely. */
     remote?: string;
 };
 
@@ -367,12 +359,10 @@ export type FormanJsonSchemaOptions = {
      */
     excludeAdvancedFields?: boolean;
     /**
-     * Exclude bare `rpc://` strings found inside field lists — form fragments resolved remotely, such as
-     * a banner or a record schema — instead of rendering each as an `allOf: [{ $ref }]` entry no static
-     * consumer can resolve. Defaults to `false`. When `true`, the dropped fragments are reported on
-     * `toJSONSchemaAdvanced`'s `skippedPaths.remoteFragments`. A field whose *whole* child list is
-     * remote (`nested: "rpc://…"`) is unaffected: that is a marker on the field (`x-nested: { $ref }`),
-     * not a fragment inside a list.
+     * Drop remote form fragments — bare strings in a field list (`"rpc://…"`, `"api://…"`), fetched at
+     * render time — instead of emitting an unresolvable `allOf: [{ $ref }]`. Defaults to `false`.
+     * Dropped fragments are reported on `skippedPaths.remoteFragments`. A whole-list remote
+     * (`nested: "rpc://…"`) stays an `x-nested: { $ref }` marker on its field.
      */
     excludeRemoteFragments?: boolean;
     /**

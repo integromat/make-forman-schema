@@ -90,10 +90,7 @@ export function isBooleanBranchNested(
     );
 }
 
-/**
- * Field types whose `nested` is conditioned on the toggle value rather than applied unconditionally.
- * Matched on the base type, case-insensitively, so `Boolean` and `bool:something` qualify too.
- */
+/** Field types whose `nested` is conditioned on the toggle value. */
 const BOOLEAN_TYPES = ['boolean', 'checkbox', 'bool'] as const;
 
 function isBooleanType(type: FormanSchemaFieldType): boolean {
@@ -101,11 +98,7 @@ function isBooleanType(type: FormanSchemaFieldType): boolean {
     return (BOOLEAN_TYPES as readonly string[]).includes(base.toLowerCase());
 }
 
-/**
- * The edge-shaped view of one `nested` definition: a static list or a remote reference, plus the
- * domain when the `{ store, domain }` wrapper names one. `undefined` for anything that is not a nested
- * definition (absent, or a shape this function does not read, such as the boolean `{ true, false }` form).
- */
+/** One `nested` definition as edge parts; `undefined` when absent or in the boolean `{ true, false }` form, which the caller splits per branch. */
 function nestedEdge(
     nested: FormanSchemaNested | FormanSchemaBooleanNested | undefined,
 ): Pick<FormanFieldEdge, 'children' | 'remote' | 'domain'> | undefined {
@@ -119,23 +112,11 @@ function nestedEdge(
 }
 
 /**
- * Every way `field` reveals child fields, normalized to {@link FormanFieldEdge}s. This is the one place
- * that knows how children are spelled; a consumer that walks a form reads them from here instead of
- * from `options`/`nested` directly.
- *
- * - A static option carrying its own `nested` (in `options: [...]`, `options.store: [...]`, or inside an
- *   option group) yields a conditional edge gated on that option's `value`.
- * - `options.placeholder.nested` yields a conditional edge gated on `''` — the empty selection.
- * - `options.nested` and a non-boolean field's own `nested` yield unconditional edges.
- * - A boolean field's `nested` yields an edge gated on `true` (or `false` under `reversedNested`); the
- *   `{ true, false }` form yields one edge per branch present.
- *
- * Edges are structural: an unconditional edge is emitted alongside conditional ones when both are
- * declared. Which of them a given value reveals is {@link activeFieldEdges}'s job, since the validator
- * treats an option's own `nested` as replacing the field-level one for that option, not adding to it.
- * A field without a `name` cannot gate anything, so its option children are emitted unconditionally.
- * @param field The field whose children to read
- * @returns The edges in declaration order: option edges, placeholder, `options.nested`, own `nested`
+ * Every way `field` reveals child fields, as {@link FormanFieldEdge}s in declaration order: per-option
+ * `nested`, `options.placeholder.nested` (gated on `''`), `options.nested`, the field's own `nested`
+ * (gated on the toggle value for booleans). Structural, so an unconditional edge is listed alongside
+ * conditional ones; {@link activeFieldEdges} decides which a value reveals. A nameless field cannot gate,
+ * so its option children are listed unconditionally.
  */
 export function fieldEdges(field: FormanSchemaField): FormanFieldEdge[] {
     const edges: FormanFieldEdge[] = [];
@@ -187,14 +168,9 @@ export function fieldEdges(field: FormanSchemaField): FormanFieldEdge[] {
 }
 
 /**
- * The edges of `field` that `value` reveals, following the validator's rules: a conditional edge whose
- * gate matches the value wins outright; when none matches, the unconditional edges apply — which is
- * also what a value outside the static options (a custom or IML value) reveals. An empty value
- * (`undefined`, `null`, `''`) matches the placeholder edge and nothing else, mirroring how an empty
- * select shows its placeholder form and a boolean left unset reveals neither branch.
- * @param field The parent field
- * @param value The parent's current value
- * @returns The edges whose children are part of the form for this value
+ * The edges `value` reveals, by the validator's rules: a matching gated edge replaces the unconditional
+ * ones, an out-of-options value (custom, IML) falls back to them, and an empty value reveals only the
+ * placeholder edge.
  */
 export function activeFieldEdges(field: FormanSchemaField, value: unknown): FormanFieldEdge[] {
     const edges = fieldEdges(field);

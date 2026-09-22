@@ -49,7 +49,7 @@ export interface ConversionContext {
     definitions?: Record<string, JSONSchema7>;
     /** Whether to exclude fields with `advanced: true` from the rendered schema. */
     excludeAdvancedFields: boolean;
-    /** Whether to exclude bare `rpc://` strings from field lists instead of rendering them as `$ref` entries. */
+    /** Drop remote form fragments (bare strings in field lists) instead of emitting `$ref` entries. */
     excludeRemoteFragments: boolean;
     /** Accumulator for paths of skipped fields, keyed by skip reason. Shared (mutated) across recursion. */
     skippedPaths: { advanced?: string[]; unconvertible?: string[]; remoteFragments?: string[] };
@@ -964,15 +964,7 @@ function handlePrimitiveType(field: FormanSchemaField, result: JSONSchema7, cont
     return result;
 }
 
-/**
- * Applies `excludeRemoteFragments` to one field list: with the option on, bare `rpc://` strings are removed
- * and each is recorded on `skippedPaths.remoteFragments` as the list's dot path plus the reference;
- * with it off, the list is returned untouched.
- * @param list The field list, possibly holding remote fragment strings
- * @param path The dot-notation path of the list, for the report
- * @param context The conversion context
- * @returns The list to convert
- */
+/** Under `excludeRemoteFragments`, removes the string entries of a field list and records each on `skippedPaths.remoteFragments`. */
 function withoutRemoteFragments(
     list: (FormanSchemaField | string)[],
     path: string[],
@@ -1088,7 +1080,7 @@ function handleNestedWithDomain(
 /**
  * Processes nested directives by adding an x-nested property to the JSON Schema, handling both string and array formats
  * @param field The field with the nested directive
- * @param declaredNested The nested fields as declared (already extracted); remote fragments are filtered here under `excludeRemoteFragments`
+ * @param declaredNested The nested fields (already extracted), before remote fragment exclusion
  * @param domain The target domain (already extracted)
  * @param result The JSON Schema result to modify
  * @param context The conversion context

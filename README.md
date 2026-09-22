@@ -11,8 +11,9 @@ existing is renamed or changes behaviour.
   fields as one normalized list of edges — see [Reading child fields](#reading-child-fields).
 - `editor` fields are stamped with `x-editor: true` (plus `x-language`), multiline text with
   `x-multiline: true`; both round-trip through `toFormanSchema`.
-- New conversion option `excludeRemoteFragments` drops bare `rpc://` strings from field lists and reports
-  them on `skippedPaths.remoteFragments` — see [Remote form fragments](#remote-form-fragments).
+- New conversion option `excludeRemoteFragments` drops remote form fragments (bare strings in field
+  lists) and reports them on `skippedPaths.remoteFragments` — see
+  [Remote form fragments](#remote-form-fragments).
 - `FormanSchemaExtendedOptions.store` is optional, matching schemas whose `options` wrapper carries
   only `nested`, and accepts a partially grouped store.
 
@@ -92,10 +93,11 @@ The filter applies to **sub-fields of a collection** — including nested-by-opt
 
 ### Remote form fragments
 
-A field list may hold a bare `rpc://` string next to its fields — a form fragment fetched live, such as
-a banner or a record schema. By default it converts to an `allOf: [{ $ref: "rpc://…" }]` entry on the
-enclosing object. Pass `{ excludeRemoteFragments: true }` to drop these instead; `toJSONSchemaAdvanced`
-reports each dropped fragment on `skippedPaths.remoteFragments` as the list's dot path plus the reference:
+A field list may hold a bare string next to its fields — a form fragment fetched live, such as a banner
+or a record schema behind `rpc://…`, or a platform form behind `api://…`. By default it converts to an
+`allOf: [{ $ref: "rpc://…" }]` entry on the enclosing object. Pass `{ excludeRemoteFragments: true }` to
+drop every such string instead; `toJSONSchemaAdvanced` reports each dropped fragment on
+`skippedPaths.remoteFragments` as the list's dot path plus the reference:
 
 ```typescript
 const { schema, skippedPaths } = toJSONSchemaAdvanced(

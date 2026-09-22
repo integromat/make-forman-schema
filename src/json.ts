@@ -165,7 +165,7 @@ function toFormanSchemaInternal(field: JSONSchema7): FormanSchemaField {
                 };
             }
 
-            // For regular strings, create a text type — or the code editor the `x-editor` marker recorded.
+            // For regular strings, create a text type
             let textField: FormanSchemaField = {
                 type: 'text',
                 label: noEmpty(field.title),

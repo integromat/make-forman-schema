@@ -33,6 +33,20 @@ describe('excludeRemoteFragments', () => {
             expect(result.skippedPaths).toEqual({ remoteFragments: [`w (${banner})`] });
         });
 
+        it('drops a fragment of any scheme — every string in a field list is fetched remotely', () => {
+            const result = toJSONSchemaAdvanced(
+                {
+                    name: 'w',
+                    type: 'collection',
+                    spec: ['api://form', { name: 'a', type: 'text' }] as FormanSchemaField[],
+                },
+                options,
+            );
+
+            expect(result.schema.allOf).toBeUndefined();
+            expect(result.skippedPaths).toEqual({ remoteFragments: ['w (api://form)'] });
+        });
+
         it('reports the empty path for a fragment at the root of an anonymous collection', () => {
             const result = toJSONSchemaAdvanced(
                 { type: 'collection', spec: [banner] as unknown as FormanSchemaField[] },
