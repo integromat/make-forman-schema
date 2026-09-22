@@ -96,8 +96,8 @@ The filter applies to **sub-fields of a collection** — including nested-by-opt
 A field list may hold a bare string next to its fields — a form fragment fetched live, such as a banner
 or a record schema behind `rpc://…`, or a platform form behind `api://…`. By default it converts to an
 `allOf: [{ $ref: "rpc://…" }]` entry on the enclosing object. Pass `{ excludeRemoteFragments: true }` to
-drop every such string instead; `toJSONSchemaAdvanced` reports each dropped fragment on
-`skippedPaths.remoteFragments` as the list's dot path plus the reference:
+drop every such string instead; `toJSONSchemaAdvanced` reports each dropped fragment once, as the dot
+path of the field or collection declaring the list plus the reference:
 
 ```typescript
 const { schema, skippedPaths } = toJSONSchemaAdvanced(
@@ -108,15 +108,17 @@ const { schema, skippedPaths } = toJSONSchemaAdvanced(
 // skippedPaths   → { remoteFragments: ['wrapper (rpc://banner)'] }
 ```
 
-A field whose _whole_ child list is remote (`nested: "rpc://…"`) is unaffected — that stays an
-`x-nested: { $ref }` marker on the field, since it is not a fragment inside a list.
+A list left empty by the exclusion emits no `x-nested` marker and no `allOf` branch. A field whose
+_whole_ child list is remote (`nested: "rpc://…"`) is unaffected — that stays an `x-nested: { $ref }`
+marker on the field, since it is not a fragment inside a list.
 
 ### Editor and multiline markers
 
 `type: 'editor'` converts to a string schema stamped with `x-editor: true` and, when the field declares
-a `language`, `x-language: '<language>'`. A text field with `multiline: true` is stamped with
-`x-multiline: true`. Both are enumerable, so they survive serialization, and `toFormanSchema` reads them
-back into `type: 'editor'`/`language` and `multiline: true`.
+a `language`, `x-language: '<language>'`. A string-typed field (`text`, `editor`, …) with
+`multiline: true` is stamped with `x-multiline: true`. Both are enumerable, so they survive
+serialization, and `toFormanSchema` reads them back into `type: 'editor'`/`language` and
+`multiline: true`.
 
 ### Reading child fields
 
@@ -145,12 +147,16 @@ fieldEdges({
 
 An edge carries `gate` when the children depend on the parent's value, `domain` when they belong to
 another domain, and either `children` (a static list, bare `rpc://` strings kept verbatim) or `remote`
-(the whole list is fetched live). A boolean's `nested` is an edge gated on `true`, or on `false` under
-`reversedNested`.
+(the whole list is fetched live). The list follows the validator's reading of the schema: an option is
+matched on the key named by `options.value` (default `value`); the field's own `nested` shadows
+`options.nested` when both are declared; `placeholder.nested` counts only on a non-required `select`; a
+boolean's `nested` is an edge gated on `true`, or on `false` under `reversedNested`.
 
 `activeFieldEdges(field, value)` returns the edges a given value reveals, with the validator's rules: a
 matching gated edge replaces the unconditional ones, a value outside the static options falls back to
-them, and an empty value (`undefined`, `null`, `''`) reveals only the placeholder edge.
+them, and an empty value (`undefined`, `null`, `''`) reveals only the placeholder edge. A boolean
+holding an IML expression reveals its single-branch `nested` whatever the toggle, and nothing of the
+`{ true, false }` form.
 
 ### Converting from JSON Schema to Forman Schema
 

@@ -361,8 +361,9 @@ export type FormanJsonSchemaOptions = {
     /**
      * Drop remote form fragments — bare strings in a field list (`"rpc://…"`, `"api://…"`), fetched at
      * render time — instead of emitting an unresolvable `allOf: [{ $ref }]`. Defaults to `false`.
-     * Dropped fragments are reported on `skippedPaths.remoteFragments`. A whole-list remote
-     * (`nested: "rpc://…"`) stays an `x-nested: { $ref }` marker on its field.
+     * Dropped fragments are reported on `skippedPaths.remoteFragments`, and a list left empty emits no
+     * `x-nested` marker or branch. A whole-list remote (`nested: "rpc://…"`) stays an
+     * `x-nested: { $ref }` marker on its field.
      */
     excludeRemoteFragments?: boolean;
     /**
@@ -393,8 +394,8 @@ export type FormanJsonSchemaResult = {
         unconvertible?: string[];
         /**
          * Remote form fragments dropped under `excludeRemoteFragments`, as the dot-notation path of the
-         * list they sat in suffixed with the reference — `wrapper (rpc://banner)`. Present only when at
-         * least one fragment was dropped.
+         * field or collection declaring the list, suffixed with the reference — `wrapper (rpc://banner)`.
+         * Present only when at least one fragment was dropped.
          */
         remoteFragments?: string[];
     };

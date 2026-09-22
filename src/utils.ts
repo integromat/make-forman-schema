@@ -1,5 +1,4 @@
 import {
-    FormanFieldEdge,
     FormanSchemaBooleanNested,
     FormanSchemaExtendedNested,
     FormanSchemaExtendedOptions,
@@ -90,97 +89,6 @@ export function isBooleanBranchNested(
     );
 }
 
-/** Field types whose `nested` is conditioned on the toggle value. */
-const BOOLEAN_TYPES = ['boolean', 'checkbox', 'bool'] as const;
-
-function isBooleanType(type: FormanSchemaFieldType): boolean {
-    const base = type.includes(':') ? type.split(':')[0]! : type;
-    return (BOOLEAN_TYPES as readonly string[]).includes(base.toLowerCase());
-}
-
-/** One `nested` definition as edge parts; `undefined` when absent or in the boolean `{ true, false }` form, which the caller splits per branch. */
-function nestedEdge(
-    nested: FormanSchemaNested | FormanSchemaBooleanNested | undefined,
-): Pick<FormanFieldEdge, 'children' | 'remote' | 'domain'> | undefined {
-    if (nested == null || isBooleanBranchNested(nested)) return undefined;
-
-    const store = isObject<FormanSchemaExtendedNested>(nested) ? nested.store : nested;
-    const domain = isObject<FormanSchemaExtendedNested>(nested) ? nested.domain : undefined;
-    const edge = typeof store === 'string' ? { remote: store } : Array.isArray(store) ? { children: store } : undefined;
-
-    return edge && domain ? { ...edge, domain } : edge;
-}
-
-/**
- * Every way `field` reveals child fields, as {@link FormanFieldEdge}s in declaration order: per-option
- * `nested`, `options.placeholder.nested` (gated on `''`), `options.nested`, the field's own `nested`
- * (gated on the toggle value for booleans). Structural, so an unconditional edge is listed alongside
- * conditional ones; {@link activeFieldEdges} decides which a value reveals. A nameless field cannot gate,
- * so its option children are listed unconditionally.
- */
-export function fieldEdges(field: FormanSchemaField): FormanFieldEdge[] {
-    const edges: FormanFieldEdge[] = [];
-    const gateOn = (value: FormanSchemaValue): Pick<FormanFieldEdge, 'gate'> =>
-        field.name ? { gate: { name: field.name, value } } : {};
-
-    const options = field.options;
-    const store = isObject<FormanSchemaExtendedOptions>(options) ? options.store : options;
-    if (Array.isArray(store)) {
-        for (const entry of store as FormanSchemaSelectOptionsStore) {
-            for (const option of isOptionGroup(entry) ? entry.options : [entry]) {
-                const edge = nestedEdge(option.nested);
-                if (edge) edges.push({ ...gateOn(option.value), ...edge });
-            }
-        }
-    }
-
-    if (isObject<FormanSchemaExtendedOptions>(options)) {
-        const placeholder = options.placeholder;
-        const placeholderEdge = isObject<{ nested?: FormanSchemaNested }>(placeholder)
-            ? nestedEdge(placeholder.nested)
-            : undefined;
-        if (placeholderEdge) edges.push({ ...gateOn(''), ...placeholderEdge });
-
-        const optionsEdge = nestedEdge(options.nested);
-        if (optionsEdge) edges.push(optionsEdge);
-    }
-
-    if (field.nested == null) return edges;
-
-    if (isBooleanBranchNested(field.nested)) {
-        for (const branch of [true, false] as const) {
-            const edge = nestedEdge(field.nested[`${branch}`]);
-            if (edge) edges.push({ ...gateOn(branch), ...edge });
-        }
-        return edges;
-    }
-
-    const ownEdge = nestedEdge(field.nested);
-    if (!ownEdge) return edges;
-
-    if (isBooleanType(field.type)) {
-        edges.push({ ...gateOn(field.reversedNested !== true), ...ownEdge });
-    } else {
-        edges.push(ownEdge);
-    }
-
-    return edges;
-}
-
-/**
- * The edges `value` reveals, by the validator's rules: a matching gated edge replaces the unconditional
- * ones, an out-of-options value (custom, IML) falls back to them, and an empty value reveals only the
- * placeholder edge.
- */
-export function activeFieldEdges(field: FormanSchemaField, value: unknown): FormanFieldEdge[] {
-    const edges = fieldEdges(field);
-
-    if (value == null || value === '') return edges.filter(edge => edge.gate?.value === '');
-
-    const gated = edges.filter(edge => edge.gate && valuesMatch(edge.gate.value, value));
-    return gated.length > 0 ? gated : edges.filter(edge => !edge.gate);
-}
-
 /**
  * Utility function to check if a value is an option group.
  * @param value The value to check
@@ -249,7 +157,7 @@ export function normalizeFormanFieldType(field: FormanSchemaField): FormanSchema
     };
 }
 
-function valuesMatch(a: unknown, b: unknown): boolean {
+export function valuesMatch(a: unknown, b: unknown): boolean {
     if (a === b) return true;
     // If this ever turns out insufficient, move to object-hash, but given the fact Forman sets the Form Value based on the RPC, which is the data source for the BE validation as well, the stringification should be sufficient.
     if (isObject(a) && isObject(b)) return JSON.stringify(a) === JSON.stringify(b);

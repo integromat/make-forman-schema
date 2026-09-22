@@ -19,13 +19,16 @@ describe('editor and multiline markers', () => {
         expect(Object.getOwnPropertyDescriptor(schema, 'x-language')).toBeUndefined();
     });
 
-    it('stamps x-multiline on a multiline text field and on nothing else', () => {
+    it('stamps x-multiline on a multiline string-typed field and on nothing else', () => {
         const multiline = toJSONSchema({ name: 'body', type: 'text', multiline: true });
         const single = toJSONSchema({ name: 'subject', type: 'text' });
+        const number = toJSONSchema({ name: 'n', type: 'number', multiline: true });
 
         expect(Object.getOwnPropertyDescriptor(multiline, 'x-multiline')?.value).toBe(true);
         expect(Object.getOwnPropertyDescriptor(single, 'x-multiline')).toBeUndefined();
         expect(Object.getOwnPropertyDescriptor(single, 'x-editor')).toBeUndefined();
+        expect(Object.getOwnPropertyDescriptor(number, 'x-multiline')).toBeUndefined();
+        expect(toFormanSchema(number)).toEqual({ type: 'number' });
     });
 
     it('serializes the markers, like every other x-* marker', () => {

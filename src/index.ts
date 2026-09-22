@@ -32,7 +32,7 @@ export type {
 } from './types';
 export { toFormanSchema } from './json';
 export { SchemaConversionError, resolveFormanFieldType } from './forman';
-export { fieldEdges, activeFieldEdges } from './utils';
+export { fieldEdges, activeFieldEdges } from './edges';
 
 /**
  * Converts a Forman Schema field to its JSON Schema equivalent and reports the paths of any

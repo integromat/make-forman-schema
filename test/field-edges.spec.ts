@@ -65,17 +65,31 @@ describe('fieldEdges', () => {
             expect(fieldEdges(field)).toEqual([{ gate: { name: 'mode', value: 'dynamic' }, remote: 'rpc://form' }]);
         });
 
-        it('gates the placeholder nested on the empty selection', () => {
+        it('gates each option on the key named by options.value', () => {
             const field: FormanSchemaField = {
                 name: 'mode',
                 type: 'select',
-                options: {
-                    store: [{ value: 'x' }],
-                    placeholder: { label: 'None', nested: [child('whenEmpty')] },
-                },
+                options: { store: [{ id: 'a', nested: [child('onA')] } as never], value: 'id' },
             };
 
-            expect(fieldEdges(field)).toEqual([{ gate: { name: 'mode', value: '' }, children: [child('whenEmpty')] }]);
+            expect(fieldEdges(field)).toEqual([{ gate: { name: 'mode', value: 'a' }, children: [child('onA')] }]);
+        });
+
+        it('gates the placeholder nested on the empty selection of a non-required select only', () => {
+            const placeholder = { label: 'None', nested: [child('whenEmpty')] };
+
+            expect(
+                fieldEdges({ name: 'mode', type: 'select', options: { store: [{ value: 'x' }], placeholder } }),
+            ).toEqual([{ gate: { name: 'mode', value: '' }, children: [child('whenEmpty')] }]);
+            expect(
+                fieldEdges({
+                    name: 'mode',
+                    type: 'select',
+                    required: true,
+                    options: { store: [{ value: 'x' }], placeholder },
+                }),
+            ).toEqual([]);
+            expect(fieldEdges({ name: 'mode', type: 'text', options: { placeholder } })).toEqual([]);
         });
 
         it("gates a boolean field's own nested on true, or on false under reversedNested", () => {
@@ -90,6 +104,16 @@ describe('fieldEdges', () => {
             expect(fieldEdges({ name: 'flag', type: 'checkbox', nested })).toEqual([
                 { gate: { name: 'flag', value: true }, children: nested },
             ]);
+        });
+
+        it('resolves the boolean type through the shared alias and casing rules', () => {
+            const nested = [child('whenOn')];
+
+            for (const type of ['bool', 'Boolean', 'CHECKBOX'] as FormanSchemaField['type'][]) {
+                expect(fieldEdges({ name: 'flag', type, nested })).toEqual([
+                    { gate: { name: 'flag', value: true }, children: nested },
+                ]);
+            }
         });
 
         it('yields one edge per branch of the boolean { true, false } form', () => {
@@ -150,7 +174,7 @@ describe('fieldEdges', () => {
             ).toEqual([{ children: ['rpc://banner', child('a')] }]);
         });
 
-        it("emits both options.nested and the field's own nested when a field declares both", () => {
+        it("reads the field's own nested over options.nested when a field declares both, as the validator does", () => {
             const field: FormanSchemaField = {
                 name: 'agent',
                 type: 'aiagent',
@@ -158,7 +182,7 @@ describe('fieldEdges', () => {
                 nested: [child('contextId')],
             };
 
-            expect(fieldEdges(field)).toEqual([{ remote: 'rpc://agentForm' }, { children: [child('contextId')] }]);
+            expect(fieldEdges(field)).toEqual([{ children: [child('contextId')] }]);
         });
     });
 
@@ -211,6 +235,19 @@ describe('activeFieldEdges', () => {
         }
     });
 
+    it('matches the option through the key named by options.value', () => {
+        const field: FormanSchemaField = {
+            name: 'mode',
+            type: 'select',
+            options: { store: [{ id: 'a', nested: [child('onA')] } as never, { id: 'b' } as never], value: 'id' },
+        };
+
+        expect(activeFieldEdges(field, 'a')).toEqual([
+            { gate: { name: 'mode', value: 'a' }, children: [child('onA')] },
+        ]);
+        expect(activeFieldEdges(field, 'b')).toEqual([]);
+    });
+
     it('reveals a boolean branch only for the matching value, nothing when unset', () => {
         const flag: FormanSchemaField = { name: 'flag', type: 'boolean', nested: [child('whenOn')] };
 
@@ -219,6 +256,113 @@ describe('activeFieldEdges', () => {
         ]);
         expect(activeFieldEdges(flag, false)).toEqual([]);
         expect(activeFieldEdges(flag, undefined)).toEqual([]);
+    });
+
+    it("reveals a boolean's single-branch nested for an IML value, and neither branch of the two-branch form", () => {
+        const flag: FormanSchemaField = { name: 'flag', type: 'boolean', nested: [child('whenOn')] };
+        const reversed: FormanSchemaField = { ...flag, reversedNested: true };
+        const branched: FormanSchemaField = {
+            name: 'flag',
+            type: 'boolean',
+            nested: { true: [child('whenOn')], false: [child('whenOff')] },
+        };
+
+        expect(activeFieldEdges(flag, '{{1.x}}')).toEqual([
+            { gate: { name: 'flag', value: true }, children: [child('whenOn')] },
+        ]);
+        expect(activeFieldEdges(reversed, '{{1.x}}')).toEqual([
+            { gate: { name: 'flag', value: false }, children: [child('whenOn')] },
+        ]);
+        expect(activeFieldEdges(branched, '{{1.x}}')).toEqual([]);
+    });
+});
+
+describe('activeFieldEdges against the validator, per selection rule', () => {
+    /** The names a renderer walking `activeFieldEdges` shows, in the validator's depth-first order. */
+    function liveNames(fields: FormanSchemaField[], values: Record<string, unknown>, out: string[] = []) {
+        for (const field of fields) {
+            if (field.name) out.push(field.name);
+            for (const edge of activeFieldEdges(field, values[field.name ?? ''])) {
+                liveNames(
+                    (edge.children ?? []).filter((c): c is FormanSchemaField => typeof c !== 'string'),
+                    values,
+                    out,
+                );
+            }
+        }
+        return out;
+    }
+
+    const select = (extra: Partial<FormanSchemaField>): FormanSchemaField => ({
+        name: 'mode',
+        type: 'select',
+        options: {
+            store: [{ value: 'a', nested: [child('onA')] }, { value: 'b' }],
+            nested: [child('always')],
+            placeholder: { label: 'None', nested: [child('whenEmpty')] },
+        },
+        ...extra,
+    });
+    const flag = (extra: Partial<FormanSchemaField>): FormanSchemaField => ({
+        name: 'flag',
+        type: 'boolean',
+        nested: [child('whenOn')],
+        ...extra,
+    });
+
+    const cases: [string, FormanSchemaField[], Record<string, unknown>][] = [
+        ['an option with its own nested replaces the field-level nested', [select({})], { mode: 'a' }],
+        ['an option without nested falls back to the field-level nested', [select({})], { mode: 'b' }],
+        ['an IML value on a select falls back to the field-level nested', [select({})], { mode: '{{1.x}}' }],
+        ['an empty non-required select reveals the placeholder nested', [select({})], {}],
+        ['an empty required select reveals nothing', [select({ required: true })], {}],
+        ['a placeholder on a non-select field reveals nothing', [{ ...select({}), type: 'text' }], {}],
+        [
+            "the field's own nested wins over options.nested",
+            [
+                select({
+                    nested: [child('fromField')],
+                    options: { store: [{ value: 'a' }], nested: [child('fromOptions')] },
+                }),
+            ],
+            { mode: 'a' },
+        ],
+        [
+            'options.value names the option key',
+            [
+                select({
+                    options: {
+                        store: [{ id: 'a', nested: [child('onA')] } as never, { id: 'b' } as never],
+                        value: 'id',
+                    },
+                }),
+            ],
+            { mode: 'a' },
+        ],
+        ['a boolean set to true reveals its nested', [flag({})], { flag: true }],
+        ['a boolean set to false hides its nested', [flag({})], { flag: false }],
+        ['a reversed boolean set to false reveals its nested', [flag({ reversedNested: true })], { flag: false }],
+        ['a boolean holding an IML value reveals its nested', [flag({})], { flag: '{{1.x}}' }],
+        [
+            'a two-branch boolean reveals the matching branch',
+            [flag({ nested: { true: [child('on')], false: [child('off')] } })],
+            { flag: false },
+        ],
+        [
+            'a two-branch boolean holding an IML value reveals nothing',
+            [flag({ nested: { true: [child('on')], false: [child('off')] } })],
+            { flag: '{{1.x}}' },
+        ],
+        ['an unset boolean hides its nested', [flag({})], {}],
+    ];
+
+    it.each(cases)('%s', async (_, schema, values) => {
+        const result = await validateFormanWithDomains(
+            { default: { schema, values } },
+            { schemas: true, allowDynamicValues: true },
+        );
+
+        expect(liveNames(schema, values)).toEqual(result.resolvedSchemas!['default']!.map(field => field.name));
     });
 });
 

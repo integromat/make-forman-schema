@@ -103,7 +103,62 @@ describe('excludeRemoteFragments', () => {
             expect(result.skippedPaths).toEqual({ remoteFragments: [`w.conn (${banner})`] });
         });
 
-        it('drops a fragment relocated to another domain, at the receiving root', () => {
+        it('reports a field-level fragment once, however many options fall back to it', () => {
+            const result = toJSONSchemaAdvanced(
+                {
+                    name: 'w',
+                    type: 'collection',
+                    spec: [
+                        {
+                            name: 'mode',
+                            type: 'select',
+                            options: [
+                                { value: 'a', label: 'A' },
+                                { value: 'b', label: 'B' },
+                            ],
+                            nested: [banner, { name: 'f', type: 'text' }],
+                        },
+                    ],
+                },
+                options,
+            );
+
+            expect(JSON.stringify(result.schema)).not.toContain(banner);
+            expect(result.skippedPaths).toEqual({ remoteFragments: [`w.mode (${banner})`] });
+        });
+
+        it('leaves no marker or branch behind when a list held only fragments', () => {
+            const result = toJSONSchemaAdvanced(
+                {
+                    name: 'w',
+                    type: 'collection',
+                    spec: [
+                        { name: 'conn', type: 'text', nested: [banner] },
+                        { name: 'acc', type: 'account:google', options: { nested: [banner] } },
+                        { name: 'mode', type: 'select', options: [{ value: 'a', label: 'A', nested: [banner] }] },
+                    ],
+                },
+                options,
+            );
+
+            expect(Object.getOwnPropertyDescriptor(result.schema.properties!['conn'], 'x-nested')).toBeUndefined();
+            expect(Object.getOwnPropertyDescriptor(result.schema.properties!['acc'], 'x-nested')).toBeUndefined();
+            expect(result.schema.allOf).toBeUndefined();
+            expect(result.skippedPaths).toEqual({
+                remoteFragments: [`w.conn (${banner})`, `w.acc (${banner})`, `w.mode (${banner})`],
+            });
+        });
+
+        it('reports a fragment under a nameless field at the enclosing path', () => {
+            const result = toJSONSchemaAdvanced(
+                { name: 'arr', type: 'array', spec: { type: 'text', nested: [banner] } },
+                options,
+            );
+
+            expect(result.skippedPaths).toEqual({ remoteFragments: [`arr[] (${banner})`] });
+        });
+
+        it('drops a fragment relocated to another domain, at the field that declares it', () => {
             const result = toJSONSchemaAdvanced(
                 {
                     type: 'collection',
@@ -130,7 +185,7 @@ describe('excludeRemoteFragments', () => {
             const mapper = result.schema.properties!['mapper'] as JSONSchema7;
             expect(mapper.properties).toEqual({ text: { type: 'string' } });
             expect(mapper.allOf).toBeUndefined();
-            expect(result.skippedPaths).toEqual({ remoteFragments: [`mapper (${banner})`] });
+            expect(result.skippedPaths).toEqual({ remoteFragments: [`parameters.conn (${banner})`] });
         });
 
         it('keeps a whole-list remote as the x-nested $ref marker', () => {
