@@ -9,6 +9,7 @@ import {
     FormanSchemaOption,
     FormanSchemaOptionGroup,
     FormanSchemaSelectOptionsStore,
+    FormanSchemaValue,
 } from './types';
 
 /**
@@ -156,7 +157,7 @@ export function normalizeFormanFieldType(field: FormanSchemaField): FormanSchema
     };
 }
 
-function valuesMatch(a: unknown, b: unknown): boolean {
+export function valuesMatch(a: unknown, b: unknown): boolean {
     if (a === b) return true;
     // If this ever turns out insufficient, move to object-hash, but given the fact Forman sets the Form Value based on the RPC, which is the data source for the BE validation as well, the stringification should be sufficient.
     if (isObject(a) && isObject(b)) return JSON.stringify(a) === JSON.stringify(b);

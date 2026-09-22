@@ -43,6 +43,7 @@ export type FormanSchemaFieldType =
     | 'timezone'
     | 'url'
     | 'uuid'
+    | 'editor'
     | `account:${string}`
     | `hook:${string}`
     | `keychain:${string}`
@@ -112,6 +113,8 @@ export type FormanSchemaField = {
     editable?: boolean;
     /** Whether the user will be able to insert new lines in GUI (a textarea will be displayed instead of the text field) */
     multiline?: boolean;
+    /** Syntax highlighting language of the code editor (`editor` only), e.g. `javascript`, `python` */
+    language?: string;
     /** Whether the select field allows multiple values */
     multiple?: boolean;
     /** Specifies how to treat HTML tags in the field (text only) */
@@ -218,8 +221,8 @@ export type FormanSchemaSelectOptionsStore = (FormanSchemaOption | FormanSchemaO
  * Extended options for a select field
  */
 export type FormanSchemaExtendedOptions = {
-    /** Store for the options */
-    store: FormanSchemaOption[] | FormanSchemaOptionGroup[] | string;
+    /** Store for the options; absent when the wrapper only carries `nested` */
+    store?: FormanSchemaSelectOptionsStore | string;
     /** Nested fields for every option */
     nested?: FormanSchemaNested;
     /** Name of the property as the label of an option */
@@ -255,6 +258,18 @@ export type FormanSchemaExtendedNested = {
 export type FormanSchemaBooleanNested = {
     true?: (FormanSchemaField | string)[] | string;
     false?: (FormanSchemaField | string)[] | string;
+};
+
+/** One way a field reveals child fields, whichever spelling the schema used — see {@link fieldEdges}. */
+export type FormanFieldEdge = {
+    /** The parent's value that reveals these children; absent when they apply for any value. */
+    gate?: { name: string; value: FormanSchemaValue };
+    /** Domain the children belong to when it differs from the parent's (`nested.domain`). */
+    domain?: string;
+    /** Static children, remote fragment strings kept verbatim. */
+    children?: (FormanSchemaField | string)[];
+    /** The whole child list is fetched remotely. */
+    remote?: string;
 };
 
 /**
@@ -344,6 +359,14 @@ export type FormanJsonSchemaOptions = {
      */
     excludeAdvancedFields?: boolean;
     /**
+     * Drop remote form fragments — bare strings in a field list (`"rpc://…"`, `"api://…"`), fetched at
+     * render time — instead of emitting an unresolvable `allOf: [{ $ref }]`. Defaults to `false`.
+     * Dropped fragments are reported on `skippedPaths.remoteFragments`, and a list left empty emits no
+     * `x-nested` marker or branch. A whole-list remote (`nested: "rpc://…"`) stays an
+     * `x-nested: { $ref }` marker on its field.
+     */
+    excludeRemoteFragments?: boolean;
+    /**
      * Throw a `SchemaConversionError` when a field's type cannot be resolved, instead of degrading
      * it to a permissive typeless schema. Defaults to `false` — by default, unresolvable fields are
      * degraded and their dot-notation paths reported on `toJSONSchemaAdvanced`'s
@@ -369,6 +392,12 @@ export type FormanJsonSchemaResult = {
          * `(unknown type: X)` or `(missing type)`. Present only when at least one field was degraded.
          */
         unconvertible?: string[];
+        /**
+         * Remote form fragments dropped under `excludeRemoteFragments`, as the dot-notation path of the
+         * field or collection declaring the list, suffixed with the reference — `wrapper (rpc://banner)`.
+         * Present only when at least one fragment was dropped.
+         */
+        remoteFragments?: string[];
     };
 };
 

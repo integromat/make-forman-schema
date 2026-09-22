@@ -249,6 +249,7 @@ exports[`udttype composite Forman -> JSON Schema should convert schema with udtt
           "description": undefined,
           "title": "Description",
           "type": "string",
+          "x-multiline": true,
         },
         "label": {
           "description": "Display name for better readability.",
