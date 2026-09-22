@@ -165,13 +165,22 @@ function toFormanSchemaInternal(field: JSONSchema7): FormanSchemaField {
                 };
             }
 
-            // For regular strings, create a text type
+            // For regular strings, create a text type — or the code editor the `x-editor` marker recorded.
             let textField: FormanSchemaField = {
                 type: 'text',
                 label: noEmpty(field.title),
                 help: noEmpty(field.description),
                 default: field.default as FormanSchemaValue,
             };
+
+            if (Object.getOwnPropertyDescriptor(field, 'x-editor')?.value === true) {
+                textField.type = 'editor';
+                const language = Object.getOwnPropertyDescriptor(field, 'x-language')?.value;
+                if (typeof language === 'string') textField.language = language;
+            }
+            if (Object.getOwnPropertyDescriptor(field, 'x-multiline')?.value === true) {
+                textField.multiline = true;
+            }
 
             // Add validation if present
             if (field.pattern || field.enum) {

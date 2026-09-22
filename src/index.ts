@@ -10,6 +10,7 @@ import type {
 import { validateFormanWithDomainsInternal } from './validator';
 
 export type {
+    FormanFieldEdge,
     FormanSchemaFieldType,
     FormanSchemaField,
     FormanSchemaValue,
@@ -31,6 +32,7 @@ export type {
 } from './types';
 export { toFormanSchema } from './json';
 export { SchemaConversionError, resolveFormanFieldType } from './forman';
+export { fieldEdges, activeFieldEdges } from './utils';
 
 /**
  * Converts a Forman Schema field to its JSON Schema equivalent and reports the paths of any
@@ -84,6 +86,9 @@ export function toJSONSchemaAdvanced(
     }
     if (context.skippedPaths.unconvertible?.length) {
         skippedPaths.unconvertible = context.skippedPaths.unconvertible;
+    }
+    if (context.skippedPaths.remoteFragments?.length) {
+        skippedPaths.remoteFragments = context.skippedPaths.remoteFragments;
     }
 
     return {

@@ -43,6 +43,7 @@ export type FormanSchemaFieldType =
     | 'timezone'
     | 'url'
     | 'uuid'
+    | 'editor'
     | `account:${string}`
     | `hook:${string}`
     | `keychain:${string}`
@@ -112,6 +113,8 @@ export type FormanSchemaField = {
     editable?: boolean;
     /** Whether the user will be able to insert new lines in GUI (a textarea will be displayed instead of the text field) */
     multiline?: boolean;
+    /** Syntax highlighting language of the code editor (`editor` only), e.g. `javascript`, `python` */
+    language?: string;
     /** Whether the select field allows multiple values */
     multiple?: boolean;
     /** Specifies how to treat HTML tags in the field (text only) */
@@ -218,8 +221,8 @@ export type FormanSchemaSelectOptionsStore = (FormanSchemaOption | FormanSchemaO
  * Extended options for a select field
  */
 export type FormanSchemaExtendedOptions = {
-    /** Store for the options */
-    store: FormanSchemaOption[] | FormanSchemaOptionGroup[] | string;
+    /** Store for the options. Absent when the wrapper only carries `nested` — a field whose value has no option list but reveals children (a connection with its form hanging below it). */
+    store?: FormanSchemaSelectOptionsStore | string;
     /** Nested fields for every option */
     nested?: FormanSchemaNested;
     /** Name of the property as the label of an option */
@@ -255,6 +258,26 @@ export type FormanSchemaExtendedNested = {
 export type FormanSchemaBooleanNested = {
     true?: (FormanSchemaField | string)[] | string;
     false?: (FormanSchemaField | string)[] | string;
+};
+
+/**
+ * One way a field reveals child fields, as read by {@link fieldEdges}. Every spelling of children the
+ * schema supports — per-option `nested`, `options.nested`, `options.placeholder.nested`, field-level
+ * `nested`, the boolean `{ true, false }` form, and the `{ store, domain }` wrapper around any of them —
+ * is normalized into edges of this shape, so a consumer walking a form reads children from one place.
+ */
+export type FormanFieldEdge = {
+    /**
+     * Present on a conditional edge: the parent field's value that reveals these children. Absent on an
+     * edge whose children apply whatever the parent's value is.
+     */
+    gate?: { name: string; value: FormanSchemaValue };
+    /** Domain the children belong to when it differs from the parent's (`nested.domain`). */
+    domain?: string;
+    /** Static children. Bare `rpc://` strings in the list are kept verbatim — they are form fragments resolved remotely. */
+    children?: (FormanSchemaField | string)[];
+    /** The whole child list is resolved remotely (`nested: "rpc://…"`, in any of the wrappers). */
+    remote?: string;
 };
 
 /**
@@ -344,6 +367,15 @@ export type FormanJsonSchemaOptions = {
      */
     excludeAdvancedFields?: boolean;
     /**
+     * Exclude bare `rpc://` strings found inside field lists — form fragments resolved remotely, such as
+     * a banner or a record schema — instead of rendering each as an `allOf: [{ $ref }]` entry no static
+     * consumer can resolve. Defaults to `false`. When `true`, the dropped fragments are reported on
+     * `toJSONSchemaAdvanced`'s `skippedPaths.remoteFragments`. A field whose *whole* child list is
+     * remote (`nested: "rpc://…"`) is unaffected: that is a marker on the field (`x-nested: { $ref }`),
+     * not a fragment inside a list.
+     */
+    excludeRemoteFragments?: boolean;
+    /**
      * Throw a `SchemaConversionError` when a field's type cannot be resolved, instead of degrading
      * it to a permissive typeless schema. Defaults to `false` — by default, unresolvable fields are
      * degraded and their dot-notation paths reported on `toJSONSchemaAdvanced`'s
@@ -369,6 +401,12 @@ export type FormanJsonSchemaResult = {
          * `(unknown type: X)` or `(missing type)`. Present only when at least one field was degraded.
          */
         unconvertible?: string[];
+        /**
+         * Remote form fragments dropped under `excludeRemoteFragments`, as the dot-notation path of the
+         * list they sat in suffixed with the reference — `wrapper (rpc://banner)`. Present only when at
+         * least one fragment was dropped.
+         */
+        remoteFragments?: string[];
     };
 };
 

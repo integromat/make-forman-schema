@@ -1,4 +1,5 @@
 import {
+    FormanFieldEdge,
     FormanSchemaBooleanNested,
     FormanSchemaExtendedNested,
     FormanSchemaExtendedOptions,
@@ -9,6 +10,7 @@ import {
     FormanSchemaOption,
     FormanSchemaOptionGroup,
     FormanSchemaSelectOptionsStore,
+    FormanSchemaValue,
 } from './types';
 
 /**
@@ -86,6 +88,121 @@ export function isBooleanBranchNested(
     return (
         isObject<FormanSchemaBooleanNested>(nested) && !('store' in nested) && ('true' in nested || 'false' in nested)
     );
+}
+
+/**
+ * Field types whose `nested` is conditioned on the toggle value rather than applied unconditionally.
+ * Matched on the base type, case-insensitively, so `Boolean` and `bool:something` qualify too.
+ */
+const BOOLEAN_TYPES = ['boolean', 'checkbox', 'bool'] as const;
+
+function isBooleanType(type: FormanSchemaFieldType): boolean {
+    const base = type.includes(':') ? type.split(':')[0]! : type;
+    return (BOOLEAN_TYPES as readonly string[]).includes(base.toLowerCase());
+}
+
+/**
+ * The edge-shaped view of one `nested` definition: a static list or a remote reference, plus the
+ * domain when the `{ store, domain }` wrapper names one. `undefined` for anything that is not a nested
+ * definition (absent, or a shape this function does not read, such as the boolean `{ true, false }` form).
+ */
+function nestedEdge(
+    nested: FormanSchemaNested | FormanSchemaBooleanNested | undefined,
+): Pick<FormanFieldEdge, 'children' | 'remote' | 'domain'> | undefined {
+    if (nested == null || isBooleanBranchNested(nested)) return undefined;
+
+    const store = isObject<FormanSchemaExtendedNested>(nested) ? nested.store : nested;
+    const domain = isObject<FormanSchemaExtendedNested>(nested) ? nested.domain : undefined;
+    const edge = typeof store === 'string' ? { remote: store } : Array.isArray(store) ? { children: store } : undefined;
+
+    return edge && domain ? { ...edge, domain } : edge;
+}
+
+/**
+ * Every way `field` reveals child fields, normalized to {@link FormanFieldEdge}s. This is the one place
+ * that knows how children are spelled; a consumer that walks a form reads them from here instead of
+ * from `options`/`nested` directly.
+ *
+ * - A static option carrying its own `nested` (in `options: [...]`, `options.store: [...]`, or inside an
+ *   option group) yields a conditional edge gated on that option's `value`.
+ * - `options.placeholder.nested` yields a conditional edge gated on `''` — the empty selection.
+ * - `options.nested` and a non-boolean field's own `nested` yield unconditional edges.
+ * - A boolean field's `nested` yields an edge gated on `true` (or `false` under `reversedNested`); the
+ *   `{ true, false }` form yields one edge per branch present.
+ *
+ * Edges are structural: an unconditional edge is emitted alongside conditional ones when both are
+ * declared. Which of them a given value reveals is {@link activeFieldEdges}'s job, since the validator
+ * treats an option's own `nested` as replacing the field-level one for that option, not adding to it.
+ * A field without a `name` cannot gate anything, so its option children are emitted unconditionally.
+ * @param field The field whose children to read
+ * @returns The edges in declaration order: option edges, placeholder, `options.nested`, own `nested`
+ */
+export function fieldEdges(field: FormanSchemaField): FormanFieldEdge[] {
+    const edges: FormanFieldEdge[] = [];
+    const gateOn = (value: FormanSchemaValue): Pick<FormanFieldEdge, 'gate'> =>
+        field.name ? { gate: { name: field.name, value } } : {};
+
+    const options = field.options;
+    const store = isObject<FormanSchemaExtendedOptions>(options) ? options.store : options;
+    if (Array.isArray(store)) {
+        for (const entry of store as FormanSchemaSelectOptionsStore) {
+            for (const option of isOptionGroup(entry) ? entry.options : [entry]) {
+                const edge = nestedEdge(option.nested);
+                if (edge) edges.push({ ...gateOn(option.value), ...edge });
+            }
+        }
+    }
+
+    if (isObject<FormanSchemaExtendedOptions>(options)) {
+        const placeholder = options.placeholder;
+        const placeholderEdge = isObject<{ nested?: FormanSchemaNested }>(placeholder)
+            ? nestedEdge(placeholder.nested)
+            : undefined;
+        if (placeholderEdge) edges.push({ ...gateOn(''), ...placeholderEdge });
+
+        const optionsEdge = nestedEdge(options.nested);
+        if (optionsEdge) edges.push(optionsEdge);
+    }
+
+    if (field.nested == null) return edges;
+
+    if (isBooleanBranchNested(field.nested)) {
+        for (const branch of [true, false] as const) {
+            const edge = nestedEdge(field.nested[`${branch}`]);
+            if (edge) edges.push({ ...gateOn(branch), ...edge });
+        }
+        return edges;
+    }
+
+    const ownEdge = nestedEdge(field.nested);
+    if (!ownEdge) return edges;
+
+    if (isBooleanType(field.type)) {
+        edges.push({ ...gateOn(field.reversedNested !== true), ...ownEdge });
+    } else {
+        edges.push(ownEdge);
+    }
+
+    return edges;
+}
+
+/**
+ * The edges of `field` that `value` reveals, following the validator's rules: a conditional edge whose
+ * gate matches the value wins outright; when none matches, the unconditional edges apply — which is
+ * also what a value outside the static options (a custom or IML value) reveals. An empty value
+ * (`undefined`, `null`, `''`) matches the placeholder edge and nothing else, mirroring how an empty
+ * select shows its placeholder form and a boolean left unset reveals neither branch.
+ * @param field The parent field
+ * @param value The parent's current value
+ * @returns The edges whose children are part of the form for this value
+ */
+export function activeFieldEdges(field: FormanSchemaField, value: unknown): FormanFieldEdge[] {
+    const edges = fieldEdges(field);
+
+    if (value == null || value === '') return edges.filter(edge => edge.gate?.value === '');
+
+    const gated = edges.filter(edge => edge.gate && valuesMatch(edge.gate.value, value));
+    return gated.length > 0 ? gated : edges.filter(edge => !edge.gate);
 }
 
 /**

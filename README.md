@@ -2,6 +2,19 @@
 
 Conversion and validation utilities for Forman Schema.
 
+## Unreleased — field edges, editor markers, remote fragment omission
+
+Non-breaking minor release.
+
+- New `fieldEdges(field)` and `activeFieldEdges(field, value)` expose every way a field reveals child
+  fields as one normalized list of edges — see [Reading child fields](#reading-child-fields).
+- `editor` fields are stamped with `x-editor: true` (plus `x-language`), multiline text with
+  `x-multiline: true`; both round-trip through `toFormanSchema`.
+- New conversion option `excludeRemoteFragments` drops bare `rpc://` strings from field lists and reports
+  them on `skippedPaths.remoteFragments` — see [Remote form fragments](#remote-form-fragments).
+- `FormanSchemaExtendedOptions.store` is optional, matching schemas whose `options` wrapper carries
+  only `nested`, and accepts a partially grouped store.
+
 ## v2.0.1 (patch): inactive branches stay out of `schemas`
 
 The fields nested under a boolean toggle that is `false` (or absent and filled to `false` by
@@ -75,6 +88,66 @@ const { schema, skippedPaths } = toJSONSchemaAdvanced(formanField, { excludeAdva
 ```
 
 The filter applies to **sub-fields of a collection** — including nested-by-option fields, array-of-collection items, composite expansions (`udtspec`, `udttype`), and cross-domain buffered fields. It does **not** apply to: the top-level field passed in (always converted), or the item type of an array whose `spec` is a single primitive field. To hide an entire array or any other top-level structure, mark the _parent_ field as `advanced: true`.
+
+### Remote form fragments
+
+A field list may hold a bare `rpc://` string next to its fields — a form fragment fetched live, such as
+a banner or a record schema. By default it converts to an `allOf: [{ $ref: "rpc://…" }]` entry on the
+enclosing object. Pass `{ excludeRemoteFragments: true }` to drop these instead; `toJSONSchemaAdvanced`
+reports each dropped fragment on `skippedPaths.remoteFragments` as the list's dot path plus the reference:
+
+```typescript
+const { schema, skippedPaths } = toJSONSchemaAdvanced(
+    { name: 'wrapper', type: 'collection', spec: ['rpc://banner', { name: 'a', type: 'text' }] },
+    { excludeRemoteFragments: true },
+);
+// schema.allOf   → undefined
+// skippedPaths   → { remoteFragments: ['wrapper (rpc://banner)'] }
+```
+
+A field whose _whole_ child list is remote (`nested: "rpc://…"`) is unaffected — that stays an
+`x-nested: { $ref }` marker on the field, since it is not a fragment inside a list.
+
+### Editor and multiline markers
+
+`type: 'editor'` converts to a string schema stamped with `x-editor: true` and, when the field declares
+a `language`, `x-language: '<language>'`. A text field with `multiline: true` is stamped with
+`x-multiline: true`. Both are enumerable, so they survive serialization, and `toFormanSchema` reads them
+back into `type: 'editor'`/`language` and `multiline: true`.
+
+### Reading child fields
+
+A Forman field can reveal children in several spellings: per-option `nested` (in a plain `options`
+array, an `options.store`, or an option group), `options.placeholder.nested`, `options.nested`, the
+field's own `nested`, the boolean `{ true, false }` form, and the `{ store, domain }` wrapper around any
+of them. `fieldEdges(field)` normalizes all of these into one list of edges, so a consumer walking a
+form never reads `options`/`nested` directly:
+
+```typescript
+import { fieldEdges, activeFieldEdges } from '@makehq/forman-schema';
+
+fieldEdges({
+    name: 'mode',
+    type: 'select',
+    options: {
+        store: [{ value: 'a', nested: [{ name: 'onA', type: 'text' }] }, { value: 'b' }],
+        nested: { domain: 'expect', store: [{ name: 'always', type: 'text' }] },
+    },
+});
+// [
+//   { gate: { name: 'mode', value: 'a' }, children: [{ name: 'onA', type: 'text' }] },
+//   { domain: 'expect', children: [{ name: 'always', type: 'text' }] },
+// ]
+```
+
+An edge carries `gate` when the children depend on the parent's value, `domain` when they belong to
+another domain, and either `children` (a static list, bare `rpc://` strings kept verbatim) or `remote`
+(the whole list is fetched live). A boolean's `nested` is an edge gated on `true`, or on `false` under
+`reversedNested`.
+
+`activeFieldEdges(field, value)` returns the edges a given value reveals, with the validator's rules: a
+matching gated edge replaces the unconditional ones, a value outside the static options falls back to
+them, and an empty value (`undefined`, `null`, `''`) reveals only the placeholder edge.
 
 ### Converting from JSON Schema to Forman Schema
 
