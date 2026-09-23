@@ -185,6 +185,12 @@ export type FormanSchemaDirectoryOption = {
     file?: boolean;
 };
 
+/** Informational text shown beside a select option's label. */
+export type FormanSchemaOptionBadge = {
+    label: string;
+    variant: 'neutral';
+};
+
 /**
  * Option for a select field
  */
@@ -193,6 +199,8 @@ export type FormanSchemaOption = {
     value: FormanSchemaValue;
     /** Option label */
     label?: string;
+    /** Optional informational badge; does not affect the option value or availability. */
+    badge?: FormanSchemaOptionBadge;
     /** Whether the option is the default */
     default?: boolean;
     /** Nested fields for this option */
@@ -320,6 +328,7 @@ export type FormanNormalizedValidationResult = FormanValidationResult &
 export type FormanSchemaFieldState = {
     mode?: 'chose' | 'edit';
     label?: string;
+    badge?: FormanSchemaOptionBadge;
     path?: Array<string>;
     data?: Record<string, unknown>;
     extra?: Record<string, unknown>;
