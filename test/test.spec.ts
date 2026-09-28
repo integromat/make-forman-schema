@@ -68,6 +68,7 @@ describe('Forman Schema', () => {
                 },
                 editor: {
                     type: 'string',
+                    'x-editor': true,
                 },
                 file: {
                     title: 'File',
@@ -512,7 +513,7 @@ describe('Forman Schema', () => {
                     required: false,
                 },
                 {
-                    type: 'text',
+                    type: 'editor',
                     name: 'editor',
                     required: false,
                 },

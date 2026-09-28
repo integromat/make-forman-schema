@@ -173,6 +173,15 @@ function toFormanSchemaInternal(field: JSONSchema7): FormanSchemaField {
                 default: field.default as FormanSchemaValue,
             };
 
+            if (Object.getOwnPropertyDescriptor(field, 'x-editor')?.value === true) {
+                textField.type = 'editor';
+                const language = Object.getOwnPropertyDescriptor(field, 'x-language')?.value;
+                if (typeof language === 'string') textField.language = language;
+            }
+            if (Object.getOwnPropertyDescriptor(field, 'x-multiline')?.value === true) {
+                textField.multiline = true;
+            }
+
             // Add validation if present
             if (field.pattern || field.enum) {
                 textField.validate = textField.validate || {};

@@ -49,8 +49,10 @@ export interface ConversionContext {
     definitions?: Record<string, JSONSchema7>;
     /** Whether to exclude fields with `advanced: true` from the rendered schema. */
     excludeAdvancedFields: boolean;
+    /** Drop remote form fragments (bare strings in field lists) instead of emitting `$ref` entries. */
+    excludeRemoteFragments: boolean;
     /** Accumulator for paths of skipped fields, keyed by skip reason. Shared (mutated) across recursion. */
-    skippedPaths: { advanced?: string[]; unconvertible?: string[] };
+    skippedPaths: { advanced?: string[]; unconvertible?: string[]; remoteFragments?: string[] };
     /** Throw on unresolvable field types instead of degrading them to a permissive schema. */
     strictFieldTypes: boolean;
 }
@@ -239,6 +241,7 @@ export function createDefaultContext(options?: FormanJsonSchemaOptions): Convers
         roots: {},
         definitions: {},
         excludeAdvancedFields: options?.excludeAdvancedFields ?? false,
+        excludeRemoteFragments: options?.excludeRemoteFragments ?? false,
         strictFieldTypes: options?.strictFieldTypes ?? false,
         skippedPaths: {},
         addConditionalFields: () => {
@@ -396,10 +399,12 @@ function handleCollectionType(field: FormanSchemaField, result: JSONSchema7, con
 
     // Synthetic anonymous collections (array items, nested-by-option wrappers, RPC param wrappers)
     // have no name; in that case the collection contributes no path segment.
-    const collectionPath = field.name ? [...context.path, field.name] : context.path;
+    const collectionPath = fieldPath(field, context);
 
     function addField(subField: FormanSchemaField | string, tail?: string[]) {
         if (typeof subField === 'string') {
+            if (withoutRemoteFragments([subField], collectionPath, context).length === 0) return;
+
             const value = { $ref: appendQueryString(subField, context.domain, tail || context.tail) };
 
             result.allOf ||= [];
@@ -675,7 +680,7 @@ function handleSelectOrPathType(
         });
     }
 
-    const { nested, domain } = extractNestedAndDomain(field);
+    const { nested, domain } = extractNestedAndDomain(field, context);
 
     if (typeof optionsOrGroups === 'string') {
         Object.defineProperty(result, 'x-fetch', {
@@ -746,9 +751,12 @@ function handleSelectOrPathType(
             })
         ) {
             result.oneOf = (options || []).map(option => {
-                const localNested =
-                    (isObject<FormanSchemaExtendedNested>(option.nested) ? option.nested.store : option.nested) ||
-                    nested;
+                const ownNested = isObject<FormanSchemaExtendedNested>(option.nested)
+                    ? option.nested.store
+                    : option.nested;
+                const localNested = Array.isArray(ownNested)
+                    ? withoutRemoteFragments(ownNested, fieldPath(field, context), context)
+                    : ownNested || nested;
 
                 const localNestedContainsStrings =
                     Array.isArray(localNested) && localNested.some(item => typeof item === 'string');
@@ -758,7 +766,7 @@ function handleSelectOrPathType(
                         ? option.nested.domain
                         : domain) || context.domain;
 
-                if (localNested) {
+                if (localNested && localNested.length > 0) {
                     context.addConditionalFields(
                         field.name!,
                         option.value,
@@ -879,7 +887,7 @@ function handleJsonType(field: FormanSchemaField, result: JSONSchema7): JSONSche
  * @returns A permissive JSON Schema preserving the field's label and help
  */
 function degradeUnconvertibleField(field: FormanSchemaField, context: ConversionContext): JSONSchema7 {
-    const path = field.name ? [...context.path, field.name].join('.') : context.path.join('.');
+    const path = fieldPath(field, context).join('.');
     const reason = field.type ? `unknown type: ${field.type}` : 'missing type';
 
     (context.skippedPaths.unconvertible ||= []).push(`${path} (${reason})`);
@@ -922,12 +930,58 @@ function handlePrimitiveType(field: FormanSchemaField, result: JSONSchema7, cont
 
     if (field.rpc) result = processRpcDirective(field, result, context);
 
+    if (field.type === 'editor') {
+        Object.defineProperty(result, 'x-editor', {
+            configurable: true,
+            enumerable: true,
+            writable: true,
+            value: true,
+        });
+        if (typeof field.language === 'string' && field.language) {
+            Object.defineProperty(result, 'x-language', {
+                configurable: true,
+                enumerable: true,
+                writable: true,
+                value: field.language,
+            });
+        }
+    }
+
+    if (field.multiline === true && result.type === 'string') {
+        Object.defineProperty(result, 'x-multiline', {
+            configurable: true,
+            enumerable: true,
+            writable: true,
+            value: true,
+        });
+    }
+
     if (field.nested) {
-        const { nested, domain } = extractNestedAndDomain(field);
+        const { nested, domain } = extractNestedAndDomain(field, context);
         result = handleNestedWithDomain(field, nested, domain, result, context);
     }
 
     return result;
+}
+
+/** The dot path of `field`, or of its enclosing collection when the field is nameless (an array item). */
+function fieldPath(field: FormanSchemaField, context: ConversionContext): string[] {
+    return field.name ? [...context.path, field.name] : context.path;
+}
+
+/** Under `excludeRemoteFragments`, removes the string entries of a field list and records each on `skippedPaths.remoteFragments`. */
+function withoutRemoteFragments(
+    list: (FormanSchemaField | string)[],
+    path: string[],
+    context: ConversionContext,
+): (FormanSchemaField | string)[] {
+    if (!context.excludeRemoteFragments) return list;
+
+    return list.filter(item => {
+        if (typeof item !== 'string') return true;
+        (context.skippedPaths.remoteFragments ||= []).push(`${path.join('.')} (${item})`);
+        return false;
+    });
 }
 
 /**
@@ -958,15 +1012,20 @@ function processRpcDirective(field: FormanSchemaField, result: JSONSchema7, cont
 }
 
 /**
- * Extracts nested fields and domain from a field, unwrapping extended nested format
+ * Extracts nested fields and domain from a field, unwrapping extended nested format and applying
+ * `excludeRemoteFragments` to the list
  * @param field The field to extract from
+ * @param context The context for the conversion
  * @returns Object containing nested fields and optional domain
  */
-function extractNestedAndDomain(field: FormanSchemaField): {
+function extractNestedAndDomain(
+    field: FormanSchemaField,
+    context: ConversionContext,
+): {
     nested: (FormanSchemaField | string)[] | string | undefined;
     domain: string | undefined;
 } {
-    const nested = isObject<FormanSchemaExtendedOptions>(field.options)
+    const declared = isObject<FormanSchemaExtendedOptions>(field.options)
         ? isObject<FormanSchemaExtendedNested>(field.options.nested)
             ? field.options.nested.store
             : field.options.nested
@@ -983,6 +1042,10 @@ function extractNestedAndDomain(field: FormanSchemaField): {
         : isObject<FormanSchemaExtendedNested>(field.nested) && field.nested.domain
           ? field.nested.domain
           : undefined;
+
+    const nested = Array.isArray(declared)
+        ? withoutRemoteFragments(declared, fieldPath(field, context), context)
+        : declared;
 
     return { nested, domain };
 }
@@ -1044,7 +1107,7 @@ function processNestedDirective(
     result: JSONSchema7,
     context: ConversionContext,
 ): JSONSchema7 {
-    if (!nested) return result;
+    if (!nested || nested.length === 0) return result;
 
     const nestedContainsStrings = Array.isArray(nested) && nested.some(item => typeof item === 'string');
 
