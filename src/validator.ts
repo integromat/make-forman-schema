@@ -1263,6 +1263,7 @@ async function handleSelectType(
                         mode: isReferenceType(field.type) ? undefined : 'chose',
                         label: item.label,
                         ...(item.nested ? { nested: item.nested } : {}),
+                        ...(item.badge ? { badge: item.badge } : {}),
                     },
                 });
             }
