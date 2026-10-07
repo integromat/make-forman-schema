@@ -75,6 +75,8 @@ export interface ValidationContext {
     strict: boolean;
     /** Fill declared defaults for omitted fields (see FormanValidationOptions.fillDefaults) */
     fillDefaults?: 'requiredOnly' | 'always';
+    /** Rewrite numeric/boolean strings to their typed value (see FormanValidationOptions.coerceTypes) */
+    coerceTypes?: boolean;
     suppressRequired?: boolean;
     registerOnly?: boolean;
     /** Maps domain names used in nested.domain to actual domain keys */
@@ -117,6 +119,8 @@ export interface DomainRoot {
     schemaFields: FormanSchemaField[];
     /** Defaults filled during validation (`options.fillDefaults`), with raw path segments */
     appliedDefaults: Array<{ path: Array<string | number>; value: unknown }>;
+    /** Strings rewritten to their typed value (`options.coerceTypes`), with raw path segments */
+    appliedCoercions: Array<{ path: Array<string | number>; value: number | boolean }>;
     /** Whether the domain allows dynamic values (IML expressions, unresolved RPC select options) */
     allowDynamicValues: boolean;
 }
@@ -271,6 +275,7 @@ export async function validateFormanWithDomainsInternal(
                 fieldStates: [],
                 schemaFields: [],
                 appliedDefaults: [],
+                appliedCoercions: [],
                 allowDynamicValues: domains[domain]!.allowDynamicValues ?? options?.allowDynamicValues ?? false,
                 validateFields: (fields: FormanSchemaField[], context: ValidationContext) => {
                     return validateFormanValue(
@@ -311,6 +316,7 @@ export async function validateFormanWithDomainsInternal(
                 tail: [],
                 strict: options?.strict === true,
                 fillDefaults: options?.fillDefaults,
+                coerceTypes: options?.coerceTypes === true,
                 domainAliases: options?.domainAliases ?? {},
                 validateNestedFields: () => {
                     throw new Error('Cannot validate nested fields without parent field.');
@@ -405,7 +411,7 @@ export async function validateFormanWithDomainsInternal(
         normalizedValues: Object.fromEntries(
             Object.keys(domains).map(domain => [
                 domain,
-                (roots[domain]?.appliedDefaults ?? []).reduce(
+                [...(roots[domain]?.appliedDefaults ?? []), ...(roots[domain]?.appliedCoercions ?? [])].reduce(
                     (values, { path, value }) => setValueAtPath(values, path, value),
                     domains[domain]?.values ?? {},
                 ),
@@ -419,10 +425,43 @@ export async function validateFormanWithDomainsInternal(
                     value,
                 })) ?? [],
         ),
+        appliedCoercions: Object.keys(domains).flatMap(
+            domain =>
+                roots[domain]?.appliedCoercions.map(({ path, value }) => ({
+                    domain,
+                    path: path.join('.'),
+                    value,
+                })) ?? [],
+        ),
     };
 }
 
 const MSG_FIELD_TYPE_REQUIRED = 'Field type is required.';
+
+// A complete decimal literal and nothing else — no exponent, no thousands separator, no hex — so the
+// value a caller typed is what the number reads back as. `Number()` alone would also accept '', ' ',
+// '0x10' and '1e3', none of which a user meant as a plain number.
+const DECIMAL_LITERAL = /^-?\d+(\.\d+)?$/;
+
+/**
+ * The `coerceTypes` rewrite for one string: a decimal literal to a finite number on a number-typed
+ * field, `'true'`/`'false'` to a boolean on a boolean-typed field. `undefined` means "not coercible" —
+ * the caller leaves the string in place and the ordinary type check reports it.
+ */
+function coercePrimitiveString(value: string, expectedType: string): number | boolean | undefined {
+    const trimmed = value.trim();
+    if (expectedType === 'number') {
+        if (!DECIMAL_LITERAL.test(trimmed)) return undefined;
+        const parsed = Number(trimmed);
+        return Number.isFinite(parsed) ? parsed : undefined;
+    }
+    if (expectedType === 'boolean') {
+        const lower = trimmed.toLowerCase();
+        if (lower === 'true') return true;
+        if (lower === 'false') return false;
+    }
+    return undefined;
+}
 
 /**
  * Validates a Forman value against a schema
@@ -522,6 +561,18 @@ async function validateFormanValue(
     }
 
     const expectedType = FORMAN_TYPE_MAP[normalizedField.type];
+
+    // Before the type check so the typed value drives everything after it (nested boolean branches,
+    // validate.min/max). Only a string with no IML at all is a candidate: a pill is judged by the
+    // IML rules below, never rewritten.
+    if (context.coerceTypes && typeof value === 'string' && expectedType && !containsIMLExpression(value)) {
+        const coerced = coercePrimitiveString(value, expectedType);
+        if (coerced !== undefined) {
+            value = coerced;
+            context.roots[context.domain]!.appliedCoercions.push({ path: [...context.path], value: coerced });
+        }
+    }
+
     let actualType: string = typeof value;
     if (actualType === 'object' && Array.isArray(value)) actualType = 'array';
 
@@ -1033,10 +1084,7 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
 
         const selectedOption = selectableOptions.find(candidate => candidate.value === levelSelectedValue);
         if (!selectedOption) {
-            if (
-                optionsFromRPC &&
-                unresolvedOptionIsTolerable(field, context.roots[context.domain]!)
-            ) {
+            if (optionsFromRPC && unresolvedOptionIsTolerable(field, context.roots[context.domain]!)) {
                 warnings.push({
                     domain: context.domain,
                     path: context.path.join('.'),
@@ -1227,10 +1275,7 @@ async function handleSelectType(
         const item = findValueInSelectOptions(field, value, optionsOrGroups as FormanSchemaSelectOptionsStore);
 
         if (!item) {
-            if (
-                optionsFromRPC &&
-                unresolvedOptionIsTolerable(field, context.roots[context.domain]!)
-            ) {
+            if (optionsFromRPC && unresolvedOptionIsTolerable(field, context.roots[context.domain]!)) {
                 warnings.push({
                     domain: context.domain,
                     path: context.path.join('.'),

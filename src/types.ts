@@ -323,6 +323,14 @@ export type FormanValidationResult = {
          *  defaults at runtime, which are filled as (cloned) values too. */
         value: unknown;
     }[];
+    /** The string values rewritten to the field's declared primitive type (`options.coerceTypes`),
+     *  in walk order within each domain. Also applied into `normalizedValues`. */
+    appliedCoercions?: {
+        domain: string;
+        path: string;
+        /** The typed value that replaced the string. */
+        value: number | boolean;
+    }[];
 };
 
 /**
@@ -330,7 +338,7 @@ export type FormanValidationResult = {
  * on the base type because intermediate results assembled during the walk do not carry them.
  */
 export type FormanNormalizedValidationResult = FormanValidationResult &
-    Required<Pick<FormanValidationResult, 'normalizedValues' | 'appliedDefaults'>>;
+    Required<Pick<FormanValidationResult, 'normalizedValues' | 'appliedDefaults' | 'appliedCoercions'>>;
 
 export type FormanSchemaFieldState = {
     mode?: 'chose' | 'edit';
@@ -445,6 +453,18 @@ export type FormanValidationOptions = {
      *  field comes back with its default. An explicit `null` is a provided value: it never fills
      *  and still fails as mandatory. Inactive branches are never filled. */
     fillDefaults?: 'requiredOnly' | 'always';
+    /** Rewrite a string value to the field's declared primitive type instead of failing the type
+     *  check, for callers whose values arrive as text (an LLM emitting JSON, a form post). A string
+     *  that is a complete decimal literal (`'300'`, `'-1.5'`, surrounding whitespace allowed) becomes
+     *  a number on fields whose type maps to `number` (`number`, `integer`, `uinteger`, `port`, and
+     *  the id types `account`, `hook`, `datastore`, `keychain`, `device`, `udt`); `'true'`/`'false'`
+     *  (case-insensitive) become booleans on `boolean`/`checkbox`. Anything else — an empty string,
+     *  `'3,5'`, `'1e3'`, `'yes'`, a string carrying an IML expression — is left alone and judged by
+     *  the type check exactly as before. The typed value flows through the rest of the walk (a
+     *  coerced `'true'` arms its nested branch; `validate.min`/`max` see a number) and is reported on
+     *  `normalizedValues` and `appliedCoercions`. Off by default: existing callers keep the strict
+     *  verdict. */
+    coerceTypes?: boolean;
     /** Maps domain names used in nested.domain to actual domain keys passed to validateFormanWithDomains */
     domainAliases?: Record<string, string>;
     /** Whether to allow dynamic values (IML expressions, unresolved RPC options).
