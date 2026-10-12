@@ -275,6 +275,90 @@ describe('Filter Type with Configurable Options and Operators', () => {
         });
     });
 
+    describe('Restore states', () => {
+        const operators = [
+            { label: 'Contains (case insensitive)', value: 'text:contain:ci' },
+            { label: 'Equal to', value: 'text:equal' },
+        ];
+        const filterSchema: FormanSchemaField[] = [
+            { name: 'filter', type: 'filter', options: { store: [{ label: 'Name', value: 'name' }], operators } },
+        ];
+        const filterValue = { filter: [[{ a: 'name', o: 'text:contain:ci', b: 'x' }]] };
+
+        const restoreOf = (result: { states?: Record<string, unknown> }, field: string) =>
+            (result.states?.default as Record<string, unknown> | undefined)?.[field];
+
+        /**
+         * The engine reads a filter's restore node as `{ extra: { aiInstruction: [...] } }`: it walks the
+         * node's keys and expects every value to be an object, so a `mode: 'chose'` string or an `items`
+         * array tree (what an array level gets everywhere else) throws "Cannot use 'in' operator to search
+         * for 'nested' in chose" when the scenario initializes.
+         */
+        const expectEngineReadable = (node: unknown) => {
+            if (node === undefined) return;
+            expect(typeof node).toBe('object');
+            for (const [key, child] of Object.entries(node as Record<string, unknown>)) {
+                expect({ key, isObject: typeof child === 'object' && child !== null }).toEqual({ key, isObject: true });
+            }
+        };
+
+        it('emits no field states for the operands and operator of a filter', async () => {
+            const result = await validateForman(filterValue, filterSchema, { states: true });
+
+            expect(result).toMatchObject({ valid: true, errors: [] });
+            expect(restoreOf(result, 'filter')).toBeUndefined();
+        });
+
+        it('keeps the filter restore node readable by the engine when extras are supplied for the filter', async () => {
+            const result = await validateForman(
+                filterValue,
+                filterSchema,
+                { states: true },
+                {
+                    filter: { aiInstruction: ['Use the supplier value.'] },
+                },
+            );
+
+            expect(restoreOf(result, 'filter')).toEqual({ extra: { aiInstruction: ['Use the supplier value.'] } });
+            expectEngineReadable(restoreOf(result, 'filter'));
+        });
+
+        it('ignores extras addressed below a filter condition and says why', async () => {
+            const result = await validateForman(
+                filterValue,
+                filterSchema,
+                { states: true },
+                {
+                    'filter[0][0].b': {
+                        aiHelp: 'The second operand of the filter.',
+                        aiInstruction: 'Use the supplier value.',
+                    },
+                },
+            );
+
+            expect(result.valid).toBe(true);
+            expect(restoreOf(result, 'filter')).toBeUndefined();
+            expect(result.warnings).toEqual([
+                expect.objectContaining({
+                    domain: 'default',
+                    path: 'filter[0][0].b',
+                    message: expect.stringContaining('filter'),
+                }),
+            ]);
+        });
+
+        it('still emits states for fields next to a filter', async () => {
+            const result = await validateForman(
+                { mode: 'a', ...filterValue },
+                [{ name: 'mode', type: 'select', options: [{ label: 'Mode A', value: 'a' }] }, ...filterSchema],
+                { states: true },
+            );
+
+            expect(restoreOf(result, 'mode')).toMatchObject({ mode: 'chose', label: 'Mode A' });
+            expect(restoreOf(result, 'filter')).toBeUndefined();
+        });
+    });
+
     describe('Edge Cases', () => {
         it('should handle options without label property', () => {
             const formanSchema: FormanSchemaField = {

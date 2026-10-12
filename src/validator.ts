@@ -113,12 +113,23 @@ export interface DomainRoot {
         /** State of the field */
         state: Omit<FormanSchemaFieldState, 'items'>;
     }>;
+    /** Paths of the `filter` fields seen during validation (restore extras below one are not addressable) */
+    filterPaths: Array<Array<string | number>>;
     /** Resolved schema fields collected during validation */
     schemaFields: FormanSchemaField[];
     /** Defaults filled during validation (`options.fillDefaults`), with raw path segments */
     appliedDefaults: Array<{ path: Array<string | number>; value: unknown }>;
     /** Whether the domain allows dynamic values (IML expressions, unresolved RPC select options) */
     allowDynamicValues: boolean;
+}
+
+/**
+ * Whether `path` addresses something inside one of the given filter fields (not the filter itself).
+ */
+function isBelowFilter(path: Array<string | number>, filterPaths: Array<Array<string | number>>): boolean {
+    return filterPaths.some(
+        filterPath => path.length > filterPath.length && filterPath.every((key, index) => path[index] === key),
+    );
 }
 
 /**
@@ -269,6 +280,7 @@ export async function validateFormanWithDomainsInternal(
             acc[domain] = {
                 seenFields: new Set(),
                 fieldStates: [],
+                filterPaths: [],
                 schemaFields: [],
                 appliedDefaults: [],
                 allowDynamicValues: domains[domain]!.allowDynamicValues ?? options?.allowDynamicValues ?? false,
@@ -349,6 +361,17 @@ export async function validateFormanWithDomainsInternal(
             );
             // For each field from the extra map...
             for (const [fieldPath, extra] of Object.entries(restoreExtras)) {
+                if (isBelowFilter(stringToPath(fieldPath), roots[domain]!.filterPaths)) {
+                    // A filter's restore is the single node `{ extra: { aiInstruction: [...] } }`; the engine never
+                    // reads a state addressed to one of its conditions or operands, and building one would put an
+                    // array tree under the filter that breaks the engine's reading of the node (see handleFilterType).
+                    warnings.push({
+                        domain,
+                        path: fieldPath,
+                        message: `Restore extras for '${fieldPath}' were ignored: a filter's extras belong on the filter field itself, not on its conditions or operands.`,
+                    });
+                    continue;
+                }
                 const state = fieldStateMap.get(fieldPath);
                 if (state) {
                     // If the state has existed, add the extra value.
@@ -871,7 +894,23 @@ async function handleFilterType(value: unknown, field: FormanSchemaField, contex
                   spec: filterEntry,
               },
           };
-    return handleArrayType(value as unknown[], inlineSchema, context);
+    const root = context.roots[context.domain]!;
+    root.filterPaths.push([...context.path]);
+    const statesBefore = root.fieldStates.length;
+    const result = await handleArrayType(value as unknown[], inlineSchema, context);
+
+    // The array validator above is an implementation detail of reading a filter, and the states it records for the
+    // operands and operator (`{ mode: 'chose', label }` per select) would be assembled into the array form every other
+    // array gets: `{ mode: 'chose', items: [{ value: { mode: 'chose', items: [...] } }] }`. That is not how a filter is
+    // restored. The editor stores it as one node, `{ extra: { aiInstruction: [...] } }`, and the engine reads exactly
+    // that when it builds an agent tool's inputs — it walks the node's keys expecting objects, so the `mode` string
+    // throws "Cannot use 'in' operator to search for 'nested' in chose" at scenario initialization.
+    const kept = root.fieldStates
+        .slice(statesBefore)
+        .filter(({ path }) => !(path.length > context.path.length && context.path.every((key, i) => path[i] === key)));
+    root.fieldStates.length = statesBefore;
+    root.fieldStates.push(...kept);
+    return result;
 }
 
 /**
