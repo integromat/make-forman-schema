@@ -288,20 +288,6 @@ describe('Filter Type with Configurable Options and Operators', () => {
         const restoreOf = (result: { states?: Record<string, unknown> }, field: string) =>
             (result.states?.default as Record<string, unknown> | undefined)?.[field];
 
-        /**
-         * The engine reads a filter's restore node as `{ extra: { aiInstruction: [...] } }`: it walks the
-         * node's keys and expects every value to be an object, so a `mode: 'chose'` string or an `items`
-         * array tree (what an array level gets everywhere else) throws "Cannot use 'in' operator to search
-         * for 'nested' in chose" when the scenario initializes.
-         */
-        const expectEngineReadable = (node: unknown) => {
-            if (node === undefined) return;
-            expect(typeof node).toBe('object');
-            for (const [key, child] of Object.entries(node as Record<string, unknown>)) {
-                expect({ key, isObject: typeof child === 'object' && child !== null }).toEqual({ key, isObject: true });
-            }
-        };
-
         it('emits no field states for the operands and operator of a filter', async () => {
             const result = await validateForman(filterValue, filterSchema, { states: true });
 
@@ -309,7 +295,7 @@ describe('Filter Type with Configurable Options and Operators', () => {
             expect(restoreOf(result, 'filter')).toBeUndefined();
         });
 
-        it('keeps the filter restore node readable by the engine when extras are supplied for the filter', async () => {
+        it('restores a filter as one flat node when extras are supplied for it', async () => {
             const result = await validateForman(
                 filterValue,
                 filterSchema,
@@ -320,7 +306,6 @@ describe('Filter Type with Configurable Options and Operators', () => {
             );
 
             expect(restoreOf(result, 'filter')).toEqual({ extra: { aiInstruction: ['Use the supplier value.'] } });
-            expectEngineReadable(restoreOf(result, 'filter'));
         });
 
         it('ignores extras addressed below a filter condition and says why', async () => {

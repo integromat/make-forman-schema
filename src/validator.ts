@@ -362,9 +362,7 @@ export async function validateFormanWithDomainsInternal(
             // For each field from the extra map...
             for (const [fieldPath, extra] of Object.entries(restoreExtras)) {
                 if (isBelowFilter(stringToPath(fieldPath), roots[domain]!.filterPaths)) {
-                    // A filter's restore is the single node `{ extra: { aiInstruction: [...] } }`; the engine never
-                    // reads a state addressed to one of its conditions or operands, and building one would put an
-                    // array tree under the filter that breaks the engine's reading of the node (see handleFilterType).
+                    // A state below a filter would rebuild the array tree handleFilterType just dropped.
                     warnings.push({
                         domain,
                         path: fieldPath,
@@ -899,17 +897,12 @@ async function handleFilterType(value: unknown, field: FormanSchemaField, contex
     const statesBefore = root.fieldStates.length;
     const result = await handleArrayType(value as unknown[], inlineSchema, context);
 
-    // The array validator above is an implementation detail of reading a filter, and the states it records for the
-    // operands and operator (`{ mode: 'chose', label }` per select) would be assembled into the array form every other
-    // array gets: `{ mode: 'chose', items: [{ value: { mode: 'chose', items: [...] } }] }`. That is not how a filter is
-    // restored. The editor stores it as one node, `{ extra: { aiInstruction: [...] } }`, and the engine reads exactly
-    // that when it builds an agent tool's inputs — it walks the node's keys expecting objects, so the `mode` string
-    // throws "Cannot use 'in' operator to search for 'nested' in chose" at scenario initialization.
-    const kept = root.fieldStates
-        .slice(statesBefore)
-        .filter(({ path }) => !(path.length > context.path.length && context.path.every((key, i) => path[i] === key)));
+    // The array validator records `{ mode: 'chose', label }` for the operand and operator selects, which
+    // `buildRestoreStructure` would assemble into the array form `{ mode: 'chose', items: [...] }`. A filter is
+    // restored as one flat node (`{ extra: { aiInstruction: [...] } }`): the engine walks that node's keys expecting
+    // objects, and the `mode` string fails every Run Once of an AI agent tool with "Cannot use 'in' operator to
+    // search for 'nested' in chose". Everything recorded inside the filter is below its path, so drop it all.
     root.fieldStates.length = statesBefore;
-    root.fieldStates.push(...kept);
     return result;
 }
 
