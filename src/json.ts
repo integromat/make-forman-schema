@@ -34,6 +34,36 @@ export function toFormanSchema(field: JSONSchema7): FormanSchemaField {
     return result;
 }
 
+/**
+ * Recovers a select from an `enum` or a `oneOf` of `const`s, dropping the artificial empty option.
+ * @param field The JSON Schema field
+ * @returns The select, or `undefined` when the field carries no option list
+ */
+function selectFromOptions(field: JSONSchema7): FormanSchemaField | undefined {
+    const help = field.description === EMPTY_OPTION_DESCRIPTION ? undefined : noEmpty(field.description);
+    if (field.enum) {
+        // For strings with enum, create a select type
+        return {
+            type: 'select',
+            label: noEmpty(field.title),
+            help,
+            options: field.enum.filter(value => value !== '').map(value => ({ value: value as FormanSchemaValue })),
+        };
+    }
+    if (field.oneOf) {
+        // For strings with oneOf, create a select type
+        return {
+            type: 'select',
+            label: noEmpty(field.title),
+            help,
+            options: field.oneOf
+                .filter(value => value && (value as JSONSchema7).const !== '')
+                .map(value => ({ value: (value as JSONSchema7).const as FormanSchemaValue })),
+        };
+    }
+    return undefined;
+}
+
 function toFormanSchemaInternal(field: JSONSchema7): FormanSchemaField {
     // Short-circuit for fields that should stay as JSON Schema.
     if (Object.getOwnPropertyDescriptor(field, 'x-json')?.value === true) {
@@ -46,6 +76,15 @@ function toFormanSchemaInternal(field: JSONSchema7): FormanSchemaField {
     const compositeType = Object.getOwnPropertyDescriptor(field, 'x-composite')?.value;
     if (compositeType === 'udttype') return udttypeCollapse(field);
     if (compositeType === 'udtspec') return udtspecCollapse(field);
+
+    // A select with numeric or boolean option values carries no `type` (see `handleSelectOrPathType`).
+    if (
+        field.type === undefined &&
+        (field.enum || field.oneOf?.every(entry => isObject<JSONSchema7>(entry) && 'const' in entry))
+    ) {
+        const select = selectFromOptions(field);
+        if (select) return select;
+    }
 
     switch (field.type) {
         case 'object':
@@ -141,29 +180,8 @@ function toFormanSchemaInternal(field: JSONSchema7): FormanSchemaField {
                     },
                 };
             }
-            if (field.enum) {
-                // For strings with enum, create a select type
-                const help = field.description === EMPTY_OPTION_DESCRIPTION ? undefined : noEmpty(field.description);
-                return {
-                    type: 'select',
-                    label: noEmpty(field.title),
-                    help,
-                    options: field.enum
-                        .filter(value => value !== '')
-                        .map(value => ({ value: value as FormanSchemaValue })),
-                };
-            } else if (field.oneOf) {
-                // For strings with oneOf, create a select type
-                const help = field.description === EMPTY_OPTION_DESCRIPTION ? undefined : noEmpty(field.description);
-                return {
-                    type: 'select',
-                    label: noEmpty(field.title),
-                    help,
-                    options: field.oneOf
-                        .filter(value => value && (value as JSONSchema7).const !== '')
-                        .map(value => ({ value: (value as JSONSchema7).const as FormanSchemaValue })),
-                };
-            }
+            const select = selectFromOptions(field);
+            if (select) return select;
 
             // For regular strings, create a text type
             let textField: FormanSchemaField = {
@@ -186,7 +204,7 @@ function toFormanSchemaInternal(field: JSONSchema7): FormanSchemaField {
             if (field.pattern || field.enum) {
                 textField.validate = textField.validate || {};
                 if (field.pattern) textField.validate.pattern = field.pattern;
-                if (field.enum) textField.validate.enum = field.enum;
+                if (field.enum) textField.validate.enum = field.enum as string[];
             }
 
             if ('x-search' in field) {

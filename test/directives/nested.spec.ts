@@ -405,7 +405,6 @@ describe('Nested', () => {
                 properties: {
                     booleanSelect: {
                         title: 'Boolean Select',
-                        type: 'string',
                         default: '',
                         description: 'Optional field, can be left empty.',
                         oneOf: [
@@ -419,7 +418,6 @@ describe('Nested', () => {
                     },
                     mergedSelect: {
                         title: 'Merged Select',
-                        type: 'string',
                         default: '',
                         description: 'Optional field, can be left empty.',
                         oneOf: [

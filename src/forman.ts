@@ -835,6 +835,15 @@ function handleSelectOrPathType(
         }
     }
 
+    // `select` maps to `string`, which only fits string options. With numeric or boolean option values
+    // `type: 'string'` would contradict the `const`s, so no value could ever validate: drop the type and let
+    // the option list constrain the value. (`toFormanSchema` recovers a typeless `enum`/`oneOf` as a select.)
+    if (field.type === 'select' && result.type === 'string') {
+        const values =
+            result.enum ?? result.oneOf?.map(entry => (isObject<JSONSchema7>(entry) ? entry.const : undefined));
+        if (values?.some(value => typeof value !== 'string')) delete result.type;
+    }
+
     result = handleNestedWithDomain(field, nested, domain, result, context);
 
     if (field.rpc) result = processRpcDirective(field, result, context);
