@@ -1,4 +1,4 @@
-import type { JSONSchema7, JSONSchema7Definition } from 'json-schema';
+import type { JSONSchema7, JSONSchema7Definition, JSONSchema7TypeName } from 'json-schema';
 import type {
     FormanSchemaField,
     FormanSchemaValue,
@@ -655,6 +655,33 @@ function handleFilterType(field: FormanSchemaField, result: JSONSchema7, context
  * @param context The context for the conversion
  * @returns The converted JSON Schema field
  */
+/**
+ * Derives a JSON Schema type from the static option values of a select-like schema (`enum`, or a `oneOf` of
+ * `const`s), in first-seen order.
+ * @param schema The select-like JSON Schema
+ * @returns A single type, a list when the values mix types, or `undefined` when there are no static options
+ */
+function typeFromOptionValues(schema: JSONSchema7): JSONSchema7['type'] {
+    const values =
+        schema.enum ??
+        (schema.oneOf?.every(entry => isObject<JSONSchema7>(entry) && 'const' in entry)
+            ? schema.oneOf.map(entry => (entry as JSONSchema7).const)
+            : undefined);
+    if (!values?.length) return undefined;
+
+    const types = new Set<JSONSchema7TypeName>();
+    for (const value of values) {
+        // An option without a value has no JSON type; skip it rather than emit `type: 'undefined'`.
+        if (value === undefined) continue;
+        if (value === null) types.add('null');
+        else if (Array.isArray(value)) types.add('array');
+        else types.add(typeof value as JSONSchema7TypeName);
+    }
+    const list = [...types];
+    if (!list.length) return undefined;
+    return list.length === 1 ? list[0] : list;
+}
+
 function handleSelectOrPathType(
     field: FormanSchemaField,
     result: JSONSchema7,
@@ -835,14 +862,11 @@ function handleSelectOrPathType(
         }
     }
 
-    // `select` maps to `string`, which only fits string options. With numeric or boolean option values
-    // `type: 'string'` would contradict the `const`s, so no value could ever validate: drop the type and let
-    // the option list constrain the value. (`toFormanSchema` recovers a typeless `enum`/`oneOf` as a select.)
-    if (field.type === 'select' && result.type === 'string') {
-        const values =
-            result.enum ?? result.oneOf?.map(entry => (isObject<JSONSchema7>(entry) ? entry.const : undefined));
-        if (values?.some(value => typeof value !== 'string')) delete result.type;
-    }
+    // The mapped type (`string` for selects, `number` for references) only fits options of that type. With
+    // static options, type the field by its option values instead, so the `type` can never contradict a `const`
+    // and refuse every value. Runs after the `''` prepend, so an optional select is also a `string`.
+    const optionType = typeFromOptionValues(result);
+    if (optionType) result.type = optionType;
 
     result = handleNestedWithDomain(field, nested, domain, result, context);
 

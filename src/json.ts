@@ -77,9 +77,12 @@ function toFormanSchemaInternal(field: JSONSchema7): FormanSchemaField {
     if (compositeType === 'udttype') return udttypeCollapse(field);
     if (compositeType === 'udtspec') return udtspecCollapse(field);
 
-    // A select with numeric or boolean option values carries no `type` (see `handleSelectOrPathType`).
+    // A select is typed by its option values (see `handleSelectOrPathType`), so one with numeric, boolean or
+    // mixed values arrives as `number`, `boolean`, a type list, or no type. `string` selects take the string branch.
     if (
-        field.type === undefined &&
+        field.type !== 'string' &&
+        field.type !== 'object' &&
+        field.type !== 'array' &&
         (field.enum || field.oneOf?.every(entry => isObject<JSONSchema7>(entry) && 'const' in entry))
     ) {
         const select = selectFromOptions(field);
