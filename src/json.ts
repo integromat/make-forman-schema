@@ -64,6 +64,18 @@ function selectFromOptions(field: JSONSchema7): FormanSchemaField | undefined {
     return undefined;
 }
 
+/**
+ * Copies an array schema's `minItems`/`maxItems` onto a Forman field as `validate.minItems`/`maxItems`.
+ * @param schema The array JSON Schema
+ * @param field The Forman field (an array, or a multiple select), mutated in place
+ */
+function applyItemBounds(schema: JSONSchema7, field: FormanSchemaField): void {
+    if (schema.minItems === undefined && schema.maxItems === undefined) return;
+    field.validate = field.validate || {};
+    if (schema.minItems !== undefined) field.validate.minItems = schema.minItems;
+    if (schema.maxItems !== undefined) field.validate.maxItems = schema.maxItems;
+}
+
 function toFormanSchemaInternal(field: JSONSchema7): FormanSchemaField {
     // Short-circuit for fields that should stay as JSON Schema.
     if (Object.getOwnPropertyDescriptor(field, 'x-json')?.value === true) {
@@ -153,10 +165,9 @@ function toFormanSchemaInternal(field: JSONSchema7): FormanSchemaField {
                 };
                 const options = selectFromOptions(items)?.options;
                 if (options) multipleSelect.options = options;
-                if (field.minItems !== undefined || field.maxItems !== undefined) {
-                    multipleSelect.validate = { ...multipleSelect.validate };
-                    if (field.minItems !== undefined) multipleSelect.validate.minItems = field.minItems;
-                    if (field.maxItems !== undefined) multipleSelect.validate.maxItems = field.maxItems;
+                applyItemBounds(field, multipleSelect);
+                if ('x-search' in field) {
+                    return handleSearchDirective(multipleSelect, field['x-search'] as XSearchDirective);
                 }
                 return multipleSelect;
             }
@@ -178,12 +189,7 @@ function toFormanSchemaInternal(field: JSONSchema7): FormanSchemaField {
                     : undefined,
             };
 
-            // Add validation if present
-            if (field.minItems !== undefined || field.maxItems !== undefined) {
-                formanSchema.validate = formanSchema.validate || {};
-                if (field.minItems !== undefined) formanSchema.validate.minItems = field.minItems;
-                if (field.maxItems !== undefined) formanSchema.validate.maxItems = field.maxItems;
-            }
+            applyItemBounds(field, formanSchema);
 
             return formanSchema;
         case 'string':

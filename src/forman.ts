@@ -193,6 +193,21 @@ export function resolveFormanFieldType(rawType: string | undefined): string | un
 }
 
 /**
+ * Whether a field holds an array of option values: a select-like field with `multiple: true`. File and folder
+ * are path pickers with no multiple form. A multiple value is an array, so the single-value readings of a select
+ * do not apply to it: no `''` "no selection" choice (the empty array is), no placeholder `nested`, and no
+ * per-option `nested` (a `const` cannot match an array; the validator ignores it too). The converter and
+ * `fieldEdges` both branch on this predicate, so they cannot disagree about which edges a multiple select has.
+ * @param field The Forman field
+ * @returns `true` for a multiple select-like field
+ */
+export function isMultipleSelect(field: FormanSchemaField): boolean {
+    if (field.multiple !== true) return false;
+    const type = resolveFormanFieldType(field.type);
+    return type !== 'file' && type !== 'folder';
+}
+
+/**
  * Rebuilds a `type:kind` string with the canonical base type, preserving the kind suffix.
  * Canonicalization must happen BEFORE `normalizeFormanFieldType`, whose `API_ENDPOINTS` lookup is
  * keyed by lowercase type — otherwise `Device:ios` would silently skip its `api://` store expansion.
@@ -517,15 +532,7 @@ function handleArrayType(field: FormanSchemaField, result: JSONSchema7, context:
         );
     }
 
-    // Add validation if present
-    if (field.validate) {
-        if (field.validate.minItems !== undefined) {
-            result.minItems = field.validate.minItems;
-        }
-        if (field.validate.maxItems !== undefined) {
-            result.maxItems = field.validate.maxItems;
-        }
-    }
+    applyItemBounds(field, result);
 
     return result;
 }
@@ -676,6 +683,16 @@ function typeFromOptionValues(schema: JSONSchema7): JSONSchema7['type'] {
 }
 
 /**
+ * Copies a field's `validate.minItems`/`maxItems` onto an array schema as `minItems`/`maxItems`.
+ * @param field The Forman field (an array, or a multiple select)
+ * @param schema The array JSON Schema, mutated in place
+ */
+function applyItemBounds(field: FormanSchemaField, schema: JSONSchema7): void {
+    if (field.validate?.minItems !== undefined) schema.minItems = field.validate.minItems;
+    if (field.validate?.maxItems !== undefined) schema.maxItems = field.validate.maxItems;
+}
+
+/**
  * Turns a single-value select schema into the array schema of a `multiple` select: the value type and option list
  * move into `items`, while `title`, `description` and the `x-fetch` markers stay on the field, where consumers look
  * for them. `validate.minItems`/`maxItems` become `minItems`/`maxItems`. An enumerable `x-multiple` marker tells it
@@ -692,8 +709,7 @@ function wrapMultipleSelect(field: FormanSchemaField, select: JSONSchema7): JSON
 
     // Spread copies enumerable own properties, so the `x-fetch` / `x-fetch-options` markers carry over.
     const result: JSONSchema7 = { ...rest, type: 'array', title, description, items };
-    if (field.validate?.minItems !== undefined) result.minItems = field.validate.minItems;
-    if (field.validate?.maxItems !== undefined) result.maxItems = field.validate.maxItems;
+    applyItemBounds(field, result);
 
     Object.defineProperty(result, 'x-multiple', {
         configurable: true,
@@ -738,8 +754,9 @@ function handleSelectOrPathType(
 
     const { nested, domain } = extractNestedAndDomain(field, context);
 
-    // `multiple` holds an array of option values. File/folder are path pickers with no multiple form.
-    const multiple = field.multiple === true && !['file', 'folder'].includes(field.type);
+    // Single-value-only steps (placeholder option, per-option conditions, '' choice + default) run only when this
+    // is set; a multiple select gets none of them and is wrapped into an array at the end (see `isMultipleSelect`).
+    const singleValue = !isMultipleSelect(field);
 
     if (typeof optionsOrGroups === 'string') {
         Object.defineProperty(result, 'x-fetch', {
@@ -792,11 +809,10 @@ function handleSelectOrPathType(
         });
 
         // For non-required selects with placeholder.nested, inject placeholder as an artificial empty-string option.
-        // Not for a multiple select: its "no selection" is an empty array, which never reaches the placeholder.
         if (
+            singleValue &&
             field.type === 'select' &&
             !field.required &&
-            !multiple &&
             isObject<FormanSchemaExtendedOptions>(field.options)
         ) {
             const placeholder = field.options.placeholder;
@@ -831,9 +847,7 @@ function handleSelectOrPathType(
                         ? option.nested.domain
                         : domain) || context.domain;
 
-                // A multiple select's value is an array, so a per-option `const` condition could never match it
-                // (the validator ignores per-option `nested` on a multiple select too).
-                if (!multiple && localNested && localNested.length > 0) {
+                if (singleValue && localNested && localNested.length > 0) {
                     context.addConditionalFields(
                         field.name!,
                         option.value,
@@ -885,8 +899,7 @@ function handleSelectOrPathType(
     }
 
     // For non-required select-like fields, prepend '' as a valid "no selection" option and set default.
-    // A multiple select's "no selection" is an empty array; a '' item would re-admit a bare string.
-    if (!field.required && !multiple) {
+    if (singleValue && !field.required) {
         if (result.enum && !result.enum.includes('')) {
             result.enum = ['', ...result.enum];
         } else if (
@@ -909,7 +922,7 @@ function handleSelectOrPathType(
     const optionType = typeFromOptionValues(result);
     if (optionType) result.type = optionType;
 
-    if (multiple) result = wrapMultipleSelect(field, result);
+    if (!singleValue) result = wrapMultipleSelect(field, result);
 
     result = handleNestedWithDomain(field, nested, domain, result, context);
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { toFormanSchema, toJSONSchema } from '../src/index.js';
+import { fieldEdges, toFormanSchema, toJSONSchema, validateForman } from '../src/index.js';
 import type { FormanSchemaField } from '../src/index.js';
 import type { JSONSchema7 } from 'json-schema';
 
@@ -165,5 +165,51 @@ describe('Multiple select converts to an array', () => {
         );
         expect(back.type).toBe('array');
         expect(back).not.toHaveProperty('multiple');
+    });
+
+    it('round-trips the search directive of a multiple select', () => {
+        const back = toFormanSchema(
+            toJSONSchema({
+                type: 'collection',
+                spec: [
+                    {
+                        name: 'users',
+                        type: 'select',
+                        multiple: true,
+                        options: 'rpc://users',
+                        rpc: { label: 'Search', url: 'rpc://searchUsers', parameters: [{ name: 'q', type: 'text' }] },
+                    },
+                ],
+            }),
+        );
+        expect((back.spec as FormanSchemaField[])[0]).toMatchObject({
+            type: 'select',
+            multiple: true,
+            rpc: { label: 'Search', url: 'rpc://searchUsers', parameters: [{ name: 'q', type: 'text' }] },
+        });
+    });
+
+    it('has only the field-level edge, matching the converter', () => {
+        const field: FormanSchemaField = {
+            name: 'kinds',
+            type: 'select',
+            multiple: true,
+            options: {
+                store: [{ value: 'a', nested: [{ name: 'onlyA', type: 'text' }] }],
+                nested: [{ name: 'always', type: 'text' }],
+                placeholder: { label: 'None', nested: [{ name: 'whenEmpty', type: 'text' }] },
+            },
+        };
+        expect(fieldEdges(field)).toEqual([{ children: [{ name: 'always', type: 'text' }] }]);
+    });
+
+    // The validator accepts an empty value for an optional field before any type check, so `''` passes it,
+    // while the schema demands an array so agents send one. Pinned so the difference stays deliberate.
+    it('is stricter than the validator for an empty optional multiple select', async () => {
+        const spec: FormanSchemaField[] = [{ name: 'tags', type: 'select', multiple: true, options: [{ value: 'a' }] }];
+        expect((await validateForman({ tags: '' }, spec)).valid).toBe(true);
+        expect((await validateForman({ tags: 'a' }, spec)).valid).toBe(false);
+        const tags = (toJSONSchema({ type: 'collection', spec }).properties as Record<string, JSONSchema7>)['tags']!;
+        expect(tags.type).toBe('array');
     });
 });

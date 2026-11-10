@@ -354,6 +354,12 @@ describe('activeFieldEdges against the validator, per selection rule', () => {
             { flag: '{{1.x}}' },
         ],
         ['an unset boolean hides its nested', [flag({})], {}],
+        [
+            'a multiple select reveals only the field-level nested, whatever it holds',
+            [select({ multiple: true })],
+            { mode: ['a'] },
+        ],
+        ['an empty multiple select reveals the field-level nested', [select({ multiple: true })], { mode: [] }],
     ];
 
     it.each(cases)('%s', async (_, schema, values) => {
