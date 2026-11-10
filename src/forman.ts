@@ -649,13 +649,6 @@ function handleFilterType(field: FormanSchemaField, result: JSONSchema7, context
 }
 
 /**
- * Handles select type conversion
- * @param field The field to convert
- * @param result The prepared JSON Schema field
- * @param context The context for the conversion
- * @returns The converted JSON Schema field
- */
-/**
  * Derives a JSON Schema type from the static option values of a select-like schema (`enum`, or a `oneOf` of
  * `const`s), in first-seen order.
  * @param schema The select-like JSON Schema
@@ -711,6 +704,13 @@ function wrapMultipleSelect(field: FormanSchemaField, select: JSONSchema7): JSON
     return result;
 }
 
+/**
+ * Handles select type conversion
+ * @param field The field to convert
+ * @param result The prepared JSON Schema field
+ * @param context The context for the conversion
+ * @returns The converted JSON Schema field
+ */
 function handleSelectOrPathType(
     field: FormanSchemaField,
     result: JSONSchema7,
