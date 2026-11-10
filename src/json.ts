@@ -142,6 +142,25 @@ function toFormanSchemaInternal(field: JSONSchema7): FormanSchemaField {
             // For arrays, create an array type with spec from items
             const items = field.items && isObject<JSONSchema7>(field.items) ? field.items : undefined;
 
+            // A `multiple` select: the option list sits in `items`, the field's own metadata on the array.
+            if (items && Object.getOwnPropertyDescriptor(field, 'x-multiple')?.value === true) {
+                // Remote options leave `items` without an option list; it is still a select.
+                const multipleSelect: FormanSchemaField = {
+                    type: 'select',
+                    label: noEmpty(field.title),
+                    help: noEmpty(field.description),
+                    multiple: true,
+                };
+                const options = selectFromOptions(items)?.options;
+                if (options) multipleSelect.options = options;
+                if (field.minItems !== undefined || field.maxItems !== undefined) {
+                    multipleSelect.validate = { ...multipleSelect.validate };
+                    if (field.minItems !== undefined) multipleSelect.validate.minItems = field.minItems;
+                    if (field.maxItems !== undefined) multipleSelect.validate.maxItems = field.maxItems;
+                }
+                return multipleSelect;
+            }
+
             const formanSchema: FormanSchemaField = {
                 type: 'array',
                 label: noEmpty(field.title),

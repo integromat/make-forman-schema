@@ -682,6 +682,35 @@ function typeFromOptionValues(schema: JSONSchema7): JSONSchema7['type'] {
     return list.length === 1 ? list[0] : list;
 }
 
+/**
+ * Turns a single-value select schema into the array schema of a `multiple` select: the value type and option list
+ * move into `items`, while `title`, `description` and the `x-fetch` markers stay on the field, where consumers look
+ * for them. `validate.minItems`/`maxItems` become `minItems`/`maxItems`. An enumerable `x-multiple` marker tells it
+ * apart from an `array` of `select` items, which yields the same shape.
+ * @param field The Forman select-like field with `multiple: true`
+ * @param select The single-value schema built for the field
+ * @returns The array schema
+ */
+function wrapMultipleSelect(field: FormanSchemaField, select: JSONSchema7): JSONSchema7 {
+    const { type, enum: values, oneOf, title, description, ...rest } = select;
+    const items: JSONSchema7 = { type };
+    if (values) items.enum = values;
+    if (oneOf) items.oneOf = oneOf;
+
+    // Spread copies enumerable own properties, so the `x-fetch` / `x-fetch-options` markers carry over.
+    const result: JSONSchema7 = { ...rest, type: 'array', title, description, items };
+    if (field.validate?.minItems !== undefined) result.minItems = field.validate.minItems;
+    if (field.validate?.maxItems !== undefined) result.maxItems = field.validate.maxItems;
+
+    Object.defineProperty(result, 'x-multiple', {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        value: true,
+    });
+    return result;
+}
+
 function handleSelectOrPathType(
     field: FormanSchemaField,
     result: JSONSchema7,
@@ -708,6 +737,9 @@ function handleSelectOrPathType(
     }
 
     const { nested, domain } = extractNestedAndDomain(field, context);
+
+    // `multiple` holds an array of option values. File/folder are path pickers with no multiple form.
+    const multiple = field.multiple === true && !['file', 'folder'].includes(field.type);
 
     if (typeof optionsOrGroups === 'string') {
         Object.defineProperty(result, 'x-fetch', {
@@ -760,7 +792,13 @@ function handleSelectOrPathType(
         });
 
         // For non-required selects with placeholder.nested, inject placeholder as an artificial empty-string option.
-        if (field.type === 'select' && !field.required && isObject<FormanSchemaExtendedOptions>(field.options)) {
+        // Not for a multiple select: its "no selection" is an empty array, which never reaches the placeholder.
+        if (
+            field.type === 'select' &&
+            !field.required &&
+            !multiple &&
+            isObject<FormanSchemaExtendedOptions>(field.options)
+        ) {
             const placeholder = field.options.placeholder;
             if (isObject<{ label: string; nested?: FormanSchemaNested }>(placeholder) && placeholder.nested) {
                 (options ||= []).push({
@@ -793,7 +831,9 @@ function handleSelectOrPathType(
                         ? option.nested.domain
                         : domain) || context.domain;
 
-                if (localNested && localNested.length > 0) {
+                // A multiple select's value is an array, so a per-option `const` condition could never match it
+                // (the validator ignores per-option `nested` on a multiple select too).
+                if (!multiple && localNested && localNested.length > 0) {
                     context.addConditionalFields(
                         field.name!,
                         option.value,
@@ -845,7 +885,8 @@ function handleSelectOrPathType(
     }
 
     // For non-required select-like fields, prepend '' as a valid "no selection" option and set default.
-    if (!field.required) {
+    // A multiple select's "no selection" is an empty array; a '' item would re-admit a bare string.
+    if (!field.required && !multiple) {
         if (result.enum && !result.enum.includes('')) {
             result.enum = ['', ...result.enum];
         } else if (
@@ -867,6 +908,8 @@ function handleSelectOrPathType(
     // and refuse every value. Runs after the `''` prepend, so an optional select is also a `string`.
     const optionType = typeFromOptionValues(result);
     if (optionType) result.type = optionType;
+
+    if (multiple) result = wrapMultipleSelect(field, result);
 
     result = handleNestedWithDomain(field, nested, domain, result, context);
 
