@@ -165,4 +165,27 @@ describe('Select type follows its option values', () => {
             options: [{ value: 10 }, { value: 50 }],
         });
     });
+
+    it('keeps default and search of a hand-written schema recovered as a select', () => {
+        const schema = {
+            type: 'integer',
+            title: 'N',
+            enum: [1, 2],
+            default: 1,
+            minimum: 1,
+            'x-search': { url: 'rpc://searchN', label: 'Search', inputSchema: { $ref: 'rpc://searchNParams' } },
+        } as JSONSchema7;
+        expect(toFormanSchema(schema)).toMatchObject({
+            type: 'select',
+            label: 'N',
+            default: 1,
+            options: [{ value: 1 }, { value: 2 }],
+            rpc: { url: 'rpc://searchN', label: 'Search', parameters: 'rpc://searchNParams' },
+        });
+    });
+
+    it('does not turn the artificial empty default into a select default', () => {
+        const back = toFormanSchema(toJSONSchema({ type: 'select', options: [{ value: 'a' }] }));
+        expect(back).not.toHaveProperty('default');
+    });
 });

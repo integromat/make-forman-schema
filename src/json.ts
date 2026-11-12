@@ -35,33 +35,30 @@ export function toFormanSchema(field: JSONSchema7): FormanSchemaField {
 }
 
 /**
- * Recovers a select from an `enum` or a `oneOf` of `const`s, dropping the artificial empty option.
+ * Recovers a select from an `enum` or a `oneOf` of `const`s, dropping the artificial empty option. A `default`
+ * other than the artificial `''` and an `x-search` directive (as `rpc`) carry over.
  * @param field The JSON Schema field
  * @returns The select, or `undefined` when the field carries no option list
  */
 function selectFromOptions(field: JSONSchema7): FormanSchemaField | undefined {
-    const help = field.description === EMPTY_OPTION_DESCRIPTION ? undefined : noEmpty(field.description);
+    let values: FormanSchemaValue[];
     if (field.enum) {
-        // For strings with enum, create a select type
-        return {
-            type: 'select',
-            label: noEmpty(field.title),
-            help,
-            options: field.enum.filter(value => value !== '').map(value => ({ value: value as FormanSchemaValue })),
-        };
+        values = field.enum as FormanSchemaValue[];
+    } else if (field.oneOf) {
+        values = field.oneOf.filter(Boolean).map(value => (value as JSONSchema7).const as FormanSchemaValue);
+    } else {
+        return undefined;
     }
-    if (field.oneOf) {
-        // For strings with oneOf, create a select type
-        return {
-            type: 'select',
-            label: noEmpty(field.title),
-            help,
-            options: field.oneOf
-                .filter(value => value && (value as JSONSchema7).const !== '')
-                .map(value => ({ value: (value as JSONSchema7).const as FormanSchemaValue })),
-        };
-    }
-    return undefined;
+
+    let select: FormanSchemaField = {
+        type: 'select',
+        label: noEmpty(field.title),
+        help: field.description === EMPTY_OPTION_DESCRIPTION ? undefined : noEmpty(field.description),
+        options: values.filter(value => value !== '').map(value => ({ value })),
+    };
+    if (field.default !== undefined && field.default !== '') select.default = field.default as FormanSchemaValue;
+    if ('x-search' in field) select = handleSearchDirective(select, field['x-search'] as XSearchDirective);
+    return select;
 }
 
 /**
