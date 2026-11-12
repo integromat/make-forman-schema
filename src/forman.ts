@@ -1,4 +1,4 @@
-import type { JSONSchema7, JSONSchema7Definition } from 'json-schema';
+import type { JSONSchema7, JSONSchema7Definition, JSONSchema7TypeName } from 'json-schema';
 import type {
     FormanSchemaField,
     FormanSchemaValue,
@@ -190,6 +190,21 @@ export function resolveFormanFieldType(rawType: string | undefined): string | un
     const lower = base.toLowerCase();
 
     return FORMAN_TYPE_LOOKUP.get(lower) ?? FORMAN_TYPE_ALIASES[lower];
+}
+
+/**
+ * Whether a field holds an array of option values: a select-like field with `multiple: true`. File and folder
+ * are path pickers with no multiple form. A multiple value is an array, so the single-value readings of a select
+ * do not apply to it: no `''` "no selection" choice (the empty array is), no placeholder `nested`, and no
+ * per-option `nested` (a `const` cannot match an array; the validator ignores it too). The converter and
+ * `fieldEdges` both branch on this predicate, so they cannot disagree about which edges a multiple select has.
+ * @param field The Forman field
+ * @returns `true` for a multiple select-like field
+ */
+export function isMultipleSelect(field: FormanSchemaField): boolean {
+    if (field.multiple !== true) return false;
+    const type = resolveFormanFieldType(field.type);
+    return type !== 'file' && type !== 'folder';
 }
 
 /**
@@ -517,15 +532,7 @@ function handleArrayType(field: FormanSchemaField, result: JSONSchema7, context:
         );
     }
 
-    // Add validation if present
-    if (field.validate) {
-        if (field.validate.minItems !== undefined) {
-            result.minItems = field.validate.minItems;
-        }
-        if (field.validate.maxItems !== undefined) {
-            result.maxItems = field.validate.maxItems;
-        }
-    }
+    applyItemBounds(field, result);
 
     return result;
 }
@@ -649,6 +656,71 @@ function handleFilterType(field: FormanSchemaField, result: JSONSchema7, context
 }
 
 /**
+ * Derives a JSON Schema type from the static option values of a select-like schema (`enum`, or a `oneOf` of
+ * `const`s), in first-seen order.
+ * @param schema The select-like JSON Schema
+ * @returns A single type, a list when the values mix types, or `undefined` when there are no static options
+ */
+function typeFromOptionValues(schema: JSONSchema7): JSONSchema7['type'] {
+    const values =
+        schema.enum ??
+        (schema.oneOf?.every(entry => isObject<JSONSchema7>(entry) && 'const' in entry)
+            ? schema.oneOf.map(entry => (entry as JSONSchema7).const)
+            : undefined);
+    if (!values?.length) return undefined;
+
+    const types = new Set<JSONSchema7TypeName>();
+    for (const value of values) {
+        // An option without a value has no JSON type; skip it rather than emit `type: 'undefined'`.
+        if (value === undefined) continue;
+        if (value === null) types.add('null');
+        else if (Array.isArray(value)) types.add('array');
+        else types.add(typeof value as JSONSchema7TypeName);
+    }
+    const list = [...types];
+    if (!list.length) return undefined;
+    return list.length === 1 ? list[0] : list;
+}
+
+/**
+ * Copies a field's `validate.minItems`/`maxItems` onto an array schema as `minItems`/`maxItems`.
+ * @param field The Forman field (an array, or a multiple select)
+ * @param schema The array JSON Schema, mutated in place
+ */
+function applyItemBounds(field: FormanSchemaField, schema: JSONSchema7): void {
+    if (field.validate?.minItems !== undefined) schema.minItems = field.validate.minItems;
+    if (field.validate?.maxItems !== undefined) schema.maxItems = field.validate.maxItems;
+}
+
+/**
+ * Turns a single-value select schema into the array schema of a `multiple` select: the value type and option list
+ * move into `items`, while `title`, `description` and the `x-fetch` markers stay on the field, where consumers look
+ * for them. `validate.minItems`/`maxItems` become `minItems`/`maxItems`. An enumerable `x-multiple` marker tells it
+ * apart from an `array` of `select` items, which yields the same shape.
+ * @param field The Forman select-like field with `multiple: true`
+ * @param select The single-value schema built for the field
+ * @returns The array schema
+ */
+function wrapMultipleSelect(field: FormanSchemaField, select: JSONSchema7): JSONSchema7 {
+    const { type, enum: values, oneOf, title, description, ...rest } = select;
+    const items: JSONSchema7 = { type };
+    if (values) items.enum = values;
+    if (oneOf) items.oneOf = oneOf;
+
+    // Spread copies enumerable own properties, so the `x-fetch` / `x-fetch-options` markers carry over.
+    const result: JSONSchema7 = { ...rest, type: 'array', title, description, items };
+    applyItemBounds(field, result);
+
+    Object.defineProperty(result, 'x-multiple', {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        value: true,
+    });
+    return result;
+}
+
+/**
  * Handles select type conversion
  * @param field The field to convert
  * @param result The prepared JSON Schema field
@@ -681,6 +753,10 @@ function handleSelectOrPathType(
     }
 
     const { nested, domain } = extractNestedAndDomain(field, context);
+
+    // Single-value-only steps (placeholder option, per-option conditions, '' choice + default) run only when this
+    // is set; a multiple select gets none of them and is wrapped into an array at the end (see `isMultipleSelect`).
+    const singleValue = !isMultipleSelect(field);
 
     if (typeof optionsOrGroups === 'string') {
         Object.defineProperty(result, 'x-fetch', {
@@ -733,7 +809,12 @@ function handleSelectOrPathType(
         });
 
         // For non-required selects with placeholder.nested, inject placeholder as an artificial empty-string option.
-        if (field.type === 'select' && !field.required && isObject<FormanSchemaExtendedOptions>(field.options)) {
+        if (
+            singleValue &&
+            field.type === 'select' &&
+            !field.required &&
+            isObject<FormanSchemaExtendedOptions>(field.options)
+        ) {
             const placeholder = field.options.placeholder;
             if (isObject<{ label: string; nested?: FormanSchemaNested }>(placeholder) && placeholder.nested) {
                 (options ||= []).push({
@@ -766,7 +847,7 @@ function handleSelectOrPathType(
                         ? option.nested.domain
                         : domain) || context.domain;
 
-                if (localNested && localNested.length > 0) {
+                if (singleValue && localNested && localNested.length > 0) {
                     context.addConditionalFields(
                         field.name!,
                         option.value,
@@ -818,7 +899,7 @@ function handleSelectOrPathType(
     }
 
     // For non-required select-like fields, prepend '' as a valid "no selection" option and set default.
-    if (!field.required) {
+    if (singleValue && !field.required) {
         if (result.enum && !result.enum.includes('')) {
             result.enum = ['', ...result.enum];
         } else if (
@@ -834,6 +915,14 @@ function handleSelectOrPathType(
             result.description = EMPTY_OPTION_DESCRIPTION;
         }
     }
+
+    // The mapped type (`string` for selects, `number` for references) only fits options of that type. With
+    // static options, type the field by its option values instead, so the `type` can never contradict a `const`
+    // and refuse every value. Runs after the `''` prepend, so an optional select is also a `string`.
+    const optionType = typeFromOptionValues(result);
+    if (optionType) result.type = optionType;
+
+    if (!singleValue) result = wrapMultipleSelect(field, result);
 
     result = handleNestedWithDomain(field, nested, domain, result, context);
 

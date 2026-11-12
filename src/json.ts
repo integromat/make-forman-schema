@@ -34,6 +34,45 @@ export function toFormanSchema(field: JSONSchema7): FormanSchemaField {
     return result;
 }
 
+/**
+ * Recovers a select from an `enum` or a `oneOf` of `const`s, dropping the artificial empty option. A `default`
+ * other than the artificial `''` and an `x-search` directive (as `rpc`) carry over.
+ * @param field The JSON Schema field
+ * @returns The select, or `undefined` when the field carries no option list
+ */
+function selectFromOptions(field: JSONSchema7): FormanSchemaField | undefined {
+    let values: FormanSchemaValue[];
+    if (field.enum) {
+        values = field.enum as FormanSchemaValue[];
+    } else if (field.oneOf) {
+        values = field.oneOf.filter(Boolean).map(value => (value as JSONSchema7).const as FormanSchemaValue);
+    } else {
+        return undefined;
+    }
+
+    let select: FormanSchemaField = {
+        type: 'select',
+        label: noEmpty(field.title),
+        help: field.description === EMPTY_OPTION_DESCRIPTION ? undefined : noEmpty(field.description),
+        options: values.filter(value => value !== '').map(value => ({ value })),
+    };
+    if (field.default !== undefined && field.default !== '') select.default = field.default as FormanSchemaValue;
+    if ('x-search' in field) select = handleSearchDirective(select, field['x-search'] as XSearchDirective);
+    return select;
+}
+
+/**
+ * Copies an array schema's `minItems`/`maxItems` onto a Forman field as `validate.minItems`/`maxItems`.
+ * @param schema The array JSON Schema
+ * @param field The Forman field (an array, or a multiple select), mutated in place
+ */
+function applyItemBounds(schema: JSONSchema7, field: FormanSchemaField): void {
+    if (schema.minItems === undefined && schema.maxItems === undefined) return;
+    field.validate = field.validate || {};
+    if (schema.minItems !== undefined) field.validate.minItems = schema.minItems;
+    if (schema.maxItems !== undefined) field.validate.maxItems = schema.maxItems;
+}
+
 function toFormanSchemaInternal(field: JSONSchema7): FormanSchemaField {
     // Short-circuit for fields that should stay as JSON Schema.
     if (Object.getOwnPropertyDescriptor(field, 'x-json')?.value === true) {
@@ -46,6 +85,18 @@ function toFormanSchemaInternal(field: JSONSchema7): FormanSchemaField {
     const compositeType = Object.getOwnPropertyDescriptor(field, 'x-composite')?.value;
     if (compositeType === 'udttype') return udttypeCollapse(field);
     if (compositeType === 'udtspec') return udtspecCollapse(field);
+
+    // A select is typed by its option values (see `handleSelectOrPathType`), so one with numeric, boolean or
+    // mixed values arrives as `number`, `boolean`, a type list, or no type. `string` selects take the string branch.
+    if (
+        field.type !== 'string' &&
+        field.type !== 'object' &&
+        field.type !== 'array' &&
+        (field.enum || field.oneOf?.every(entry => isObject<JSONSchema7>(entry) && 'const' in entry))
+    ) {
+        const select = selectFromOptions(field);
+        if (select) return select;
+    }
 
     switch (field.type) {
         case 'object':
@@ -100,6 +151,24 @@ function toFormanSchemaInternal(field: JSONSchema7): FormanSchemaField {
             // For arrays, create an array type with spec from items
             const items = field.items && isObject<JSONSchema7>(field.items) ? field.items : undefined;
 
+            // A `multiple` select: the option list sits in `items`, the field's own metadata on the array.
+            if (items && Object.getOwnPropertyDescriptor(field, 'x-multiple')?.value === true) {
+                // Remote options leave `items` without an option list; it is still a select.
+                const multipleSelect: FormanSchemaField = {
+                    type: 'select',
+                    label: noEmpty(field.title),
+                    help: noEmpty(field.description),
+                    multiple: true,
+                };
+                const options = selectFromOptions(items)?.options;
+                if (options) multipleSelect.options = options;
+                applyItemBounds(field, multipleSelect);
+                if ('x-search' in field) {
+                    return handleSearchDirective(multipleSelect, field['x-search'] as XSearchDirective);
+                }
+                return multipleSelect;
+            }
+
             const formanSchema: FormanSchemaField = {
                 type: 'array',
                 label: noEmpty(field.title),
@@ -117,12 +186,7 @@ function toFormanSchemaInternal(field: JSONSchema7): FormanSchemaField {
                     : undefined,
             };
 
-            // Add validation if present
-            if (field.minItems !== undefined || field.maxItems !== undefined) {
-                formanSchema.validate = formanSchema.validate || {};
-                if (field.minItems !== undefined) formanSchema.validate.minItems = field.minItems;
-                if (field.maxItems !== undefined) formanSchema.validate.maxItems = field.maxItems;
-            }
+            applyItemBounds(field, formanSchema);
 
             return formanSchema;
         case 'string':
@@ -141,29 +205,8 @@ function toFormanSchemaInternal(field: JSONSchema7): FormanSchemaField {
                     },
                 };
             }
-            if (field.enum) {
-                // For strings with enum, create a select type
-                const help = field.description === EMPTY_OPTION_DESCRIPTION ? undefined : noEmpty(field.description);
-                return {
-                    type: 'select',
-                    label: noEmpty(field.title),
-                    help,
-                    options: field.enum
-                        .filter(value => value !== '')
-                        .map(value => ({ value: value as FormanSchemaValue })),
-                };
-            } else if (field.oneOf) {
-                // For strings with oneOf, create a select type
-                const help = field.description === EMPTY_OPTION_DESCRIPTION ? undefined : noEmpty(field.description);
-                return {
-                    type: 'select',
-                    label: noEmpty(field.title),
-                    help,
-                    options: field.oneOf
-                        .filter(value => value && (value as JSONSchema7).const !== '')
-                        .map(value => ({ value: (value as JSONSchema7).const as FormanSchemaValue })),
-                };
-            }
+            const select = selectFromOptions(field);
+            if (select) return select;
 
             // For regular strings, create a text type
             let textField: FormanSchemaField = {
@@ -186,7 +229,7 @@ function toFormanSchemaInternal(field: JSONSchema7): FormanSchemaField {
             if (field.pattern || field.enum) {
                 textField.validate = textField.validate || {};
                 if (field.pattern) textField.validate.pattern = field.pattern;
-                if (field.enum) textField.validate.enum = field.enum;
+                if (field.enum) textField.validate.enum = field.enum as string[];
             }
 
             if ('x-search' in field) {

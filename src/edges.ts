@@ -9,7 +9,7 @@ import type {
     FormanSchemaSelectOptionsStore,
     FormanSchemaValue,
 } from './types';
-import { resolveFormanFieldType } from './forman';
+import { isMultipleSelect, resolveFormanFieldType } from './forman';
 import { isBooleanBranchNested, isObject, isOptionGroup, valuesMatch } from './utils';
 
 function isBooleanField(field: FormanSchemaField): boolean {
@@ -49,7 +49,9 @@ function nestedEdge(
  * `nested`, `options.placeholder.nested` (gated on `''`, non-required selects only), then the field's own
  * `nested` or, failing that, `options.nested` (gated on the toggle value for booleans). Structural, so an
  * unconditional edge is listed alongside conditional ones; {@link activeFieldEdges} decides which a value
- * reveals. A nameless field cannot gate, so its option children are listed unconditionally.
+ * reveals. A nameless field cannot gate, so its option children are listed unconditionally. A multiple select
+ * (`isMultipleSelect`) holds an array, which no option or placeholder gate can match, so it has only the
+ * field-level edge.
  */
 export function fieldEdges(field: FormanSchemaField): FormanFieldEdge[] {
     const edges: FormanFieldEdge[] = [];
@@ -58,7 +60,8 @@ export function fieldEdges(field: FormanSchemaField): FormanFieldEdge[] {
 
     const options = field.options;
     const store = isObject<FormanSchemaExtendedOptions>(options) ? options.store : options;
-    if (Array.isArray(store)) {
+    const singleValue = !isMultipleSelect(field);
+    if (singleValue && Array.isArray(store)) {
         for (const entry of store as FormanSchemaSelectOptionsStore) {
             for (const option of isOptionGroup(entry) ? entry.options : [entry]) {
                 const edge = nestedEdge(option.nested);
@@ -67,7 +70,7 @@ export function fieldEdges(field: FormanSchemaField): FormanFieldEdge[] {
         }
     }
 
-    if (field.type === 'select' && !field.required && isObject<FormanSchemaExtendedOptions>(options)) {
+    if (singleValue && field.type === 'select' && !field.required && isObject<FormanSchemaExtendedOptions>(options)) {
         const placeholder = options.placeholder;
         const placeholderEdge = isObject<{ nested?: FormanSchemaNested }>(placeholder)
             ? nestedEdge(placeholder.nested)
