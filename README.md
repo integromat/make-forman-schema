@@ -2,6 +2,28 @@
 
 Conversion and validation utilities for Forman Schema.
 
+## v2.2.0 — selects typed by their option values, multiple selects as arrays
+
+`toJSONSchema` output changes shape for select-like fields (`select`, `radio`, `list`, references with
+static options); see [Select typing](#select-typing). Validation is unchanged.
+
+- A select's `type` comes from its option values instead of always being `string`. Numeric or boolean
+  options used to produce `type: "string"` with numeric/boolean constants, so no value could validate.
+  Mixed value types (including the optional `''` empty choice) become a type list, e.g.
+  `["string", "number"]`.
+- A `multiple: true` select converts to `{ type: "array", items: { type, enum | oneOf } }` with an
+  `x-multiple: true` marker, no `''` empty choice and no `default: ''`. `validate.minItems`/`maxItems`
+  map to `minItems`/`maxItems`. Previously it was described as a single string, so callers (AI agents
+  in particular) sent one value where the endpoint requires an array.
+- `fieldEdges` gives a multiple select only its field-level edge, matching the converter and validator.
+- `toFormanSchema` recovers any numeric, boolean or untyped schema with an option list as a `select`
+  with typed option values (previously `number` / `boolean` / `any`, options lost), and an
+  `x-multiple` array as `select` + `multiple: true`.
+
+**Upgrading:** option values recovered by `toFormanSchema` keep their JSON type. Consumers that
+stringify them (`String(option.value)`) will now send `"1"` where `1` is expected. Consumers checking
+`schema.type === 'string'` on a select should accept a type list and, for multiple selects, `array`.
+
 ## v2.1.0 — field edges, editor markers, remote fragment exclusion
 
 Non-breaking minor release: new exports, new markers and a new opt-in conversion option; nothing
@@ -119,6 +141,32 @@ a `language`, `x-language: '<language>'`. A string-typed field (`text`, `editor`
 `multiline: true` is stamped with `x-multiline: true`. Both are enumerable, so they survive
 serialization, and `toFormanSchema` reads them back into `type: 'editor'`/`language` and
 `multiline: true`.
+
+### Select typing
+
+A select with static options gets its `type` from the option values: one value type stays scalar,
+mixed types become a list (the optional `''` empty choice counts as `string`), `null` maps to `'null'`.
+Remote options (`rpc://`, `api://`) have no static list and keep the mapped type.
+
+```typescript
+toJSONSchema({
+    type: 'collection',
+    spec: [
+        { name: 'limit', type: 'select', options: [{ label: '10', value: 10 }, { label: '50', value: 50 }] },
+        { name: 'fields', type: 'select', multiple: true, options: [{ label: 'ID', value: 'id' }] },
+    ],
+}).properties;
+// limit:  { type: ['string', 'number'], oneOf: [{ title: 'Empty', const: '' }, { title: '10', const: 10 }, …], default: '' }
+// fields: { type: 'array', items: { type: 'string', oneOf: [{ title: 'ID', const: 'id' }] }, 'x-multiple': true }
+```
+
+A `multiple: true` select (not `file`/`folder`) becomes an array: the option values move into `items`,
+while `title`/`description`, `x-fetch` and field-level `x-nested` stay on the array. It gets no `''`
+choice and no `''` default (an empty array is "no selection") and no per-option `if`/`then`, since a
+`const` cannot match an array.
+
+The validator still accepts `''` / `null` for an optional multiple select, so the JSON Schema is
+stricter there.
 
 ### Reading child fields
 
@@ -419,7 +467,7 @@ const result = await validateFormanWithDomains(
 - pkey → string
 - port → number
 - scenario → string
-- select → string with enum
+- select → typed by its option values, with enum / oneOf (array when `multiple: true`) — see [Select typing](#select-typing)
 - text → string
 - time → string
 - timestamp → string
@@ -435,6 +483,8 @@ const result = await validateFormanWithDomains(
 - boolean → boolean
 - object → collection
 - array → array
+- any non-`string`/`object`/`array` schema with `enum` / `oneOf` of `const`s → select
+- array with `x-multiple: true` → select with `multiple: true`
 
 ## Field type resolution
 
