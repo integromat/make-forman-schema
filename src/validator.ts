@@ -171,7 +171,7 @@ function clampFieldForSchema(field: FormanSchemaField): FormanSchemaField {
             : clampFieldForSchema(field.spec);
     }
     // Generate validate.enum for select fields with inline array options (only if not already set)
-    if (field.type === 'select' && !field.validate?.enum) {
+    if ((field.type === 'select' || field.type === 'function') && !field.validate?.enum) {
         const rawOptions = isObject<FormanSchemaExtendedOptions>(field.options) ? field.options.store : field.options;
         if (Array.isArray(rawOptions)) {
             const values: FormanSchemaValue[] = [];
@@ -230,6 +230,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, string | undefined>> = {
     list: undefined,
     radio: undefined,
     select: undefined,
+    function: undefined,
     udttype: 'string',
     udtspec: 'array',
     time: 'string',
@@ -511,7 +512,10 @@ async function validateFormanValue(
 
     if (value == null || value === '') {
         // When a select field has placeholder.nested, null/'' means "no selection" and we need to validate the nested fields
-        if (normalizedField.type === 'select' && hasPlaceholderNested(normalizedField)) {
+        if (
+            (normalizedField.type === 'select' || normalizedField.type === 'function') &&
+            hasPlaceholderNested(normalizedField)
+        ) {
             return handleSelectType(value, normalizedField, context);
         }
         return {
@@ -522,6 +526,20 @@ async function validateFormanValue(
     }
 
     const expectedType = FORMAN_TYPE_MAP[normalizedField.type];
+    // Function references stay scalar even when mapped domains allow unresolved options (AX-63).
+    if (normalizedField.type === 'function' && typeof value !== 'number' && typeof value !== 'string') {
+        return {
+            valid: false,
+            errors: [
+                {
+                    domain: context.domain,
+                    path: context.path.join('.'),
+                    message: 'Expected a number or string Function ID.',
+                },
+            ],
+            warnings: [],
+        };
+    }
     let actualType: string = typeof value;
     if (actualType === 'object' && Array.isArray(value)) actualType = 'array';
 
@@ -592,6 +610,7 @@ async function validateFormanValue(
         case 'list':
         case 'radio':
         case 'select':
+        case 'function':
         case 'account':
         case 'hook':
         case 'device':
@@ -1033,10 +1052,7 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
 
         const selectedOption = selectableOptions.find(candidate => candidate.value === levelSelectedValue);
         if (!selectedOption) {
-            if (
-                optionsFromRPC &&
-                unresolvedOptionIsTolerable(field, context.roots[context.domain]!)
-            ) {
+            if (optionsFromRPC && unresolvedOptionIsTolerable(field, context.roots[context.domain]!)) {
                 warnings.push({
                     domain: context.domain,
                     path: context.path.join('.'),
@@ -1227,10 +1243,7 @@ async function handleSelectType(
         const item = findValueInSelectOptions(field, value, optionsOrGroups as FormanSchemaSelectOptionsStore);
 
         if (!item) {
-            if (
-                optionsFromRPC &&
-                unresolvedOptionIsTolerable(field, context.roots[context.domain]!)
-            ) {
+            if (optionsFromRPC && unresolvedOptionIsTolerable(field, context.roots[context.domain]!)) {
                 warnings.push({
                     domain: context.domain,
                     path: context.path.join('.'),

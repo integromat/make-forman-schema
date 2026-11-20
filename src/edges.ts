@@ -70,7 +70,12 @@ export function fieldEdges(field: FormanSchemaField): FormanFieldEdge[] {
         }
     }
 
-    if (singleValue && field.type === 'select' && !field.required && isObject<FormanSchemaExtendedOptions>(options)) {
+    if (
+        singleValue &&
+        (field.type === 'select' || field.type === 'function') &&
+        !field.required &&
+        isObject<FormanSchemaExtendedOptions>(options)
+    ) {
         const placeholder = options.placeholder;
         const placeholderEdge = isObject<{ nested?: FormanSchemaNested }>(placeholder)
             ? nestedEdge(placeholder.nested)
