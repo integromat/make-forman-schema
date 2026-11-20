@@ -12,6 +12,7 @@ export type FormanSchemaFieldType =
     | 'datastore'
     | 'udt'
     | 'scenario'
+    | 'function'
     | 'array'
     | 'collection'
     | 'text'

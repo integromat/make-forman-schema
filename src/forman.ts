@@ -138,6 +138,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, JSONSchema7['type']>> = {
     list: 'string',
     radio: 'string',
     scenario: 'string',
+    function: 'string',
     select: 'string',
     udttype: 'string',
     udtspec: 'array',
@@ -371,6 +372,8 @@ export function toJSONSchemaInternal(field: FormanSchemaField, context: Conversi
     };
 
     switch (normalizedField.type) {
+        case 'function':
+            return handleSelectOrPathType(normalizedField, { ...result, type: ['number', 'string'] }, context);
         case 'collection':
         case 'dynamicCollection':
             return handleCollectionType(normalizedField, result, context);
@@ -811,7 +814,7 @@ function handleSelectOrPathType(
         // For non-required selects with placeholder.nested, inject placeholder as an artificial empty-string option.
         if (
             singleValue &&
-            field.type === 'select' &&
+            (field.type === 'select' || field.type === 'function') &&
             !field.required &&
             isObject<FormanSchemaExtendedOptions>(field.options)
         ) {

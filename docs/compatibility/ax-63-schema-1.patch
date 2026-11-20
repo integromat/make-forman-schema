@@ -1,0 +1,328 @@
+diff --git a/src/types.ts b/src/types.ts
+--- a/src/types.ts
++++ b/src/types.ts
+@@ -12,6 +12,7 @@
+     | 'datastore'
+     | 'udt'
+     | 'scenario'
++    | 'function'
+     | 'array'
+     | 'collection'
+     | 'text'
+diff --git a/src/forman.ts b/src/forman.ts
+--- a/src/forman.ts
++++ b/src/forman.ts
+@@ -136,6 +136,7 @@
+     list: 'string',
+     radio: 'string',
+     scenario: 'string',
++    function: 'string',
+     select: 'string',
+     udttype: 'string',
+     udtspec: 'array',
+@@ -353,6 +354,8 @@
+     };
+ 
+     switch (normalizedField.type) {
++        case 'function':
++            return handleSelectOrPathType(normalizedField, { ...result, type: ['number', 'string'] }, context);
+         case 'collection':
+         case 'dynamicCollection':
+             return handleCollectionType(normalizedField, result, context);
+@@ -728,7 +731,7 @@
+         });
+ 
+         // For non-required selects with placeholder.nested, inject placeholder as an artificial empty-string option.
+-        if (field.type === 'select' && !field.required && isObject<FormanSchemaExtendedOptions>(field.options)) {
++        if ((field.type === 'select' || field.type === 'function') && !field.required && isObject<FormanSchemaExtendedOptions>(field.options)) {
+             const placeholder = field.options.placeholder;
+             if (isObject<{ label: string; nested?: FormanSchemaNested }>(placeholder) && placeholder.nested) {
+                 (options ||= []).push({
+diff --git a/src/validator.ts b/src/validator.ts
+--- a/src/validator.ts
++++ b/src/validator.ts
+@@ -152,7 +152,7 @@
+             : clampFieldForSchema(field.spec);
+     }
+     // Generate validate.enum for select fields with inline array options (only if not already set)
+-    if (field.type === 'select' && !field.validate?.enum) {
++    if ((field.type === 'select' || field.type === 'function') && !field.validate?.enum) {
+         const rawOptions = isObject<FormanSchemaExtendedOptions>(field.options) ? field.options.store : field.options;
+         if (Array.isArray(rawOptions)) {
+             const values: FormanSchemaValue[] = [];
+@@ -211,6 +211,7 @@
+     list: undefined,
+     radio: undefined,
+     select: undefined,
++    function: undefined,
+     udttype: 'string',
+     udtspec: 'array',
+     time: 'string',
+@@ -450,7 +451,7 @@
+ 
+     if (value == null || value === '') {
+         // When a select field has placeholder.nested, null/'' means "no selection" and we need to validate the nested fields
+-        if (normalizedField.type === 'select' && hasPlaceholderNested(normalizedField)) {
++        if ((normalizedField.type === 'select' || normalizedField.type === 'function') && hasPlaceholderNested(normalizedField)) {
+             return handleSelectType(value, normalizedField, context);
+         }
+         return {
+@@ -461,6 +462,20 @@
+     }
+ 
+     const expectedType = FORMAN_TYPE_MAP[normalizedField.type];
++    // Function references stay scalar even when mapped domains allow unresolved options (AX-63).
++    if (normalizedField.type === 'function' && typeof value !== 'number' && typeof value !== 'string') {
++        return {
++            valid: false,
++            errors: [
++                {
++                    domain: context.domain,
++                    path: context.path.join('.'),
++                    message: 'Expected a number or string Function ID.',
++                },
++            ],
++            warnings: [],
++        };
++    }
+     let actualType: string = typeof value;
+     if (actualType === 'object' && Array.isArray(value)) actualType = 'array';
+ 
+@@ -531,6 +546,7 @@
+         case 'list':
+         case 'radio':
+         case 'select':
++        case 'function':
+         case 'account':
+         case 'hook':
+         case 'device':
+diff --git a/test/function.spec.ts b/test/function.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/test/function.spec.ts
+@@ -0,0 +1,207 @@
++import { describe, expect, it } from '@jest/globals';
++import { toJSONSchemaAdvanced, validateForman, validateFormanWithDomains } from '../src/index.js';
++import type { FormanSchemaField } from '../src/index.js';
++import type { JSONSchema7 } from 'json-schema';
++
++describe('Function selector (AX-63)', () => {
++    const field: FormanSchemaField = {
++        name: 'functionId',
++        type: 'function',
++        required: true,
++        mappable: true,
++        options: {
++            store: 'rpc://ListFunctionsRPC?teamId={{teamId}}',
++            nested: 'rpc://FunctionInputFieldsRPC?teamId={{teamId}}&functionId={{functionId}}',
++        },
++    };
++
++    it('converts the picker and input RPCs without losing metadata or scalar ID types', () => {
++        const result = toJSONSchemaAdvanced({ type: 'collection', spec: [field] }, { strictFieldTypes: true });
++        const property = result.schema.properties!.functionId as JSONSchema7;
++        expect(property.type).toEqual(['number', 'string']);
++        expect(JSON.parse(JSON.stringify(property))).toMatchObject({
++            'x-fetch': 'rpc://ListFunctionsRPC?teamId={{teamId}}',
++            'x-nested': { $ref: 'rpc://FunctionInputFieldsRPC?teamId={{teamId}}&functionId={{functionId}}' },
++        });
++        expect(result.schema.required).toEqual(['functionId']);
++        expect(result.skippedPaths?.unconvertible).toBeUndefined();
++    });
++
++    it.each([123, '123'])('preserves ID %p and validates its current generated input form', async functionId => {
++        const values = { functionId, count: 7 };
++        const calls: string[] = [];
++        const result = await validateForman(values, [field], {
++            strict: true,
++            states: true,
++            schemas: true,
++            resolveRemote: async (path, context) => {
++                calls.push(path);
++                if (path.startsWith('rpc://ListFunctionsRPC')) {
++                    return [{ value: functionId, label: 'Invoice (123)', name: 'Invoice', active: false }];
++                }
++                expect(context.functionId).toBe(functionId);
++                return [{ name: 'count', type: 'integer', required: true }];
++            },
++        });
++        expect(result.valid).toBe(true);
++        expect(result.errors).toEqual([]);
++        expect(calls).toEqual([
++            'rpc://ListFunctionsRPC?teamId={{teamId}}',
++            'rpc://FunctionInputFieldsRPC?teamId={{teamId}}&functionId={{functionId}}',
++        ]);
++        expect(values).toEqual({ functionId, count: 7 });
++        expect(result.schemas!.default).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'count' })]));
++    });
++
++    it.each([undefined, null, ''])('rejects missing required ID %p', async functionId => {
++        const result = await validateForman({ functionId }, [field]);
++        expect(result.valid).toBe(false);
++        expect(result.errors).toEqual([
++            expect.objectContaining({ path: 'functionId', message: 'Field is mandatory.' }),
++        ]);
++    });
++
++    it.each([{ id: 123 }, [123], true, false])('rejects non-scalar ID %p even in a mapped domain', async functionId => {
++        let calls = 0;
++        const result = await validateForman({ functionId }, [field], {
++            allowDynamicValues: true,
++            resolveRemote: async () => {
++                calls++;
++                return [];
++            },
++        });
++        expect(result.valid).toBe(false);
++        expect(result.errors).toEqual([
++            expect.objectContaining({ path: 'functionId', message: 'Expected a number or string Function ID.' }),
++        ]);
++        expect(calls).toBe(0);
++    });
++
++    it.each([false, true])('reports unavailable IDs with allowDynamicValues=%p', async allowDynamicValues => {
++        const calls: string[] = [];
++        const result = await validateForman(
++            { functionId: 999 },
++            [{ ...field, mappable: false, options: 'rpc://ListFunctionsRPC' }],
++            {
++                allowDynamicValues,
++                resolveRemote: async path => {
++                    calls.push(path);
++                    return [{ value: 123, label: 'Invoice' }];
++                },
++            },
++        );
++        expect(calls).toEqual(['rpc://ListFunctionsRPC']);
++        expect(result.valid).toBe(allowDynamicValues);
++        expect(allowDynamicValues ? result.warnings : result.errors).toEqual([
++            expect.objectContaining({ path: 'functionId', message: "Value '999' not found in options." }),
++        ]);
++    });
++
++    it.each(['picker', 'inputs'])('propagates %s RPC failures', async failedRpc => {
++        const result = await validateForman({ functionId: 123 }, [field], {
++            resolveRemote: async path => {
++                if (failedRpc === 'picker' || path.startsWith('rpc://FunctionInputFieldsRPC'))
++                    throw new Error('Unavailable');
++                return [{ value: 123 }];
++            },
++        });
++        expect(result.valid).toBe(false);
++        expect(result.errors).toEqual(
++            expect.arrayContaining([expect.objectContaining({ message: expect.stringContaining('Unavailable') })]),
++        );
++    });
++
++    it('rejects missing required generated inputs', async () => {
++        const result = await validateForman({ functionId: 123 }, [field], {
++            resolveRemote: async path =>
++                path.startsWith('rpc://ListFunctionsRPC')
++                    ? [{ value: 123 }]
++                    : [{ name: 'count', type: 'integer', required: true }],
++        });
++        expect(result.valid).toBe(false);
++        expect(result.errors).toEqual([expect.objectContaining({ path: 'count', message: 'Field is mandatory.' })]);
++    });
++
++    it('preserves whole-input mapping and mapped Function IDs in the mapper domain', async () => {
++        const values = { functionId: '{{1.functionId}}', input: '{{1.payload}}' };
++        const calls: string[] = [];
++        const result = await validateFormanWithDomains(
++            { expect: { values, schema: [field], allowDynamicValues: true } },
++            {
++                strict: true,
++                resolveRemote: async path => {
++                    calls.push(path);
++                    return [
++                        {
++                            name: 'input',
++                            type: 'collection',
++                            required: true,
++                            spec: [{ name: 'text', type: 'text', required: true }],
++                        },
++                    ];
++                },
++            },
++        );
++        expect(result.valid).toBe(true);
++        expect(calls).toEqual(['rpc://FunctionInputFieldsRPC?teamId={{teamId}}&functionId={{functionId}}']);
++        expect(values).toEqual({ functionId: '{{1.functionId}}', input: '{{1.payload}}' });
++    });
++
++    it('preserves custom option keys in conversion and option validation', async () => {
++        const custom: FormanSchemaField = {
++            ...field,
++            options: { store: 'rpc://ListFunctionsRPC', value: 'id', label: 'name' },
++        };
++        const converted = toJSONSchemaAdvanced(custom).schema;
++        expect(JSON.parse(JSON.stringify(converted))['x-fetch-options']).toMatchObject({ value: 'id', label: 'name' });
++        const result = await validateForman({ functionId: 123 }, [custom], {
++            resolveRemote: async () => [{ id: 123, name: 'Invoice', active: true }],
++        });
++        expect(result.valid).toBe(true);
++    });
++
++    it('uses option-dependent nested fields when switching Functions', async () => {
++        const schema: FormanSchemaField[] = [
++            {
++                ...field,
++                options: [
++                    { value: 123, nested: [{ name: 'count', type: 'integer', required: true }] },
++                    { value: 456, nested: [{ name: 'text', type: 'text', required: true }] },
++                ],
++            },
++        ];
++        const first = await validateForman({ functionId: 123, count: 7 }, schema, { strict: true });
++        const second = await validateForman({ functionId: 456, text: 'Invoice' }, schema, { strict: true });
++        const missing = await validateForman({ functionId: 456 }, schema);
++        expect(first.valid).toBe(true);
++        expect(second.valid).toBe(true);
++        expect(missing.errors).toEqual([expect.objectContaining({ path: 'text', message: 'Field is mandatory.' })]);
++        const property = toJSONSchemaAdvanced({ type: 'collection', spec: schema }).schema.properties!
++            .functionId as JSONSchema7;
++        expect(property.type).toEqual(['number', 'string']);
++    });
++
++    it('retains optional placeholder nesting in conversion, validation, and field edges', async () => {
++        const placeholder = [{ name: 'fallback', type: 'text', required: true }];
++        const optional: FormanSchemaField = {
++            ...field,
++            required: false,
++            options: { store: [{ value: 123 }], placeholder: { label: 'Choose', nested: placeholder } },
++        };
++        const result = await validateForman({ functionId: '' }, [optional]);
++        expect(result.errors).toEqual([expect.objectContaining({ path: 'fallback', message: 'Field is mandatory.' })]);
++        const schema = toJSONSchemaAdvanced({ type: 'collection', spec: [optional] }).schema;
++        expect(JSON.stringify(schema.allOf)).toContain('fallback');
++    });
++
++    it('retains select-compatible enum metadata in resolved schemas', async () => {
++        const result = await validateForman(
++            { functionId: 123 },
++            [{ ...field, options: [{ value: 123 }, { value: 456 }] }],
++            { schemas: true },
++        );
++        expect(result.schemas!.default).toEqual([
++            expect.objectContaining({ name: 'functionId', type: 'function', validate: { enum: ['123', '456'] } }),
++        ]);
++    });
++});
+diff --git a/test/function-result-shape.spec.ts b/test/function-result-shape.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/test/function-result-shape.spec.ts
+@@ -0,0 +1,13 @@
++import { describe, expect, it } from '@jest/globals';
++import { validateForman } from '../src/index.js';
++
++describe('Function 1.x result contract', () => {
++    it('keeps the released select result shape without introducing 2.x keys', async () => {
++        const field = { name: 'functionId', type: 'function', options: [{ value: 123 }] };
++        const result = await validateForman({ functionId: 123 }, [field]);
++        const select = await validateForman({ functionId: 123 }, [{ ...field, type: 'select' }]);
++        expect(result).toEqual(select);
++        expect(result).not.toHaveProperty('normalizedValues');
++        expect(result).not.toHaveProperty('appliedDefaults');
++    });
++});
