@@ -1006,11 +1006,15 @@ function handlePrimitiveType(field: FormanSchemaField, result: JSONSchema7, cont
             result.pattern =
                 typeof field.validate.pattern === 'object' ? field.validate.pattern.regexp : field.validate.pattern;
         }
-        if (field.validate.min !== undefined) {
-            result.minimum = field.validate.min;
-        }
-        if (field.validate.max !== undefined) {
-            result.maximum = field.validate.max;
+        // Forman's min/max follow the value's type, as the validator reads them: a length for a string,
+        // a bound for a number. A boolean or typeless schema gets neither, since a JSON Schema keyword
+        // for one type on a schema of another is ignored (and refused by Ajv's strictTypes).
+        if (result.type === 'string') {
+            if (field.validate.min !== undefined) result.minLength = field.validate.min;
+            if (field.validate.max !== undefined) result.maxLength = field.validate.max;
+        } else if (result.type === 'number' || result.type === 'integer') {
+            if (field.validate.min !== undefined) result.minimum = field.validate.min;
+            if (field.validate.max !== undefined) result.maximum = field.validate.max;
         }
         if (field.validate.enum) {
             result.enum = field.validate.enum;
