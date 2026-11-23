@@ -26,6 +26,7 @@ import {
     normalizeFormanFieldType,
     isVisualType,
     isReferenceType,
+    isFunctionReference,
     isEditableType,
     IML_FILTER_OPERATORS,
     findValueInSelectOptions,
@@ -51,6 +52,7 @@ function fieldAllowsCustomValue(field: FormanSchemaField): boolean {
  * Rejecting there is unrecoverable for the user; a warning still surfaces as a setup error.
  */
 function unresolvedOptionIsTolerable(field: FormanSchemaField, root: DomainRoot): boolean {
+    if (field.type === 'function') return root.allowDynamicValues;
     return root.allowDynamicValues || fieldAllowsCustomValue(field) || isReferenceType(field.type);
 }
 
@@ -171,7 +173,7 @@ function clampFieldForSchema(field: FormanSchemaField): FormanSchemaField {
             : clampFieldForSchema(field.spec);
     }
     // Generate validate.enum for select fields with inline array options (only if not already set)
-    if ((field.type === 'select' || field.type === 'function') && !field.validate?.enum) {
+    if (field.type === 'select' && !field.validate?.enum) {
         const rawOptions = isObject<FormanSchemaExtendedOptions>(field.options) ? field.options.store : field.options;
         if (Array.isArray(rawOptions)) {
             const values: FormanSchemaValue[] = [];
@@ -230,7 +232,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, string | undefined>> = {
     list: undefined,
     radio: undefined,
     select: undefined,
-    function: undefined,
+    function: 'string',
     udttype: 'string',
     udtspec: 'array',
     time: 'string',
@@ -512,10 +514,7 @@ async function validateFormanValue(
 
     if (value == null || value === '') {
         // When a select field has placeholder.nested, null/'' means "no selection" and we need to validate the nested fields
-        if (
-            (normalizedField.type === 'select' || normalizedField.type === 'function') &&
-            hasPlaceholderNested(normalizedField)
-        ) {
+        if (normalizedField.type === 'select' && hasPlaceholderNested(normalizedField)) {
             return handleSelectType(value, normalizedField, context);
         }
         return {
@@ -526,15 +525,15 @@ async function validateFormanValue(
     }
 
     const expectedType = FORMAN_TYPE_MAP[normalizedField.type];
-    // Function references stay scalar even when mapped domains allow unresolved options (AX-63).
-    if (normalizedField.type === 'function' && typeof value !== 'number' && typeof value !== 'string') {
+    // Function selection is static even when the enclosing domain allows mapping (AX-63).
+    if (normalizedField.type === 'function' && !isFunctionReference(value)) {
         return {
             valid: false,
             errors: [
                 {
                     domain: context.domain,
                     path: context.path.join('.'),
-                    message: 'Expected a number or string Function ID.',
+                    message: 'Expected a Function reference FN2_<positive integer> within the API ID range.',
                 },
             ],
             warnings: [],
@@ -1199,7 +1198,7 @@ async function handleSelectType(
         ) {
             context.roots[context.domain]!.fieldStates.push({
                 path: context.path,
-                state: { mode: 'edit' },
+                state: field.type === 'function' ? {} : { mode: 'edit' },
             });
         }
 
@@ -1251,7 +1250,7 @@ async function handleSelectType(
                 });
                 context.roots[context.domain]!.fieldStates.push({
                     path: context.path,
-                    state: { mode: 'edit' },
+                    state: field.type === 'function' ? {} : { mode: 'edit' },
                 });
             } else {
                 return {

@@ -275,6 +275,7 @@ describe('Utils Functions', () => {
                 'keychain',
                 'udt',
                 'scenario',
+                'function',
             ]);
         });
     });

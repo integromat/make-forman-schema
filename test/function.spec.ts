@@ -3,57 +3,61 @@ import { activeFieldEdges, toJSONSchemaAdvanced, validateForman, validateFormanW
 import type { FormanSchemaField } from '../src/index.js';
 import type { JSONSchema7 } from 'json-schema';
 
-describe('Function selector (AX-63)', () => {
+describe('Function resources (AX-63)', () => {
     const field: FormanSchemaField = {
         name: 'functionId',
         type: 'function',
         required: true,
-        mappable: true,
-        options: {
-            store: 'rpc://ListFunctionsRPC?teamId={{teamId}}',
-            nested: 'rpc://FunctionInputFieldsRPC?teamId={{teamId}}&functionId={{functionId}}',
-        },
+        mappable: false,
+        options: { nested: 'rpc://FunctionInputFieldsRPC?teamId={{teamId}}&functionId={{functionId}}' },
     };
 
-    it('converts the picker and input RPCs without losing metadata or scalar ID types', () => {
+    it('converts the native resource source and dependent input RPC', () => {
         const result = toJSONSchemaAdvanced({ type: 'collection', spec: [field] }, { strictFieldTypes: true });
         const property = result.schema.properties!.functionId as JSONSchema7;
-        expect(property.type).toEqual(['number', 'string']);
         expect(JSON.parse(JSON.stringify(property))).toMatchObject({
-            'x-fetch': 'rpc://ListFunctionsRPC?teamId={{teamId}}',
+            type: 'string',
+            pattern: '^FN2_[1-9][0-9]*$',
+            maxLength: 14,
+            'x-fetch': 'api://functions/v2',
             'x-nested': { $ref: 'rpc://FunctionInputFieldsRPC?teamId={{teamId}}&functionId={{functionId}}' },
         });
         expect(result.schema.required).toEqual(['functionId']);
         expect(result.skippedPaths?.unconvertible).toBeUndefined();
     });
 
-    it.each([123, '123'])('preserves ID %p and validates its current generated input form', async functionId => {
-        const values = { functionId, count: 7 };
-        const calls: string[] = [];
-        const result = await validateForman(values, [field], {
-            strict: true,
-            states: true,
-            schemas: true,
-            resolveRemote: async (path, context) => {
-                calls.push(path);
-                if (path.startsWith('rpc://ListFunctionsRPC')) {
-                    return [{ value: functionId, label: 'Invoice (123)', name: 'Invoice', active: false }];
-                }
-                expect(context.functionId).toBe(functionId);
-                return [{ name: 'count', type: 'integer', required: true }];
-            },
-        });
-        expect(result.valid).toBe(true);
-        expect(result.errors).toEqual([]);
-        expect(calls).toEqual([
-            'rpc://ListFunctionsRPC?teamId={{teamId}}',
-            'rpc://FunctionInputFieldsRPC?teamId={{teamId}}&functionId={{functionId}}',
-        ]);
-        expect(values).toEqual({ functionId, count: 7 });
-        expect(result.schemas!.default).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'count' })]));
-    });
+    it.each(['FN2_1', 'FN2_123', 'FN2_2147483647'])(
+        'preserves %s and validates its generated inputs',
+        async functionId => {
+            const values = { functionId, count: 7 };
+            const calls: string[] = [];
+            const result = await validateForman(values, [field], {
+                strict: true,
+                states: true,
+                schemas: true,
+                resolveRemote: async (path, context) => {
+                    calls.push(path);
+                    if (path === 'api://functions/v2')
+                        return [{ value: functionId, label: 'Invoice (123)', name: 'Invoice', active: false }];
+                    expect(context.functionId).toBe(functionId);
+                    return [{ name: 'count', type: 'integer', required: true }];
+                },
+            });
+            expect(result.valid).toBe(true);
+            expect(result.errors).toEqual([]);
+            expect(calls).toEqual([
+                'api://functions/v2',
+                'rpc://FunctionInputFieldsRPC?teamId={{teamId}}&functionId={{functionId}}',
+            ]);
+            expect(values).toEqual({ functionId, count: 7 });
+            expect(result.states ?? {}).not.toMatchObject({ default: { functionId: { mode: 'edit' } } });
+            expect(result.schemas!.default).toEqual(
+                expect.arrayContaining([expect.objectContaining({ name: 'count' })]),
+            );
+        },
+    );
 
-    it.each([undefined, null, ''])('rejects missing required ID %p', async functionId => {
+    it.each([undefined, null, ''])('rejects missing required reference %p', async functionId => {
         const result = await validateForman({ functionId }, [field]);
         expect(result.valid).toBe(false);
         expect(result.errors).toEqual([
@@ -61,9 +65,24 @@ describe('Function selector (AX-63)', () => {
         ]);
     });
 
-    it.each([{ id: 123 }, [123], true, false])('rejects non-scalar ID %p even in a mapped domain', async functionId => {
+    it.each([
+        123,
+        '123',
+        'FN2_0',
+        'FN2_01',
+        'FN2_-1',
+        'FN2_1.5',
+        'FN2_2147483648',
+        'FN2_1\n',
+        'SCN_123',
+        '{{1.id}}',
+        { id: 123 },
+        [123],
+        true,
+        false,
+    ])('rejects invalid reference %p even when mapping is allowed by the caller', async functionId => {
         let calls = 0;
-        const result = await validateForman({ functionId }, [field], {
+        const result = await validateForman({ functionId }, [{ ...field, mappable: true }], {
             allowDynamicValues: true,
             resolveRemote: async () => {
                 calls++;
@@ -72,37 +91,40 @@ describe('Function selector (AX-63)', () => {
         });
         expect(result.valid).toBe(false);
         expect(result.errors).toEqual([
-            expect.objectContaining({ path: 'functionId', message: 'Expected a number or string Function ID.' }),
+            expect.objectContaining({
+                path: 'functionId',
+                message: 'Expected a Function reference FN2_<positive integer> within the API ID range.',
+            }),
         ]);
         expect(calls).toBe(0);
     });
 
-    it.each([false, true])('reports unavailable IDs with allowDynamicValues=%p', async allowDynamicValues => {
-        const calls: string[] = [];
-        const result = await validateForman(
-            { functionId: 999 },
-            [{ ...field, mappable: false, options: 'rpc://ListFunctionsRPC' }],
-            {
+    it.each([false, true])(
+        'reports unavailable references with allowDynamicValues=%p without mapping restore',
+        async allowDynamicValues => {
+            const calls: string[] = [];
+            const result = await validateForman({ functionId: 'FN2_999' }, [{ ...field, options: undefined }], {
                 allowDynamicValues,
+                states: true,
                 resolveRemote: async path => {
                     calls.push(path);
-                    return [{ value: 123, label: 'Invoice' }];
+                    return [{ value: 'FN2_123', label: 'Invoice' }];
                 },
-            },
-        );
-        expect(calls).toEqual(['rpc://ListFunctionsRPC']);
-        expect(result.valid).toBe(allowDynamicValues);
-        expect(allowDynamicValues ? result.warnings : result.errors).toEqual([
-            expect.objectContaining({ path: 'functionId', message: "Value '999' not found in options." }),
-        ]);
-    });
+            });
+            expect(calls).toEqual(['api://functions/v2']);
+            expect(result.valid).toBe(allowDynamicValues);
+            expect(allowDynamicValues ? result.warnings : result.errors).toEqual([
+                expect.objectContaining({ path: 'functionId', message: "Value 'FN2_999' not found in options." }),
+            ]);
+            expect(result.states ?? {}).not.toMatchObject({ default: { functionId: { mode: 'edit' } } });
+        },
+    );
 
-    it.each(['picker', 'inputs'])('propagates %s RPC failures', async failedRpc => {
-        const result = await validateForman({ functionId: 123 }, [field], {
+    it.each(['picker', 'inputs'])('propagates %s failures', async failedRequest => {
+        const result = await validateForman({ functionId: 'FN2_123' }, [field], {
             resolveRemote: async path => {
-                if (failedRpc === 'picker' || path.startsWith('rpc://FunctionInputFieldsRPC'))
-                    throw new Error('Unavailable');
-                return [{ value: 123 }];
+                if (failedRequest === 'picker' || path.startsWith('rpc://')) throw new Error('Unavailable');
+                return [{ value: 'FN2_123' }];
             },
         });
         expect(result.valid).toBe(false);
@@ -112,99 +134,84 @@ describe('Function selector (AX-63)', () => {
     });
 
     it('rejects missing required generated inputs', async () => {
-        const result = await validateForman({ functionId: 123 }, [field], {
+        const result = await validateForman({ functionId: 'FN2_123' }, [field], {
             resolveRemote: async path =>
-                path.startsWith('rpc://ListFunctionsRPC')
-                    ? [{ value: 123 }]
+                path.startsWith('api://')
+                    ? [{ value: 'FN2_123' }]
                     : [{ name: 'count', type: 'integer', required: true }],
         });
         expect(result.valid).toBe(false);
         expect(result.errors).toEqual([expect.objectContaining({ path: 'count', message: 'Field is mandatory.' })]);
     });
 
-    it('preserves whole-input mapping and mapped Function IDs in the mapper domain', async () => {
-        const values = { functionId: '{{1.functionId}}', input: '{{1.payload}}' };
-        const calls: string[] = [];
+    it('routes static parameters to mapped inputs in the expect domain', async () => {
         const result = await validateFormanWithDomains(
-            { expect: { values, schema: [field], allowDynamicValues: true } },
+            {
+                parameters: {
+                    values: { functionId: 'FN2_123' },
+                    schema: [
+                        { ...field, options: { nested: { domain: 'expect', store: 'rpc://FunctionInputFieldsRPC' } } },
+                    ],
+                },
+                expect: { values: { data: '{{1.payload}}' }, schema: [], allowDynamicValues: true },
+            },
             {
                 strict: true,
                 states: true,
-                resolveRemote: async path => {
-                    calls.push(path);
-                    return [
-                        {
-                            name: 'input',
-                            type: 'collection',
-                            required: true,
-                            spec: [{ name: 'text', type: 'text', required: true }],
-                        },
-                    ];
-                },
+                resolveRemote: async path =>
+                    path.startsWith('api://')
+                        ? [{ value: 'FN2_123', label: 'Invoice', active: false }]
+                        : [
+                              {
+                                  name: 'data',
+                                  type: 'collection',
+                                  required: true,
+                                  spec: [{ name: 'text', type: 'text', required: true }],
+                              },
+                          ],
             },
         );
         expect(result.valid).toBe(true);
-        expect(calls).toEqual(['rpc://FunctionInputFieldsRPC?teamId={{teamId}}&functionId={{functionId}}']);
-        expect(values).toEqual({ functionId: '{{1.functionId}}', input: '{{1.payload}}' });
-        expect(result.states).toMatchObject({ expect: { functionId: { mode: 'edit' } } });
+        expect(result.states).toMatchObject({ parameters: { functionId: { label: 'Invoice' } } });
+        expect(result.states ?? {}).not.toMatchObject({ parameters: { functionId: { mode: 'edit' } } });
     });
 
-    it('preserves custom option keys in conversion and option validation', async () => {
+    it('retains custom option keys', async () => {
         const custom: FormanSchemaField = {
             ...field,
-            options: { store: 'rpc://ListFunctionsRPC', value: 'id', label: 'name' },
+            options: { store: 'api://functions/v2', value: 'reference', label: 'name' },
         };
         const converted = toJSONSchemaAdvanced(custom).schema;
-        expect(JSON.parse(JSON.stringify(converted))['x-fetch-options']).toMatchObject({ value: 'id', label: 'name' });
-        const result = await validateForman({ functionId: 123 }, [custom], {
-            resolveRemote: async () => [{ id: 123, name: 'Invoice', active: true }],
+        expect(JSON.parse(JSON.stringify(converted))['x-fetch-options']).toMatchObject({
+            value: 'reference',
+            label: 'name',
+        });
+        const result = await validateForman({ functionId: 'FN2_123' }, [custom], {
+            resolveRemote: async () => [{ reference: 'FN2_123', name: 'Invoice', active: true }],
         });
         expect(result.valid).toBe(true);
     });
 
-    it('uses option-dependent nested fields when switching Functions', async () => {
+    it('switches option-dependent input forms and their traversal edges', async () => {
         const schema: FormanSchemaField[] = [
             {
                 ...field,
                 options: [
-                    { value: 123, nested: [{ name: 'count', type: 'integer', required: true }] },
-                    { value: 456, nested: [{ name: 'text', type: 'text', required: true }] },
+                    { value: 'FN2_123', nested: [{ name: 'count', type: 'integer', required: true }] },
+                    { value: 'FN2_456', nested: [{ name: 'text', type: 'text', required: true }] },
                 ],
             },
         ];
-        const first = await validateForman({ functionId: 123, count: 7 }, schema, { strict: true });
-        const second = await validateForman({ functionId: 456, text: 'Invoice' }, schema, { strict: true });
-        const missing = await validateForman({ functionId: 456 }, schema);
+        const first = await validateForman({ functionId: 'FN2_123', count: 7 }, schema, { strict: true });
+        const second = await validateForman({ functionId: 'FN2_456', text: 'Invoice' }, schema, { strict: true });
+        const missing = await validateForman({ functionId: 'FN2_456' }, schema);
         expect(first.valid).toBe(true);
         expect(second.valid).toBe(true);
         expect(missing.errors).toEqual([expect.objectContaining({ path: 'text', message: 'Field is mandatory.' })]);
-        const property = toJSONSchemaAdvanced({ type: 'collection', spec: schema }).schema.properties!
-            .functionId as JSONSchema7;
-        expect(property.type).toBe('number');
-    });
-
-    it('retains optional placeholder nesting in conversion, validation, and field edges', async () => {
-        const placeholder = [{ name: 'fallback', type: 'text', required: true }];
-        const optional: FormanSchemaField = {
-            ...field,
-            required: false,
-            options: { store: [{ value: 123 }], placeholder: { label: 'Choose', nested: placeholder } },
-        };
-        const result = await validateForman({ functionId: '' }, [optional]);
-        expect(result.errors).toEqual([expect.objectContaining({ path: 'fallback', message: 'Field is mandatory.' })]);
-        expect(activeFieldEdges(optional, '')).toEqual([expect.objectContaining({ children: placeholder })]);
-        const schema = toJSONSchemaAdvanced({ type: 'collection', spec: [optional] }).schema;
-        expect(JSON.stringify(schema.allOf)).toContain('fallback');
-    });
-
-    it('retains select-compatible enum metadata in resolved schemas', async () => {
-        const result = await validateForman(
-            { functionId: 123 },
-            [{ ...field, options: [{ value: 123 }, { value: 456 }] }],
-            { schemas: true },
-        );
-        expect(result.schemas!.default).toEqual([
-            expect.objectContaining({ name: 'functionId', type: 'function', validate: { enum: ['123', '456'] } }),
+        expect(activeFieldEdges(schema[0]!, 'FN2_456')).toEqual([
+            expect.objectContaining({ children: [{ name: 'text', type: 'text', required: true }] }),
         ]);
+        const converted = toJSONSchemaAdvanced({ type: 'collection', spec: schema }).schema;
+        expect((converted.properties!.functionId as JSONSchema7).type).toBe('string');
     });
 });

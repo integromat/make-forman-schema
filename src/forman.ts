@@ -205,7 +205,7 @@ export function resolveFormanFieldType(rawType: string | undefined): string | un
 export function isMultipleSelect(field: FormanSchemaField): boolean {
     if (field.multiple !== true) return false;
     const type = resolveFormanFieldType(field.type);
-    return type !== 'file' && type !== 'folder';
+    return type !== 'file' && type !== 'folder' && type !== 'function';
 }
 
 /**
@@ -373,7 +373,12 @@ export function toJSONSchemaInternal(field: FormanSchemaField, context: Conversi
 
     switch (normalizedField.type) {
         case 'function':
-            return handleSelectOrPathType(normalizedField, { ...result, type: ['number', 'string'] }, context);
+            return {
+                ...handleSelectOrPathType(normalizedField, result, context),
+                type: 'string',
+                pattern: '^FN2_[1-9][0-9]*$',
+                maxLength: 14,
+            };
         case 'collection':
         case 'dynamicCollection':
             return handleCollectionType(normalizedField, result, context);
@@ -814,7 +819,7 @@ function handleSelectOrPathType(
         // For non-required selects with placeholder.nested, inject placeholder as an artificial empty-string option.
         if (
             singleValue &&
-            (field.type === 'select' || field.type === 'function') &&
+            field.type === 'select' &&
             !field.required &&
             isObject<FormanSchemaExtendedOptions>(field.options)
         ) {
