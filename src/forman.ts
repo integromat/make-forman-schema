@@ -136,6 +136,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, JSONSchema7['type']>> = {
     list: 'string',
     radio: 'string',
     scenario: 'string',
+    function: 'string',
     select: 'string',
     udttype: 'string',
     udtspec: 'array',
@@ -353,6 +354,13 @@ export function toJSONSchemaInternal(field: FormanSchemaField, context: Conversi
     };
 
     switch (normalizedField.type) {
+        case 'function':
+            return {
+                ...handleSelectOrPathType(normalizedField, result, context),
+                type: 'string',
+                pattern: '^FN2_[1-9][0-9]*$',
+                maxLength: 14,
+            };
         case 'collection':
         case 'dynamicCollection':
             return handleCollectionType(normalizedField, result, context);
