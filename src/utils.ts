@@ -52,7 +52,7 @@ export function isReferenceType(type: FormanSchemaFieldType): type is (typeof FO
 /**
  * Editable types are types that produce a `mode: 'edit'` state when their value is an IML expression.
  */
-const EDITABLE_TYPES = ['select', 'file', 'folder', 'boolean'] as const;
+const EDITABLE_TYPES = ['select', 'function', 'file', 'folder', 'boolean'] as const;
 
 /**
  * Type guard to check if a field type is an editable type.

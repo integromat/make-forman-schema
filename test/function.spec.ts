@@ -129,6 +129,7 @@ describe('Function selector (AX-63)', () => {
             { expect: { values, schema: [field], allowDynamicValues: true } },
             {
                 strict: true,
+                states: true,
                 resolveRemote: async path => {
                     calls.push(path);
                     return [
@@ -145,6 +146,7 @@ describe('Function selector (AX-63)', () => {
         expect(result.valid).toBe(true);
         expect(calls).toEqual(['rpc://FunctionInputFieldsRPC?teamId={{teamId}}&functionId={{functionId}}']);
         expect(values).toEqual({ functionId: '{{1.functionId}}', input: '{{1.payload}}' });
+        expect(result.states).toMatchObject({ expect: { functionId: { mode: 'edit' } } });
     });
 
     it('preserves custom option keys in conversion and option validation', async () => {
