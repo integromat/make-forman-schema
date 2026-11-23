@@ -15,6 +15,7 @@ export type {
     FormanSchemaField,
     FormanSchemaValue,
     FormanSchemaOption,
+    FormanSchemaOptionBadge,
     FormanSchemaDirectoryOption,
     FormanSchemaNested,
     FormanSchemaBooleanNested,
