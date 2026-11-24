@@ -226,10 +226,12 @@ function toFormanSchemaInternal(field: JSONSchema7): FormanSchemaField {
             }
 
             // Add validation if present
-            if (field.pattern || field.enum) {
+            if (field.pattern || field.enum || field.minLength !== undefined || field.maxLength !== undefined) {
                 textField.validate = textField.validate || {};
                 if (field.pattern) textField.validate.pattern = field.pattern;
                 if (field.enum) textField.validate.enum = field.enum as string[];
+                if (field.minLength !== undefined) textField.validate.min = field.minLength;
+                if (field.maxLength !== undefined) textField.validate.max = field.maxLength;
             }
 
             if ('x-search' in field) {
