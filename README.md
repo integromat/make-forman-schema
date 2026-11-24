@@ -2,6 +2,22 @@
 
 Conversion and validation utilities for Forman Schema.
 
+## v2.3.0 — `validate.min`/`max` convert by the field's JSON type
+
+`toJSONSchema` now writes `validate.min`/`validate.max` the way the validator reads them: a length for
+a string, a bound for a number. Validation is unchanged.
+
+- String fields (`text`, `editor`, `email`, `url`, `password`, `date`, `time`, `color`, `uuid`, …) get
+  `minLength`/`maxLength` instead of `minimum`/`maximum`. A numeric keyword on a string schema was
+  ignored by a lenient validator and refused by Ajv's `strictTypes`.
+- Number fields (`number`, `integer`, `uinteger`, `port`, …) keep `minimum`/`maximum`.
+- Boolean (`boolean`, `checkbox`) and typeless (`any`, `hidden`) fields get no limit keyword.
+- `toFormanSchema` reads `minLength`/`maxLength` on a string schema back into `validate.min`/`max`.
+
+**Upgrading:** consumers reading `minimum`/`maximum` off a string schema should read
+`minLength`/`maxLength`. A `validate.min`/`max` on a boolean or typeless field no longer survives a
+round trip through `toFormanSchema`.
+
 ## v2.2.0 — selects typed by their option values, multiple selects as arrays
 
 `toJSONSchema` output changes shape for select-like fields (`select`, `radio`, `list`, references with
