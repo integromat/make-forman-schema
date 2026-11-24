@@ -1198,7 +1198,7 @@ async function handleSelectType(
         ) {
             context.roots[context.domain]!.fieldStates.push({
                 path: context.path,
-                state: { mode: 'edit' },
+                state: field.type === 'function' ? {} : { mode: 'edit' },
             });
         }
 

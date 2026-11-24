@@ -391,6 +391,7 @@ export function toJSONSchemaInternal(field: FormanSchemaField, context: Conversi
                 ...handleSelectOrPathType(normalizedField, result, context),
                 type: 'string',
                 pattern: `^(?:FN2_(?:${idPattern}))${normalizedField.required ? '' : '?'}(?![\\s\\S])`,
+                maxLength: 14,
             };
         }
         case 'collection':

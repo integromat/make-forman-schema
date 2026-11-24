@@ -19,6 +19,7 @@ describe('Function resources (AX-63)', () => {
         expect(JSON.parse(JSON.stringify(property))).toMatchObject({
             type: 'string',
             pattern: expect.any(String),
+            maxLength: 14,
             'x-fetch': 'api://functions/v2',
             'x-nested': { $ref: 'rpc://FunctionInputFieldsRPC?teamId={{teamId}}&functionId={{functionId}}' },
         });
