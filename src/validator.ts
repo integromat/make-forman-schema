@@ -25,6 +25,7 @@ import {
     normalizeFormanFieldType,
     isVisualType,
     isReferenceType,
+    isFunctionReference,
     isEditableType,
     IML_FILTER_OPERATORS,
     findValueInSelectOptions,
@@ -219,6 +220,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, string | undefined>> = {
     upload: 'array',
     filestorage: 'array',
     scenario: 'string',
+    function: 'string',
     url: 'string',
     uuid: 'string',
     any: undefined,
@@ -461,6 +463,20 @@ async function validateFormanValue(
     }
 
     const expectedType = FORMAN_TYPE_MAP[normalizedField.type];
+    // Function selection is static even when the enclosing domain allows mapping (AX-63).
+    if (normalizedField.type === 'function' && !isFunctionReference(value)) {
+        return {
+            valid: false,
+            errors: [
+                {
+                    domain: context.domain,
+                    path: context.path.join('.'),
+                    message: 'Expected a Function reference FN2_<positive integer> within the API ID range.',
+                },
+            ],
+            warnings: [],
+        };
+    }
     let actualType: string = typeof value;
     if (actualType === 'object' && Array.isArray(value)) actualType = 'array';
 
@@ -538,6 +554,7 @@ async function validateFormanValue(
         case 'datastore':
         case 'aiagent':
         case 'udt':
+        case 'function':
         case 'scenario':
             return handleSelectType(value, normalizedField, context);
         case 'file':
@@ -1097,7 +1114,7 @@ async function handleSelectType(
         ) {
             context.roots[context.domain]!.fieldStates.push({
                 path: context.path,
-                state: { mode: 'edit' },
+                state: field.type === 'function' ? {} : { mode: 'edit' },
             });
         }
 
@@ -1152,7 +1169,7 @@ async function handleSelectType(
                 });
                 context.roots[context.domain]!.fieldStates.push({
                     path: context.path,
-                    state: { mode: 'edit' },
+                    state: field.type === 'function' ? {} : { mode: 'edit' },
                 });
             } else {
                 return {

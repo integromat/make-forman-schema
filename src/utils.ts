@@ -37,6 +37,7 @@ export const FORMAN_REFERENCE_TYPES = [
     'aiagent',
     'udt',
     'scenario',
+    'function',
 ] as const;
 
 /**
@@ -127,6 +128,7 @@ export const API_ENDPOINTS = {
     keychain: 'api://keys/{{kind}}',
     udt: 'api://data-structures',
     scenario: 'api://scenario-list',
+    function: 'api://functions/v2',
 } as const;
 
 /**
@@ -136,6 +138,7 @@ export const API_ENDPOINTS = {
  */
 export function normalizeFormanFieldType(field: FormanSchemaField): FormanSchemaField {
     const [type, kind] = field.type.split(':');
+    if (type === 'function') field = { ...field, mappable: false, editable: false, multiple: false };
     if (!type) return field;
     if (!(type in API_ENDPOINTS)) return field;
 
@@ -436,3 +439,8 @@ export const IML_BINARY_FILTER_OPERATORS = [
  * Constants for all IML filter operators
  */
 export const IML_FILTER_OPERATORS = [...IML_UNARY_FILTER_OPERATORS, ...IML_BINARY_FILTER_OPERATORS];
+
+export function isFunctionReference(value: unknown): value is string {
+    const match = typeof value === 'string' ? /^FN2_([1-9][0-9]*)$/.exec(value) : null;
+    return !!match && match[0] === value && Number(match[1]) <= 2_147_483_647;
+}

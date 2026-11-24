@@ -12,6 +12,7 @@ export type FormanSchemaFieldType =
     | 'datastore'
     | 'udt'
     | 'scenario'
+    | 'function'
     | 'array'
     | 'collection'
     | 'text'
@@ -219,7 +220,7 @@ export type FormanSchemaSelectOptionsStore = (FormanSchemaOption | FormanSchemaO
  */
 export type FormanSchemaExtendedOptions = {
     /** Store for the options */
-    store: FormanSchemaOption[] | FormanSchemaOptionGroup[] | string;
+    store?: FormanSchemaOption[] | FormanSchemaOptionGroup[] | string;
     /** Nested fields for every option */
     nested?: FormanSchemaNested;
     /** Name of the property as the label of an option */
