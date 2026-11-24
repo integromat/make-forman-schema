@@ -1,4 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
+import Ajv from 'ajv';
 import { toJSONSchemaAdvanced, validateForman, validateFormanWithDomains } from '../src/index.js';
 import type { FormanSchemaField } from '../src/index.js';
 import type { JSONSchema7 } from 'json-schema';
@@ -17,7 +18,7 @@ describe('Function resources (AX-63)', () => {
         const property = result.schema.properties!.functionId as JSONSchema7;
         expect(JSON.parse(JSON.stringify(property))).toMatchObject({
             type: 'string',
-            pattern: '^FN2_[1-9][0-9]*$',
+            pattern: expect.any(String),
             maxLength: 14,
             'x-fetch': 'api://functions/v2',
             'x-nested': { $ref: 'rpc://FunctionInputFieldsRPC?teamId={{teamId}}&functionId={{functionId}}' },
@@ -210,5 +211,76 @@ describe('Function resources (AX-63)', () => {
         expect(missing.errors).toEqual([expect.objectContaining({ path: 'text', message: 'Field is mandatory.' })]);
         const converted = toJSONSchemaAdvanced({ type: 'collection', spec: schema }).schema;
         expect((converted.properties!.functionId as JSONSchema7).type).toBe('string');
+    });
+    it.each([false, true])(
+        'validates optional/required empty references with Ajv defaults (required=%p)',
+        async required => {
+            const schema = toJSONSchemaAdvanced({ type: 'collection', spec: [{ ...field, required }] }).schema;
+            const check = new Ajv({ strict: false, useDefaults: true }).compile(schema);
+            for (const values of [{}, { functionId: '' }]) {
+                expect(check(values)).toBe(!required);
+                expect((await validateForman(values, [{ ...field, required }])).valid).toBe(!required);
+            }
+        },
+    );
+
+    it.each([
+        ['FN2_1', true],
+        ['FN2_999999999', true],
+        ['FN2_1000000000', true],
+        ['FN2_1999999999', true],
+        ['FN2_2000000000', true],
+        ['FN2_2099999999', true],
+        ['FN2_2100000000', true],
+        ['FN2_2139999999', true],
+        ['FN2_2140000000', true],
+        ['FN2_2146999999', true],
+        ['FN2_2147000000', true],
+        ['FN2_2147399999', true],
+        ['FN2_2147400000', true],
+        ['FN2_2147479999', true],
+        ['FN2_2147480000', true],
+        ['FN2_2147482999', true],
+        ['FN2_2147483000', true],
+        ['FN2_2147483599', true],
+        ['FN2_2147483600', true],
+        ['FN2_2147483639', true],
+        ['FN2_2147483640', true],
+        ['FN2_2147483647', true],
+        ['FN2_2147483648', false],
+        ['FN2_2147483650', false],
+        ['FN2_2147483700', false],
+        ['FN2_2147484000', false],
+        ['FN2_2147490000', false],
+        ['FN2_2147500000', false],
+        ['FN2_2148000000', false],
+        ['FN2_2150000000', false],
+        ['FN2_2200000000', false],
+        ['FN2_3000000000', false],
+        ['FN2_9999999999', false],
+        ['FN2_10000000000', false],
+        ['FN2_0', false],
+        ['FN2_01', false],
+        ['FN2_-1', false],
+        ['FN2_1.5', false],
+        ['FN2_1\n', false],
+        ['FN2_1\r', false],
+        ['FN2_1\u2028', false],
+        ['FN2_1 ', false],
+        ['123', false],
+        ['SCN_123', false],
+        ['{{1.id}}', false],
+        [123, false],
+        [true, false],
+        [{ id: 123 }, false],
+        [[123], false],
+    ])('keeps generated and runtime validation consistent for %p', async (functionId, valid) => {
+        const schema = toJSONSchemaAdvanced({ type: 'collection', spec: [field] }).schema;
+        const check = new Ajv({ strict: false, useDefaults: true }).compile(schema);
+        expect(check({ functionId })).toBe(valid);
+        const result = await validateForman({ functionId }, [field], {
+            resolveRemote: async path => (path.startsWith('api://') ? [{ value: functionId }] : []),
+        });
+        expect(result.valid).toBe(valid);
     });
 });
