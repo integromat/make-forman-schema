@@ -1,3 +1,4 @@
+import { functionReferencePattern, MAX_FUNCTION_REFERENCE_LENGTH } from './function-reference';
 import type { JSONSchema7, JSONSchema7Definition, JSONSchema7TypeName } from 'json-schema';
 import type {
     FormanSchemaField,
@@ -373,25 +374,11 @@ export function toJSONSchemaInternal(field: FormanSchemaField, context: Conversi
 
     switch (normalizedField.type) {
         case 'function': {
-            // Canonical positive int32 IDs; each alternative covers one boundary digit (AX-63).
-            const idPattern = [
-                '[1-9][0-9]{0,8}',
-                '1[0-9]{9}',
-                '20[0-9]{8}',
-                '21[0-3][0-9]{7}',
-                '214[0-6][0-9]{6}',
-                '2147[0-3][0-9]{5}',
-                '21474[0-7][0-9]{4}',
-                '214748[0-2][0-9]{3}',
-                '2147483[0-5][0-9]{2}',
-                '21474836[0-3][0-9]',
-                '214748364[0-7]',
-            ].join('|');
             return {
                 ...handleSelectOrPathType(normalizedField, result, context),
                 type: 'string',
-                pattern: `^(?:FN2_(?:${idPattern}))${normalizedField.required ? '' : '?'}(?![\\s\\S])`,
-                maxLength: 14,
+                pattern: functionReferencePattern(!normalizedField.required),
+                maxLength: MAX_FUNCTION_REFERENCE_LENGTH,
             };
         }
         case 'collection':

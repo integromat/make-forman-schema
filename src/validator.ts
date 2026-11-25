@@ -1,3 +1,4 @@
+import { isFunctionReference } from './function-reference';
 import type { JSONSchema7 } from 'json-schema';
 import type {
     FormanSchemaField,
@@ -26,7 +27,6 @@ import {
     normalizeFormanFieldType,
     isVisualType,
     isReferenceType,
-    isFunctionReference,
     isEditableType,
     IML_FILTER_OPERATORS,
     findValueInSelectOptions,
@@ -51,9 +51,10 @@ function fieldAllowsCustomValue(field: FormanSchemaField): boolean {
  * question than the picker that offered the value and legitimately fails to see it (MAIA-1311).
  * Rejecting there is unrecoverable for the user; a warning still surfaces as a setup error.
  */
-function unresolvedOptionIsTolerable(field: FormanSchemaField, root: DomainRoot): boolean {
-    if (field.type === 'function') return root.allowDynamicValues;
-    return root.allowDynamicValues || fieldAllowsCustomValue(field) || isReferenceType(field.type);
+function unresolvedOptionIsTolerable(field: FormanSchemaField, root: DomainRoot, allowCustomValues = true): boolean {
+    return (
+        root.allowDynamicValues || (allowCustomValues && (fieldAllowsCustomValue(field) || isReferenceType(field.type)))
+    );
 }
 
 /**
@@ -525,19 +526,8 @@ async function validateFormanValue(
     }
 
     const expectedType = FORMAN_TYPE_MAP[normalizedField.type];
-    // Function selection is static even when the enclosing domain allows mapping (AX-63).
-    if (normalizedField.type === 'function' && !isFunctionReference(value)) {
-        return {
-            valid: false,
-            errors: [
-                {
-                    domain: context.domain,
-                    path: context.path.join('.'),
-                    message: 'Expected a Function reference FN2_<positive integer> within the API ID range.',
-                },
-            ],
-            warnings: [],
-        };
+    if (normalizedField.type === 'function') {
+        return handleFunctionType(value, normalizedField, context);
     }
     let actualType: string = typeof value;
     if (actualType === 'object' && Array.isArray(value)) actualType = 'array';
@@ -609,7 +599,6 @@ async function validateFormanValue(
         case 'list':
         case 'radio':
         case 'select':
-        case 'function':
         case 'account':
         case 'hook':
         case 'device':
@@ -1099,6 +1088,28 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
     };
 }
 
+async function handleFunctionType(
+    value: unknown,
+    field: FormanSchemaField,
+    context: ValidationContext,
+): Promise<FormanValidationResult> {
+    // Function selection is static even when the enclosing domain allows mapping (AX-63).
+    if (!isFunctionReference(value)) {
+        return {
+            valid: false,
+            errors: [
+                {
+                    domain: context.domain,
+                    path: context.path.join('.'),
+                    message: 'Expected a Function reference FN2_<positive integer> within the API ID range.',
+                },
+            ],
+            warnings: [],
+        };
+    }
+    return handleSelectType(value, field, context, false);
+}
+
 /**
  * Handles select type validation
  * @param field The field to convert
@@ -1110,6 +1121,7 @@ async function handleSelectType(
     value: unknown,
     field: FormanSchemaField,
     context: ValidationContext,
+    allowCustomValues = true,
 ): Promise<FormanValidationResult> {
     const errors: FormanValidationResult['errors'] = [];
     const warnings: FormanValidationResult['warnings'] = [];
@@ -1179,7 +1191,7 @@ async function handleSelectType(
                 optionsOrGroups as FormanSchemaSelectOptionsStore,
             );
             if (!found) {
-                (optionsFromRPC && unresolvedOptionIsTolerable(field, context.roots[context.domain]!)
+                (optionsFromRPC && unresolvedOptionIsTolerable(field, context.roots[context.domain]!, allowCustomValues)
                     ? warnings
                     : errors
                 ).push({
@@ -1193,12 +1205,12 @@ async function handleSelectType(
 
         if (
             optionsFromRPC &&
-            unresolvedOptionIsTolerable(field, context.roots[context.domain]!) &&
+            unresolvedOptionIsTolerable(field, context.roots[context.domain]!, allowCustomValues) &&
             hasUnresolvedValue
         ) {
             context.roots[context.domain]!.fieldStates.push({
                 path: context.path,
-                state: field.type === 'function' ? {} : { mode: 'edit' },
+                state: allowCustomValues ? { mode: 'edit' } : {},
             });
         }
 
@@ -1242,7 +1254,10 @@ async function handleSelectType(
         const item = findValueInSelectOptions(field, value, optionsOrGroups as FormanSchemaSelectOptionsStore);
 
         if (!item) {
-            if (optionsFromRPC && unresolvedOptionIsTolerable(field, context.roots[context.domain]!)) {
+            if (
+                optionsFromRPC &&
+                unresolvedOptionIsTolerable(field, context.roots[context.domain]!, allowCustomValues)
+            ) {
                 warnings.push({
                     domain: context.domain,
                     path: context.path.join('.'),
@@ -1250,7 +1265,7 @@ async function handleSelectType(
                 });
                 context.roots[context.domain]!.fieldStates.push({
                     path: context.path,
-                    state: field.type === 'function' ? {} : { mode: 'edit' },
+                    state: allowCustomValues ? { mode: 'edit' } : {},
                 });
             } else {
                 return {

@@ -27,7 +27,7 @@ describe('Function resources (AX-63)', () => {
         expect(result.skippedPaths?.unconvertible).toBeUndefined();
     });
 
-    it.each(['FN2_1', 'FN2_123', 'FN2_2147483647'])(
+    it.each(['FN2_1', 'FN2_42', 'FN2_2147483646', 'FN2_2147483647'])(
         'preserves %s and validates its generated inputs',
         async functionId => {
             const values = { functionId, count: 7 };
@@ -67,6 +67,13 @@ describe('Function resources (AX-63)', () => {
     });
 
     it.each([
+        'FN2_1\r',
+        'FN2_1\r\n',
+        'FN2_1\u2028',
+        ' FN2_1',
+        'FN2_1 ',
+        'FN2_99999999999999999999',
+        new String('FN2_42'),
         123,
         '123',
         'FN2_0',
@@ -98,6 +105,20 @@ describe('Function resources (AX-63)', () => {
             }),
         ]);
         expect(calls).toBe(0);
+    });
+
+    it('validates defaults before loading options', async () => {
+        const calls: string[] = [];
+        const result = await validateForman({}, [{ ...field, default: '42' }], {
+            fillDefaults: 'always',
+            resolveRemote: async path => {
+                calls.push(path);
+                return [];
+            },
+        });
+        expect(result.valid).toBe(false);
+        expect(calls).toEqual([]);
+        expect(result.normalizedValues).toEqual({ default: { functionId: '42' } });
     });
 
     it.each([false, true])(
