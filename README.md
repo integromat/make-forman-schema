@@ -158,6 +158,13 @@ a `language`, `x-language: '<language>'`. A string-typed field (`text`, `editor`
 serialization, and `toFormanSchema` reads them back into `type: 'editor'`/`language` and
 `multiline: true`.
 
+### Sensitive marker
+
+A `password` or `pkey` field converts to a string schema stamped with `x-sensitive: true`, so a
+consumer can tell a secret from any other text. It is enumerable, like the markers above, and
+`toFormanSchema` reads it back as `type: 'password'` (ahead of `x-editor`); a `pkey` field therefore
+round-trips to `password`.
+
 ### Select typing
 
 A select with static options gets its `type` from the option values: one value type stays scalar,
@@ -479,8 +486,9 @@ const result = await validateFormanWithDomains(
 - json → object (or its `schema` echoed verbatim when provided — see [JSON fields](#json-fields-type-json))
 - keychain → number
 - number → number
+- password → string with `x-sensitive: true`
 - path → string
-- pkey → string
+- pkey → string with `x-sensitive: true`
 - port → number
 - scenario → string
 - select → typed by its option values, with enum / oneOf (array when `multiple: true`) — see [Select typing](#select-typing)
@@ -495,6 +503,7 @@ const result = await validateFormanWithDomains(
 ### JSON Schema Types
 
 - string → text
+- string with `x-sensitive: true` → password (a `pkey` field therefore round-trips to `password`)
 - number → number
 - boolean → boolean
 - object → collection
