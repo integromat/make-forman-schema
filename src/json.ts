@@ -216,7 +216,11 @@ function toFormanSchemaInternal(field: JSONSchema7): FormanSchemaField {
                 default: field.default as FormanSchemaValue,
             };
 
-            if (Object.getOwnPropertyDescriptor(field, 'x-editor')?.value === true) {
+            // A secret stays a secret: `x-sensitive` wins over the editor marker. `pkey` carries the same marker,
+            // so it comes back as `password` too.
+            if (Object.getOwnPropertyDescriptor(field, 'x-sensitive')?.value === true) {
+                textField.type = 'password';
+            } else if (Object.getOwnPropertyDescriptor(field, 'x-editor')?.value === true) {
                 textField.type = 'editor';
                 const language = Object.getOwnPropertyDescriptor(field, 'x-language')?.value;
                 if (typeof language === 'string') textField.language = language;

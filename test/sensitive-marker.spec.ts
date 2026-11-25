@@ -1,5 +1,12 @@
 import { describe, expect, it } from '@jest/globals';
-import { type FormanSchemaField, toJSONSchema, toJSONSchemaAdvanced } from '../src/index.js';
+import type { JSONSchema7 } from 'json-schema';
+import { type FormanSchemaField, toFormanSchema, toJSONSchema, toJSONSchemaAdvanced } from '../src/index.js';
+
+/** Marks a hand-written schema the way the converter does. */
+function sensitive(schema: JSONSchema7): JSONSchema7 {
+    Object.defineProperty(schema, 'x-sensitive', { configurable: true, enumerable: true, writable: true, value: true });
+    return schema;
+}
 
 describe('password and pkey fields carry x-sensitive', () => {
     it.each(['password', 'pkey'])('converts a %s field to a string marked x-sensitive', type => {
@@ -201,5 +208,95 @@ describe('password and pkey fields carry x-sensitive', () => {
             value: true,
         });
         expect(JSON.parse(JSON.stringify(schema))).toEqual({ type: 'string', 'x-sensitive': true });
+    });
+});
+
+describe('x-sensitive through toFormanSchema', () => {
+    it('recovers a hand-written string schema marked x-sensitive as a password field', () => {
+        expect(toFormanSchema(sensitive({ type: 'string' }))).toEqual({ type: 'password' });
+    });
+
+    it('leaves a string schema with format password a text field: only the marker means secret', () => {
+        expect(toFormanSchema({ type: 'string', format: 'password' })).toEqual({ type: 'text' });
+    });
+
+    it('round-trips a password field', () => {
+        const field = {
+            name: 'pass',
+            type: 'password',
+            label: 'Password',
+            help: 'Your password',
+            default: 'x',
+            multiline: true,
+            validate: { min: 8, max: 64, pattern: '^\\S+$' },
+        } as const;
+
+        expect(toFormanSchema(toJSONSchema(field))).toEqual({
+            type: 'password',
+            label: 'Password',
+            help: 'Your password',
+            default: 'x',
+            multiline: true,
+            validate: { min: 8, max: 64, pattern: '^\\S+$' },
+        });
+    });
+
+    it('round-trips a pkey field to password', () => {
+        // `pkey` and `password` emit the same schema and nothing tells them apart, so `pkey` comes back
+        // as `password`: still a secret, but no longer flagged as a private key.
+        expect(toFormanSchema(toJSONSchema({ name: 'key', type: 'pkey', label: 'Key', multiline: true }))).toEqual({
+            type: 'password',
+            label: 'Key',
+            multiline: true,
+        });
+    });
+
+    it('recovers a password inside a collection', () => {
+        const schema = toJSONSchema({
+            type: 'collection',
+            spec: [
+                { name: 'user', type: 'text' },
+                { name: 'pass', type: 'password', required: true },
+            ],
+        });
+
+        expect(toFormanSchema(schema).spec).toEqual([
+            { name: 'user', type: 'text', required: false },
+            { name: 'pass', type: 'password', required: true },
+        ]);
+    });
+
+    it('keeps the existing precedence: an option list makes a select, x-path a path field', () => {
+        expect(toFormanSchema(sensitive({ type: 'string', enum: ['a', 'b'] }))).toEqual({
+            type: 'select',
+            options: [{ value: 'a' }, { value: 'b' }],
+        });
+        expect(toFormanSchema(sensitive({ type: 'string', oneOf: [{ const: 'a' }] }))).toEqual({
+            type: 'select',
+            options: [{ value: 'a' }],
+        });
+
+        const path = sensitive({ type: 'string' });
+        Object.defineProperty(path, 'x-path', { enumerable: true, value: { type: 'folder' } });
+        expect(toFormanSchema(path).type).toBe('folder');
+    });
+
+    it('keeps a secret a password when the schema also carries x-editor', () => {
+        const schema = sensitive({ type: 'string' });
+        Object.defineProperty(schema, 'x-editor', { enumerable: true, value: true });
+        Object.defineProperty(schema, 'x-language', { enumerable: true, value: 'json' });
+
+        expect(toFormanSchema(schema)).toEqual({ type: 'password' });
+    });
+
+    it('ignores x-sensitive set to anything but true', () => {
+        const schema: JSONSchema7 = { type: 'string' };
+        Object.defineProperty(schema, 'x-sensitive', { enumerable: true, value: 'yes' });
+
+        expect(toFormanSchema(schema)).toEqual({ type: 'text' });
+    });
+
+    it.each(['email', 'uri', 'date-time', 'uuid'])('leaves a string with format %s a text field', format => {
+        expect(toFormanSchema({ type: 'string', format })).toEqual({ type: 'text' });
     });
 });
