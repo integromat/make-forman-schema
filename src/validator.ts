@@ -51,9 +51,10 @@ function fieldAllowsCustomValue(field: FormanSchemaField): boolean {
  * question than the picker that offered the value and legitimately fails to see it (MAIA-1311).
  * Rejecting there is unrecoverable for the user; a warning still surfaces as a setup error.
  */
-function unresolvedOptionIsTolerable(field: FormanSchemaField, root: DomainRoot, allowCustomValues = true): boolean {
+function unresolvedOptionIsTolerable(field: FormanSchemaField, root: DomainRoot, allowFieldFallback = true): boolean {
     return (
-        root.allowDynamicValues || (allowCustomValues && (fieldAllowsCustomValue(field) || isReferenceType(field.type)))
+        root.allowDynamicValues ||
+        (allowFieldFallback && (fieldAllowsCustomValue(field) || isReferenceType(field.type)))
     );
 }
 
@@ -1088,6 +1089,11 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
     };
 }
 
+type UnresolvedOptionPolicy = {
+    allowFieldFallback: boolean;
+    restoreAsEditable: boolean;
+};
+
 async function handleFunctionType(
     value: unknown,
     field: FormanSchemaField,
@@ -1107,7 +1113,10 @@ async function handleFunctionType(
             warnings: [],
         };
     }
-    return handleSelectType(value, field, context, false);
+    return handleSelectType(value, field, context, {
+        allowFieldFallback: false,
+        restoreAsEditable: false,
+    });
 }
 
 /**
@@ -1121,8 +1130,9 @@ async function handleSelectType(
     value: unknown,
     field: FormanSchemaField,
     context: ValidationContext,
-    allowCustomValues = true,
+    unresolvedOptionPolicy: UnresolvedOptionPolicy = { allowFieldFallback: true, restoreAsEditable: true },
 ): Promise<FormanValidationResult> {
+    const { allowFieldFallback, restoreAsEditable } = unresolvedOptionPolicy;
     const errors: FormanValidationResult['errors'] = [];
     const warnings: FormanValidationResult['warnings'] = [];
 
@@ -1191,7 +1201,8 @@ async function handleSelectType(
                 optionsOrGroups as FormanSchemaSelectOptionsStore,
             );
             if (!found) {
-                (optionsFromRPC && unresolvedOptionIsTolerable(field, context.roots[context.domain]!, allowCustomValues)
+                (optionsFromRPC &&
+                unresolvedOptionIsTolerable(field, context.roots[context.domain]!, allowFieldFallback)
                     ? warnings
                     : errors
                 ).push({
@@ -1205,12 +1216,12 @@ async function handleSelectType(
 
         if (
             optionsFromRPC &&
-            unresolvedOptionIsTolerable(field, context.roots[context.domain]!, allowCustomValues) &&
+            unresolvedOptionIsTolerable(field, context.roots[context.domain]!, allowFieldFallback) &&
             hasUnresolvedValue
         ) {
             context.roots[context.domain]!.fieldStates.push({
                 path: context.path,
-                state: allowCustomValues ? { mode: 'edit' } : {},
+                state: restoreAsEditable ? { mode: 'edit' } : {},
             });
         }
 
@@ -1256,7 +1267,7 @@ async function handleSelectType(
         if (!item) {
             if (
                 optionsFromRPC &&
-                unresolvedOptionIsTolerable(field, context.roots[context.domain]!, allowCustomValues)
+                unresolvedOptionIsTolerable(field, context.roots[context.domain]!, allowFieldFallback)
             ) {
                 warnings.push({
                     domain: context.domain,
@@ -1265,7 +1276,7 @@ async function handleSelectType(
                 });
                 context.roots[context.domain]!.fieldStates.push({
                     path: context.path,
-                    state: allowCustomValues ? { mode: 'edit' } : {},
+                    state: restoreAsEditable ? { mode: 'edit' } : {},
                 });
             } else {
                 return {

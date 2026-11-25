@@ -197,11 +197,15 @@ describe('allowDynamicValues', () => {
                 const schema: FormanSchemaField[] = [
                     { name: 'colors', type: 'select', multiple: true, options: 'rpc://getColors', editable: true },
                 ];
-                const result = await validateForman({ colors: ['red', 'green'] }, schema, { resolveRemote });
+                const result = await validateForman({ colors: ['red', 'green'] }, schema, {
+                    resolveRemote,
+                    states: true,
+                });
                 expect(result.valid).toBe(true);
                 expect(result.warnings).toEqual([
                     expect.objectContaining({ message: "Value 'green' not found in options." }),
                 ]);
+                expect(result.states).toEqual({ default: { colors: { mode: 'edit' } } });
             });
         });
 
