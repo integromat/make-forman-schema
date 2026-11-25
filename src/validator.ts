@@ -1093,7 +1093,7 @@ async function handleFunctionType(
     field: FormanSchemaField,
     context: ValidationContext,
 ): Promise<FormanValidationResult> {
-    // Function selection is static even when the enclosing domain allows mapping (AX-63).
+    // Mapping permissions never relax the reference format.
     if (!isFunctionReference(value)) {
         return {
             valid: false,

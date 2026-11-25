@@ -1,4 +1,4 @@
-// Canonical positive int32 IDs; each alternative covers a digit of the API maximum, 2147483647 (AX-63).
+// Decimal range 1..2147483647, matching the Functions API.
 const idPattern = [
     '[1-9][0-9]{0,8}',
     '1[0-9]{9}',
