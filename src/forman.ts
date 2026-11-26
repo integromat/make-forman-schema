@@ -1033,6 +1033,17 @@ function handlePrimitiveType(field: FormanSchemaField, result: JSONSchema7, cont
 
     if (field.rpc) result = processRpcDirective(field, result, context);
 
+    // Secret fields are marked so a consumer can tell them from any other text. `pkey` (a private key) shares
+    // the marker; `toFormanSchema` reads it back as `password`.
+    if ((field.type === 'password' || field.type === 'pkey') && result.type === 'string') {
+        Object.defineProperty(result, 'x-sensitive', {
+            configurable: true,
+            enumerable: true,
+            writable: true,
+            value: true,
+        });
+    }
+
     if (field.type === 'editor') {
         Object.defineProperty(result, 'x-editor', {
             configurable: true,
