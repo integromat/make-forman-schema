@@ -2,6 +2,15 @@
 
 Conversion and validation utilities for Forman Schema.
 
+## v2.4.0 — `function` fields
+
+Forman `function` fields (a Make Function picker) are supported in conversion and validation.
+
+- `toJSONSchema` writes a `function` field as a string holding a `FN2_<id>` reference (`pattern`, `maxLength`
+  14, ids 1..2147483647), with options from `api://functions/v2`. It is never multiple, mappable or editable.
+- The validator refuses any value that is not a `FN2_<id>` reference, mapped or not. An id the Functions API
+  does not return is an error unless `allowDynamicValues` is set; then it is a warning.
+
 ## v2.3.0 — `validate.min`/`max` convert by the field's JSON type
 
 `toJSONSchema` now writes `validate.min`/`validate.max` the way the validator reads them: a length for
