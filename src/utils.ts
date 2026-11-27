@@ -38,6 +38,7 @@ export const FORMAN_REFERENCE_TYPES = [
     'aiagent',
     'udt',
     'scenario',
+    'function',
 ] as const;
 
 /**
@@ -128,6 +129,7 @@ export const API_ENDPOINTS = {
     keychain: 'api://keys/{{kind}}',
     udt: 'api://data-structures',
     scenario: 'api://scenario-list',
+    function: 'api://functions/v2',
 } as const;
 
 /**
@@ -137,6 +139,7 @@ export const API_ENDPOINTS = {
  */
 export function normalizeFormanFieldType(field: FormanSchemaField): FormanSchemaField {
     const [type, kind] = field.type.split(':');
+    if (type === 'function') field = { ...field, mappable: false, editable: false, multiple: false };
     if (!type) return field;
     if (!(type in API_ENDPOINTS)) return field;
 

@@ -1,3 +1,4 @@
+import { functionReferencePattern, MAX_FUNCTION_REFERENCE_LENGTH } from './function-reference';
 import type { JSONSchema7, JSONSchema7Definition, JSONSchema7TypeName } from 'json-schema';
 import type {
     FormanSchemaField,
@@ -138,6 +139,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, JSONSchema7['type']>> = {
     list: 'string',
     radio: 'string',
     scenario: 'string',
+    function: 'string',
     select: 'string',
     udttype: 'string',
     udtspec: 'array',
@@ -204,7 +206,7 @@ export function resolveFormanFieldType(rawType: string | undefined): string | un
 export function isMultipleSelect(field: FormanSchemaField): boolean {
     if (field.multiple !== true) return false;
     const type = resolveFormanFieldType(field.type);
-    return type !== 'file' && type !== 'folder';
+    return type !== 'file' && type !== 'folder' && type !== 'function';
 }
 
 /**
@@ -371,6 +373,14 @@ export function toJSONSchemaInternal(field: FormanSchemaField, context: Conversi
     };
 
     switch (normalizedField.type) {
+        case 'function': {
+            return {
+                ...handleSelectOrPathType(normalizedField, result, context),
+                type: 'string',
+                pattern: functionReferencePattern(!normalizedField.required),
+                maxLength: MAX_FUNCTION_REFERENCE_LENGTH,
+            };
+        }
         case 'collection':
         case 'dynamicCollection':
             return handleCollectionType(normalizedField, result, context);

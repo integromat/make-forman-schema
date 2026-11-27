@@ -1,3 +1,4 @@
+import { isFunctionReference } from './function-reference';
 import type { JSONSchema7 } from 'json-schema';
 import type {
     FormanSchemaField,
@@ -50,8 +51,11 @@ function fieldAllowsCustomValue(field: FormanSchemaField): boolean {
  * question than the picker that offered the value and legitimately fails to see it (MAIA-1311).
  * Rejecting there is unrecoverable for the user; a warning still surfaces as a setup error.
  */
-function unresolvedOptionIsTolerable(field: FormanSchemaField, root: DomainRoot): boolean {
-    return root.allowDynamicValues || fieldAllowsCustomValue(field) || isReferenceType(field.type);
+function unresolvedOptionIsTolerable(field: FormanSchemaField, root: DomainRoot, allowFieldFallback = true): boolean {
+    return (
+        root.allowDynamicValues ||
+        (allowFieldFallback && (fieldAllowsCustomValue(field) || isReferenceType(field.type)))
+    );
 }
 
 /**
@@ -230,6 +234,7 @@ const FORMAN_TYPE_MAP: Readonly<Record<string, string | undefined>> = {
     list: undefined,
     radio: undefined,
     select: undefined,
+    function: 'string',
     udttype: 'string',
     udtspec: 'array',
     time: 'string',
@@ -522,6 +527,9 @@ async function validateFormanValue(
     }
 
     const expectedType = FORMAN_TYPE_MAP[normalizedField.type];
+    if (normalizedField.type === 'function') {
+        return handleFunctionType(value, normalizedField, context);
+    }
     let actualType: string = typeof value;
     if (actualType === 'object' && Array.isArray(value)) actualType = 'array';
 
@@ -1033,10 +1041,7 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
 
         const selectedOption = selectableOptions.find(candidate => candidate.value === levelSelectedValue);
         if (!selectedOption) {
-            if (
-                optionsFromRPC &&
-                unresolvedOptionIsTolerable(field, context.roots[context.domain]!)
-            ) {
+            if (optionsFromRPC && unresolvedOptionIsTolerable(field, context.roots[context.domain]!)) {
                 warnings.push({
                     domain: context.domain,
                     path: context.path.join('.'),
@@ -1084,6 +1089,36 @@ async function handlePathType(value: unknown, field: FormanSchemaField, context:
     };
 }
 
+type UnresolvedOptionPolicy = {
+    allowFieldFallback: boolean;
+    restoreAsEditable: boolean;
+};
+
+async function handleFunctionType(
+    value: unknown,
+    field: FormanSchemaField,
+    context: ValidationContext,
+): Promise<FormanValidationResult> {
+    // Mapping permissions never relax the reference format.
+    if (!isFunctionReference(value)) {
+        return {
+            valid: false,
+            errors: [
+                {
+                    domain: context.domain,
+                    path: context.path.join('.'),
+                    message: 'Expected a Function reference FN2_<positive integer> within the API ID range.',
+                },
+            ],
+            warnings: [],
+        };
+    }
+    return handleSelectType(value, field, context, {
+        allowFieldFallback: false,
+        restoreAsEditable: false,
+    });
+}
+
 /**
  * Handles select type validation
  * @param field The field to convert
@@ -1095,7 +1130,9 @@ async function handleSelectType(
     value: unknown,
     field: FormanSchemaField,
     context: ValidationContext,
+    unresolvedOptionPolicy: UnresolvedOptionPolicy = { allowFieldFallback: true, restoreAsEditable: true },
 ): Promise<FormanValidationResult> {
+    const { allowFieldFallback, restoreAsEditable } = unresolvedOptionPolicy;
     const errors: FormanValidationResult['errors'] = [];
     const warnings: FormanValidationResult['warnings'] = [];
 
@@ -1164,7 +1201,8 @@ async function handleSelectType(
                 optionsOrGroups as FormanSchemaSelectOptionsStore,
             );
             if (!found) {
-                (optionsFromRPC && unresolvedOptionIsTolerable(field, context.roots[context.domain]!)
+                (optionsFromRPC &&
+                unresolvedOptionIsTolerable(field, context.roots[context.domain]!, allowFieldFallback)
                     ? warnings
                     : errors
                 ).push({
@@ -1178,12 +1216,12 @@ async function handleSelectType(
 
         if (
             optionsFromRPC &&
-            unresolvedOptionIsTolerable(field, context.roots[context.domain]!) &&
+            unresolvedOptionIsTolerable(field, context.roots[context.domain]!, allowFieldFallback) &&
             hasUnresolvedValue
         ) {
             context.roots[context.domain]!.fieldStates.push({
                 path: context.path,
-                state: { mode: 'edit' },
+                state: restoreAsEditable ? { mode: 'edit' } : {},
             });
         }
 
@@ -1229,7 +1267,7 @@ async function handleSelectType(
         if (!item) {
             if (
                 optionsFromRPC &&
-                unresolvedOptionIsTolerable(field, context.roots[context.domain]!)
+                unresolvedOptionIsTolerable(field, context.roots[context.domain]!, allowFieldFallback)
             ) {
                 warnings.push({
                     domain: context.domain,
@@ -1238,7 +1276,7 @@ async function handleSelectType(
                 });
                 context.roots[context.domain]!.fieldStates.push({
                     path: context.path,
-                    state: { mode: 'edit' },
+                    state: restoreAsEditable ? { mode: 'edit' } : {},
                 });
             } else {
                 return {
